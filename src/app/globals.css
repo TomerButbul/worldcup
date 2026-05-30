@@ -1,0 +1,167 @@
+@import "tailwindcss";
+
+@theme inline {
+  /* World Cup palette */
+  --color-night: #04140e;
+  --color-night-2: #07241a;
+  --color-pitch: #0b3d2c;
+  --color-grass: #19c37d;
+  --color-grass-bright: #2de89a;
+  --color-gold: #f6c453;
+  --color-gold-bright: #ffd970;
+  --color-chalk: #eaf3ee;
+  --color-chalk-dim: #8fa89d;
+
+  --color-background: var(--color-night);
+  --color-foreground: var(--color-chalk);
+
+  --font-display: var(--font-anton);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  --shadow-glow-gold: 0 0 24px -2px rgba(246, 196, 83, 0.55);
+  --shadow-glow-grass: 0 0 24px -2px rgba(25, 195, 125, 0.6);
+}
+
+html {
+  background: var(--color-night);
+  color: var(--color-chalk);
+}
+
+body {
+  font-family: var(--font-sans), system-ui, sans-serif;
+  background:
+    radial-gradient(1200px 600px at 50% -10%, rgba(25, 195, 125, 0.18), transparent 60%),
+    radial-gradient(900px 500px at 100% 0%, rgba(246, 196, 83, 0.12), transparent 55%),
+    radial-gradient(800px 800px at 0% 100%, rgba(11, 61, 44, 0.5), transparent 60%),
+    var(--color-night);
+  min-height: 100vh;
+}
+
+/* ---- Reusable utilities ---- */
+.font-display {
+  font-family: var(--font-display), Impact, sans-serif;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.glass {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.06),
+    rgba(255, 255, 255, 0.02)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+.glass-strong {
+  background: linear-gradient(
+    180deg,
+    rgba(7, 36, 26, 0.85),
+    rgba(4, 20, 14, 0.9)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(12px);
+}
+
+.glow-gold {
+  box-shadow: var(--shadow-glow-gold);
+}
+.glow-grass {
+  box-shadow: var(--shadow-glow-grass);
+}
+
+.text-gradient-gold {
+  background: linear-gradient(90deg, var(--color-gold-bright), var(--color-gold));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Pitch stripes overlay */
+.pitch-stripes {
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.03) 0px,
+    rgba(255, 255, 255, 0.03) 2px,
+    transparent 2px,
+    transparent 64px
+  );
+}
+
+/* Animated gold shine sweep (buttons) */
+.shine {
+  position: relative;
+  overflow: hidden;
+}
+.shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    120deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.45) 50%,
+    transparent 70%
+  );
+  transform: translateX(-150%);
+}
+.shine:hover::after {
+  animation: shine-sweep 0.9s ease;
+}
+
+@keyframes shine-sweep {
+  to {
+    transform: translateX(150%);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(25, 195, 125, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 22px 4px rgba(25, 195, 125, 0.35);
+  }
+}
+.animate-pulse-glow {
+  animation: pulse-glow 1.8s ease-in-out infinite;
+}
+
+@keyframes float-y {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+@keyframes sway {
+  0%, 100% { transform: rotate(-5deg); }
+  50% { transform: rotate(5deg); }
+}
+.animate-sway {
+  animation: sway 2.4s ease-in-out infinite;
+}
+
+@keyframes bg-drift {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(2%, -2%, 0) scale(1.05); }
+  100% { transform: translate3d(0, 0, 0) scale(1); }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb {
+  background: rgba(25, 195, 125, 0.35);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-track { background: transparent; }
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

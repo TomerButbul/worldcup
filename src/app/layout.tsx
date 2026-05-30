@@ -1,0 +1,49 @@
+import type { Metadata } from "next";
+import { Geist, Geist_Mono, Anton } from "next/font/google";
+import "./globals.css";
+import AnimatedBackground from "@/components/AnimatedBackground";
+import FlagGarland from "@/components/FlagGarland";
+import SoundToggle from "@/components/SoundToggle";
+
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+const anton = Anton({
+  variable: "--font-anton",
+  weight: "400",
+  subsets: ["latin"],
+});
+
+export const metadata: Metadata = {
+  title: "WorldCuP — 2026 Bracket & Prediction Game",
+  description: "Predict the 2026 World Cup bracket and match results. Compete with friends.",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html
+      lang="en"
+      className={`${geistSans.variable} ${geistMono.variable} ${anton.variable} h-full antialiased`}
+    >
+      <body className="relative min-h-full flex flex-col overflow-x-hidden">
+        <AnimatedBackground />
+        <div className="fixed inset-x-0 top-0 z-30">
+          <FlagGarland />
+        </div>
+        <div className="relative z-10 flex min-h-screen flex-col pt-6">{children}</div>
+        <SoundToggle />
+      </body>
+    </html>
+  );
+}
