@@ -111,7 +111,7 @@ export default function Leaderboard({
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+            className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
               tab === t.key
                 ? "bg-grass text-night"
                 : "glass text-chalk-dim hover:text-chalk"
@@ -123,7 +123,7 @@ export default function Leaderboard({
       </div>
 
       <div className="glass-strong overflow-hidden rounded-2xl">
-        <div className="grid grid-cols-[1.5rem_1fr_2.25rem_2.25rem_2.75rem] items-center gap-1.5 border-b border-white/10 px-3 py-2.5 text-xs uppercase tracking-wider text-chalk-dim sm:grid-cols-[2.5rem_1fr_3.5rem_3.5rem_4rem] sm:gap-2 sm:px-4">
+        <div className="grid grid-cols-[1.25rem_1fr_2rem_2rem_2.5rem] items-center gap-1.5 border-b border-white/10 px-3 py-2.5 text-xs uppercase tracking-wider text-chalk-dim sm:grid-cols-[2.5rem_1fr_3.5rem_3.5rem_4rem] sm:gap-2 sm:px-4">
           <span>#</span>
           <span>Player</span>
           <span className={`text-right ${tab === "upfront" ? "text-grass-bright" : ""}`}>🎯</span>
@@ -155,38 +155,39 @@ export default function Leaderboard({
                         ? { x: { duration: 0.6, repeat: Infinity, repeatDelay: 2.5 }, layout: { type: "spring", stiffness: 500, damping: 40 } }
                         : { type: "spring", stiffness: 500, damping: 40 }
                     }
-                    className={`grid grid-cols-[1.5rem_1fr_2.25rem_2.25rem_2.75rem] items-center gap-1.5 border-b border-white/5 px-3 py-3 text-sm sm:grid-cols-[2.5rem_1fr_3.5rem_3.5rem_4rem] sm:gap-2 sm:px-4 ${
+                    className={`grid grid-cols-[1.25rem_1fr_2rem_2rem_2.5rem] items-center gap-1.5 border-b border-white/5 px-3 py-3 text-sm sm:grid-cols-[2.5rem_1fr_3.5rem_3.5rem_4rem] sm:gap-2 sm:px-4 ${
                       isWinner ? "animate-pulse-glow bg-gold/15" : isLoser ? "bg-red-500/5" : ""
                     } ${isMe ? "ring-1 ring-inset ring-grass/50" : ""}`}
                   >
                     <span className="text-lg">
                       {isWinner ? "👑" : MEDALS[i] ?? <span className="text-chalk-dim">{i + 1}</span>}
                     </span>
-                    <span className="flex min-w-0 items-center gap-2">
-                      <Avatar url={r.avatarUrl} name={r.name} size={26} />
+                    <span className="flex min-w-0 items-center gap-1.5">
+                      <Avatar url={r.avatarUrl} name={r.name} size={22} />
                       {r.favTeamId && <Flag teamId={r.favTeamId} size={16} />}
-                      <span className="truncate font-semibold text-chalk">{r.name}</span>
+                      <span className="min-w-0 flex-1 truncate font-semibold text-chalk">{r.name}</span>
                       {isMe && (
-                        <span className="rounded bg-grass/20 px-1.5 py-0.5 text-[10px] font-bold text-grass-bright">
+                        <span className="shrink-0 rounded bg-grass/20 px-1.5 py-0.5 text-[10px] font-bold text-grass-bright">
                           you
                         </span>
                       )}
-                      {isWinner && <span className="text-sm">✨</span>}
+                      {isWinner && <span className="shrink-0 text-sm">✨</span>}
                       {isLoser && (
                         <>
-                          <span title="Last place" className="text-base">🥄</span>
+                          <span title="Last place" className="shrink-0 text-base">🥄</span>
                           <button
                             onClick={troll}
-                            className="ml-1 rounded-full border border-red-400/40 px-2 py-0.5 text-[10px] text-red-300 transition hover:bg-red-500/20"
+                            className="shrink-0 rounded-full border border-red-400/40 px-2 py-1 text-xs text-red-300 transition hover:bg-red-500/20"
                             title="Rain shame on the loser"
+                            aria-label="Rain shame on the loser"
                           >
-                            🍅 troll
+                            🍅<span className="hidden sm:inline"> troll</span>
                           </button>
                         </>
                       )}
                     </span>
-                    <span className="text-right tabular-nums text-chalk-dim">{r.upfront}</span>
-                    <span className="text-right tabular-nums text-chalk-dim">{r.live}</span>
+                    <span className="text-right tabular-nums text-chalk/70">{r.upfront}</span>
+                    <span className="text-right tabular-nums text-chalk/70">{r.live}</span>
                     <motion.span
                       key={r.total}
                       initial={{ scale: 1.4, color: "#ffd970" }}

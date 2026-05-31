@@ -130,11 +130,11 @@ export default function BracketEditor({
   const allComplete = stepsDone === totalSteps;
 
   return (
-    <div className="space-y-10 pb-24">
+    <div className="space-y-10 pb-36">
       {/* Group stage */}
       <section className="space-y-3">
         <h2 className="font-display text-xl text-chalk">⚽ Group stage — top 2 advance</h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {Object.entries(standings).map(([label, teams]) => (
             <div key={label} className="glass rounded-2xl p-3">
               <h3 className="mb-2 font-display text-sm text-gold">Group {label}</h3>
@@ -147,18 +147,18 @@ export default function BracketEditor({
                       i < 2 ? "bg-grass/10" : "bg-black/10"
                     }`}
                   >
-                    <span className="flex items-center gap-2">
-                      <span className="w-4 text-chalk-dim">{i + 1}</span>
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span className="w-4 shrink-0 text-chalk-dim">{i + 1}</span>
                       <Flag teamId={t.id} logoUrl={t.logo_url} code={t.code} name={t.name} size={18} />
-                      <span className="text-chalk">{t.name}</span>
-                      {i < 2 && <span className="text-xs text-grass-bright">✓</span>}
+                      <span className="truncate text-chalk">{t.name}</span>
+                      {i < 2 && <span className="shrink-0 text-xs text-grass-bright">✓</span>}
                     </span>
                     {!locked && (
-                      <span className="flex gap-1">
+                      <span className="flex shrink-0 gap-1">
                         <button
                           onClick={() => move(label, i, -1)}
                           disabled={i === 0}
-                          className="rounded px-2.5 py-1 text-base leading-none text-chalk-dim hover:text-chalk disabled:opacity-20"
+                          className="rounded px-3 py-2 text-lg leading-none text-chalk-dim hover:text-chalk disabled:opacity-20"
                           aria-label="Move up"
                         >
                           ↑
@@ -166,7 +166,7 @@ export default function BracketEditor({
                         <button
                           onClick={() => move(label, i, 1)}
                           disabled={i === teams.length - 1}
-                          className="rounded px-2.5 py-1 text-base leading-none text-chalk-dim hover:text-chalk disabled:opacity-20"
+                          className="rounded px-3 py-2 text-lg leading-none text-chalk-dim hover:text-chalk disabled:opacity-20"
                           aria-label="Move down"
                         >
                           ↓
@@ -182,7 +182,7 @@ export default function BracketEditor({
       </section>
 
       {/* Knockout funnel */}
-      <section className="space-y-5">
+      <section className="space-y-5 border-t border-white/10 pt-8">
         <h2 className="font-display text-xl text-chalk">🔥 Knockout — pick who advances</h2>
         {STAGES.map((stage) => {
           const pool = poolFor(stage.key);
@@ -213,7 +213,7 @@ export default function BracketEditor({
                         whileTap={{ scale: 0.88 }}
                         onClick={() => toggle(stage.key, t.id)}
                         disabled={locked || (!active && full)}
-                        className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm transition disabled:cursor-not-allowed disabled:opacity-30 ${
+                        className={`flex min-h-10 items-center gap-1.5 rounded-full border px-3 py-2 text-sm transition disabled:cursor-not-allowed disabled:opacity-30 ${
                           active
                             ? "border-grass bg-grass text-night glow-grass"
                             : "border-white/15 text-chalk hover:bg-white/10"
@@ -244,7 +244,7 @@ export default function BracketEditor({
                   whileHover={{ scale: 1.05 }}
                   onClick={() => pickChampion(champion === t.id ? null : t.id)}
                   disabled={locked}
-                  className={`flex items-center gap-2 rounded-xl border px-6 py-3 font-display text-lg transition ${
+                  className={`flex items-center gap-2 rounded-xl border px-5 py-3 font-display text-base transition sm:text-lg ${
                     champion === t.id
                       ? "border-gold bg-gold/15 text-gold glow-gold"
                       : "border-white/15 text-chalk hover:bg-white/10"
@@ -262,7 +262,7 @@ export default function BracketEditor({
 
       {!locked && (
         <div className="fixed inset-x-0 bottom-0 z-20 border-t border-white/10 bg-night/80 backdrop-blur">
-          <div className="mx-auto flex max-w-4xl items-center gap-3 px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] pr-16 sm:px-6 sm:pr-20">
+          <div className="mx-auto flex max-w-4xl flex-wrap items-center gap-x-3 gap-y-1.5 px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] pr-16 sm:px-6 sm:pr-20">
             <GameButton onClick={save} disabled={pending} variant="gold">
               {pending ? "Saving…" : "💾 Save picks"}
             </GameButton>

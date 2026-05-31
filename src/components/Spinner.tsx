@@ -1,13 +1,14 @@
 "use client";
 
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 
 export default function Spinner({ label = "Loading…" }: { label?: string }) {
+  const reduce = useReducedMotion();
   return (
     <div className="flex flex-col items-center gap-4 text-chalk-dim">
       <motion.div
         className="text-4xl"
-        animate={{ rotate: 360 }}
+        animate={reduce ? undefined : { rotate: 360 }}
         transition={{ duration: 1.1, repeat: Infinity, ease: "linear" }}
       >
         ⚽

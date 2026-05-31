@@ -83,9 +83,9 @@ export default function MatchCard({ leagueId, match, homePlayers, awayPlayers, i
 
   return (
     <motion.div layout className="glass rounded-2xl p-4">
-      <div className="mb-3 flex items-center justify-between text-xs text-chalk-dim">
-        <span className="font-display text-gold">{STAGE_LABEL[match.stage] ?? match.stage}</span>
-        <span className="flex items-center gap-2">
+      <div className="mb-3 flex items-center justify-between gap-2 text-xs text-chalk-dim">
+        <span className="truncate font-display text-gold">{STAGE_LABEL[match.stage] ?? match.stage}</span>
+        <span className="flex shrink-0 items-center gap-2 whitespace-nowrap">
           {live && (
             <span className="flex items-center gap-1 rounded-full bg-red-500/20 px-2 py-0.5 text-red-300">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-400" /> LIVE
@@ -143,7 +143,7 @@ export default function MatchCard({ leagueId, match, homePlayers, awayPlayers, i
                     key={p.id}
                     whileTap={{ scale: 0.88 }}
                     onClick={() => toggleScorer(p.id)}
-                    className={`flex items-center gap-1.5 rounded-full border py-0.5 pl-0.5 pr-2.5 text-xs transition ${
+                    className={`flex items-center gap-1.5 rounded-full border py-1 pl-0.5 pr-2.5 text-xs transition ${
                       scorers.includes(p.id)
                         ? "border-grass bg-grass text-night"
                         : "border-white/15 text-chalk hover:bg-white/10"
@@ -177,13 +177,13 @@ export default function MatchCard({ leagueId, match, homePlayers, awayPlayers, i
 function Stepper({ value, onDec, onInc }: { value: number; onDec: () => void; onInc: () => void }) {
   return (
     <div className="flex flex-col items-center">
-      <button onClick={onInc} className="text-chalk-dim hover:text-chalk" aria-label="Increase">
+      <button onClick={onInc} className="px-3 py-1 text-base leading-none text-chalk-dim hover:text-chalk" aria-label="Increase">
         ▲
       </button>
       <span className="w-9 rounded-lg bg-black/30 py-1 text-center font-display text-lg text-chalk">
         {value}
       </span>
-      <button onClick={onDec} className="text-chalk-dim hover:text-chalk" aria-label="Decrease">
+      <button onClick={onDec} className="px-3 py-1 text-base leading-none text-chalk-dim hover:text-chalk" aria-label="Decrease">
         ▼
       </button>
     </div>

@@ -66,22 +66,24 @@ export default async function DashboardPage({
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 p-4 sm:space-y-8 sm:p-6">
       <Reveal>
         <header className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
+          <div className="flex min-w-0 items-center gap-3">
             <Avatar url={profile?.avatar_url} name={profile?.team_name || displayName} size={52} />
-            <div>
-              <h1 className="flex items-center gap-2 font-display text-3xl text-gradient-gold">
+            <div className="min-w-0">
+              <h1 className="flex min-w-0 items-center gap-2 font-display text-2xl text-gradient-gold sm:text-3xl">
                 {favTeam && (
                   <Flag teamId={favTeam.id} logoUrl={favTeam.logo_url} code={favTeam.code} name={favTeam.name} size={28} />
                 )}
-                {profile?.team_name || displayName}
+                <span className="truncate">{profile?.team_name || displayName}</span>
               </h1>
-              <p className="text-sm text-chalk-dim">
+              <p className="truncate text-sm text-chalk-dim">
                 {profile?.team_name ? `Managed by ${displayName}` : "Welcome back"}
               </p>
             </div>
           </div>
-          <form action={logout}>
-            <button className="text-sm text-chalk-dim transition hover:text-chalk">Log out</button>
+          <form action={logout} className="shrink-0">
+            <button className="rounded-lg px-3 py-2 text-sm text-chalk-dim transition hover:bg-white/10 hover:text-chalk">
+              Log out
+            </button>
           </form>
         </header>
       </Reveal>

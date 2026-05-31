@@ -6,7 +6,7 @@ export default function Hero() {
   return (
     <div className="space-y-5">
       <motion.div
-        className="text-7xl sm:text-8xl"
+        className="text-6xl sm:text-8xl"
         initial={{ scale: 0, rotate: -20 }}
         animate={{ scale: 1, rotate: 0 }}
         transition={{ type: "spring", stiffness: 200, damping: 12, delay: 0.1 }}
@@ -21,7 +21,7 @@ export default function Hero() {
       </motion.div>
 
       <motion.h1
-        className="font-display text-5xl leading-none sm:text-7xl"
+        className="font-display text-4xl leading-none sm:text-7xl"
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.2 }}

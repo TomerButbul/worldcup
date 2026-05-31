@@ -26,7 +26,7 @@ export default function Flag({
   if (!src || failed) {
     return (
       <span
-        className={`inline-flex items-center justify-center rounded-sm bg-black/30 text-[9px] font-bold text-chalk-dim ${className}`}
+        className={`inline-flex shrink-0 items-center justify-center rounded-sm bg-black/30 text-[8px] font-bold text-chalk-dim ${className}`}
         style={{ width: size, height: size }}
         title={name}
       >
@@ -43,7 +43,7 @@ export default function Flag({
       width={size}
       height={size}
       onError={() => setFailed(true)}
-      className={`inline-block rounded-sm object-contain ${className}`}
+      className={`inline-block shrink-0 rounded-sm object-contain ${className}`}
       style={{ width: size, height: size }}
     />
   );

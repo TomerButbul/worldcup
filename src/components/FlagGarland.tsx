@@ -5,7 +5,7 @@ const COLORS = [
   "#9b3be2", "#2de89a", "#ff8a3b", "#e23bb0", "#3be2d8",
 ];
 
-export default function FlagGarland({ count = 22 }: { count?: number }) {
+export default function FlagGarland({ count = 16 }: { count?: number }) {
   return (
     <div aria-hidden className="relative h-6 w-full overflow-hidden">
       <div className="absolute left-0 top-1 h-px w-full bg-white/20" />

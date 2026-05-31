@@ -49,7 +49,7 @@ export default function FavoriteTeamStatus({ status }: { status: FavTeamStatus }
                 : {}
           }
           transition={{ duration: good ? 1.6 : 0.6, repeat: Infinity, repeatDelay: good ? 0.4 : 2 }}
-          className="text-4xl"
+          className="shrink-0 text-4xl"
         >
           {status.champion ? "🏆" : <Flag teamId={status.team.id} logoUrl={status.team.logo_url} code={status.team.code} name={status.team.name} size={44} />}
         </motion.div>
@@ -74,7 +74,7 @@ export default function FavoriteTeamStatus({ status }: { status: FavTeamStatus }
               playWomp();
             }
           }}
-          className="rounded-full glass px-3 py-2 text-lg transition hover:scale-110"
+          className="shrink-0 rounded-full glass px-3 py-2 text-lg transition hover:scale-110"
           title="Replay reaction"
         >
           {good ? "🎉" : bad ? "📢" : "▶️"}

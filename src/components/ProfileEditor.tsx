@@ -79,7 +79,7 @@ export default function ProfileEditor({
             title="Change picture"
           >
             <Avatar url={avatar} name={team || name} size={72} />
-            <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 text-xs text-white opacity-0 transition group-hover:opacity-100">
+            <span className="absolute inset-x-0 bottom-0 flex items-center justify-center rounded-b-full bg-black/60 py-1 text-[10px] font-medium text-white sm:inset-0 sm:rounded-full sm:py-0 sm:text-xs sm:opacity-0 sm:transition sm:group-hover:opacity-100">
               {uploading ? "…" : "Edit"}
             </span>
           </button>
@@ -110,7 +110,7 @@ export default function ProfileEditor({
             <button
               onClick={save}
               disabled={pending}
-              className="rounded-xl bg-grass px-4 py-1.5 text-sm font-semibold text-night glow-grass transition hover:brightness-110 disabled:opacity-50"
+              className="min-h-11 rounded-xl bg-grass px-4 py-2.5 text-sm font-semibold text-night glow-grass transition hover:brightness-110 disabled:opacity-50"
             >
               {pending ? "Saving…" : "Save profile"}
             </button>

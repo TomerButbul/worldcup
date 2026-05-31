@@ -58,10 +58,12 @@ export default function RootLayout({
     >
       <body className="relative min-h-full flex flex-col overflow-x-hidden">
         <AnimatedBackground />
-        <div className="fixed inset-x-0 top-0 z-30">
+        <div className="fixed inset-x-0 top-[env(safe-area-inset-top)] z-30">
           <FlagGarland />
         </div>
-        <div className="relative z-10 flex min-h-screen flex-col pt-6">{children}</div>
+        <div className="relative z-10 flex min-h-screen flex-col pt-[calc(env(safe-area-inset-top)+1.75rem)]">
+          {children}
+        </div>
         <SoundToggle />
       </body>
     </html>

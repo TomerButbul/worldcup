@@ -39,13 +39,13 @@ export default function FavoriteTeamPicker({
 
   return (
     <div className="glass rounded-2xl p-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-chalk-dim">My team:</span>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="shrink-0 text-sm text-chalk-dim">My team:</span>
           {currentTeam ? (
-            <span className="flex items-center gap-2 font-semibold text-chalk">
+            <span className="flex min-w-0 items-center gap-2 font-semibold text-chalk">
               <Flag teamId={currentTeam.id} logoUrl={currentTeam.logo_url} code={currentTeam.code} name={currentTeam.name} size={22} />
-              {currentTeam.name}
+              <span className="truncate">{currentTeam.name}</span>
             </span>
           ) : (
             <span className="text-chalk-dim">none yet ⭐</span>
@@ -54,7 +54,7 @@ export default function FavoriteTeamPicker({
         <button
           onClick={() => setOpen((o) => !o)}
           disabled={pending}
-          className="rounded-lg border border-white/15 px-3 py-1 text-xs text-chalk transition hover:bg-white/10"
+          className="shrink-0 rounded-lg border border-white/15 px-3 py-2 text-xs text-chalk transition hover:bg-white/10"
         >
           {open ? "Close" : currentTeam ? "Change" : "Pick team"}
         </button>
@@ -71,7 +71,7 @@ export default function FavoriteTeamPicker({
               <button
                 key={t.id}
                 onClick={() => choose(t.id)}
-                className={`flex items-center gap-2 rounded-lg border px-2 py-1.5 text-left text-sm transition ${
+                className={`flex items-center gap-2 rounded-lg border px-2.5 py-2.5 text-left text-sm transition ${
                   selected === t.id
                     ? "border-grass bg-grass/15 text-chalk"
                     : "border-white/10 text-chalk hover:bg-white/10"

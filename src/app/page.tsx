@@ -14,7 +14,7 @@ export default async function Home() {
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-10 p-6 text-center">
       <Hero />
-      <div className="flex flex-wrap items-center justify-center gap-3">
+      <div className="flex w-full max-w-xs flex-col items-stretch gap-3 sm:max-w-none sm:flex-row sm:items-center sm:justify-center">
         <Link href="/signup" className={btnClass("gold")} style={{ background: "linear-gradient(90deg,#ffd970,#f6c453)" }}>
           Get started
         </Link>

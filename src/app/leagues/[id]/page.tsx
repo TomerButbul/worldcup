@@ -60,7 +60,7 @@ export default async function LeaguePage({
           </Link>
           <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
             <div>
-              <h1 className="font-display text-4xl text-gradient-gold">{league.name}</h1>
+              <h1 className="font-display text-3xl break-words text-gradient-gold sm:text-4xl">{league.name}</h1>
               <p className="mt-1 text-sm text-chalk-dim">
                 Code <span className="rounded bg-black/30 px-2 py-0.5 font-mono text-gold">{league.join_code}</span>
                 {"  ·  "}
@@ -69,7 +69,7 @@ export default async function LeaguePage({
                 </span>
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex shrink-0 flex-wrap gap-2">
               <Link href={`/leagues/${id}/matches`} className={btnClass("ghost")}>
                 ⚽ Matches
               </Link>
