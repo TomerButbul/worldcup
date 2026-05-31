@@ -13,7 +13,7 @@ export default async function LoginPage({
   return (
     <main className="flex flex-1 items-center justify-center p-6">
       <Reveal className="w-full max-w-sm">
-        <div className="glass-strong rounded-3xl p-8 space-y-6">
+        <div className="glass-strong rounded-3xl p-6 space-y-6 sm:p-8">
           <div className="text-center">
             <div className="mb-2 text-4xl">🏟️</div>
             <h1 className="font-display text-3xl text-chalk">Welcome back</h1>
@@ -33,6 +33,8 @@ export default async function LoginPage({
               type="email"
               required
               placeholder="Email"
+              aria-label="Email"
+              autoComplete="email"
               className="w-full rounded-xl border border-white/15 bg-black/20 px-3 py-2.5 text-sm text-chalk outline-none placeholder:text-chalk-dim focus:border-grass focus:ring-2 focus:ring-grass/30"
             />
             <input
@@ -40,6 +42,8 @@ export default async function LoginPage({
               type="password"
               required
               placeholder="Password"
+              aria-label="Password"
+              autoComplete="current-password"
               className="w-full rounded-xl border border-white/15 bg-black/20 px-3 py-2.5 text-sm text-chalk outline-none placeholder:text-chalk-dim focus:border-grass focus:ring-2 focus:ring-grass/30"
             />
             <GameButton type="submit" variant="primary" className="w-full">

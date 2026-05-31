@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { GROUP_LABELS, type Team } from "@/lib/types";
 import BracketEditor from "./BracketEditor";
+import { nowMs } from "@/lib/clock";
 
 export default async function BracketPage({
   params,
@@ -23,7 +24,7 @@ export default async function BracketPage({
     .maybeSingle();
   if (!league) notFound();
 
-  const locked = new Date(league.bracket_lock_at).getTime() <= Date.now();
+  const locked = new Date(league.bracket_lock_at).getTime() <= nowMs();
 
   const { data: teams } = await supabase
     .from("teams")
@@ -41,7 +42,7 @@ export default async function BracketPage({
 
   if (teamList.length === 0) {
     return (
-      <main className="mx-auto w-full max-w-3xl flex-1 space-y-4 p-6">
+      <main className="mx-auto w-full max-w-3xl flex-1 space-y-4 p-4 sm:p-6">
         <Link href={`/leagues/${id}`} className="text-sm text-chalk-dim hover:text-chalk">
           &larr; {league.name}
         </Link>
@@ -73,8 +74,8 @@ export default async function BracketPage({
   }
 
   return (
-    <main className="mx-auto w-full max-w-4xl flex-1 space-y-6 p-6">
-      <div className="glass-strong rounded-3xl p-6">
+    <main className="mx-auto w-full max-w-4xl flex-1 space-y-6 p-4 sm:p-6">
+      <div className="glass-strong rounded-3xl p-5 sm:p-6">
         <Link href={`/leagues/${id}`} className="text-sm text-chalk-dim hover:text-chalk">
           &larr; {league.name}
         </Link>

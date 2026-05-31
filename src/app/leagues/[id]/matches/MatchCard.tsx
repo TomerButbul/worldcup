@@ -7,6 +7,7 @@ import { savePrediction } from "./actions";
 import { burst } from "@/lib/confetti";
 import Flag from "@/components/Flag";
 import PlayerAvatar from "@/components/PlayerAvatar";
+import { nowMs } from "@/lib/clock";
 
 export interface MatchCardData {
   id: number;
@@ -40,7 +41,7 @@ const STAGE_LABEL: Record<string, string> = {
 };
 
 export default function MatchCard({ leagueId, match, homePlayers, awayPlayers, initial }: Props) {
-  const locked = new Date(match.kickoff_at).getTime() <= Date.now();
+  const locked = new Date(match.kickoff_at).getTime() <= nowMs();
   const [home, setHome] = useState(initial?.home_goals ?? 0);
   const [away, setAway] = useState(initial?.away_goals ?? 0);
   const [scorers, setScorers] = useState<number[]>(initial?.scorer_ids ?? []);
@@ -94,10 +95,10 @@ export default function MatchCard({ leagueId, match, homePlayers, awayPlayers, i
         </span>
       </div>
 
-      <div className="flex items-center justify-center gap-4 text-center">
-        <span className="flex flex-1 items-center justify-end gap-2 font-semibold text-chalk">
-          {match.homeName}
-          <Flag teamId={match.homeTeamId} name={match.homeName} size={28} />
+      <div className="flex items-center justify-center gap-2 text-center sm:gap-4">
+        <span className="flex min-w-0 flex-1 items-center justify-end gap-1.5 text-sm font-semibold text-chalk sm:gap-2 sm:text-base">
+          <span className="truncate">{match.homeName}</span>
+          <Flag teamId={match.homeTeamId} name={match.homeName} size={26} className="shrink-0" />
         </span>
 
         {locked ? (
@@ -114,9 +115,9 @@ export default function MatchCard({ leagueId, match, homePlayers, awayPlayers, i
           </div>
         )}
 
-        <span className="flex flex-1 items-center justify-start gap-2 font-semibold text-chalk">
-          <Flag teamId={match.awayTeamId} name={match.awayName} size={28} />
-          {match.awayName}
+        <span className="flex min-w-0 flex-1 items-center justify-start gap-1.5 text-sm font-semibold text-chalk sm:gap-2 sm:text-base">
+          <Flag teamId={match.awayTeamId} name={match.awayName} size={26} className="shrink-0" />
+          <span className="truncate">{match.awayName}</span>
         </span>
       </div>
 

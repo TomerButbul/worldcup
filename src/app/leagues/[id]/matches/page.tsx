@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Player } from "@/lib/types";
 import MatchCard, { type MatchCardData } from "./MatchCard";
+import { nowMs } from "@/lib/clock";
 
 export default async function MatchesPage({
   params,
@@ -47,7 +48,7 @@ export default async function MatchesPage({
   }
   const predByMatch = new Map((preds ?? []).map((p) => [p.match_id, p]));
 
-  const now = Date.now();
+  const now = nowMs();
   const upcoming: typeof matches = [];
   const past: typeof matches = [];
   for (const m of matches ?? []) {
@@ -84,8 +85,8 @@ export default async function MatchesPage({
   }
 
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 space-y-8 p-6">
-      <div className="glass-strong rounded-3xl p-6">
+    <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 p-4 sm:space-y-8 sm:p-6">
+      <div className="glass-strong rounded-3xl p-5 sm:p-6">
         <Link href={`/leagues/${id}`} className="text-sm text-chalk-dim hover:text-chalk">
           &larr; {league.name}
         </Link>

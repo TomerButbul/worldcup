@@ -53,6 +53,20 @@ src/
 supabase/migrations/   # schema, RLS, RPCs, storage, realtime
 ```
 
+## 🧪 Quality & scripts
+
+```bash
+npm run dev     # local dev server
+npm run build   # production build
+npm run lint    # eslint (zero warnings)
+npm test        # vitest — unit tests for the scoring engine & favorite-team logic
+```
+
+The scoring logic (`src/lib/scoring-core.ts`) is pure and covered by tests, so you can
+validate group standings, knockout advancers, champion, and live match scoring without a
+database. Use `supabase/seed.sql` + `GET /api/recompute?secret=…` to simulate a whole
+tournament locally before the real thing kicks off.
+
 ## ⚖️ Scoring (configurable per league)
 
 - **Upfront** — correct group winner / qualifiers, knockout advancers by round, and champion.

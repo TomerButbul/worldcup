@@ -1,0 +1,37 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="WorldCuP">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b3d2c"/>
+      <stop offset="1" stop-color="#04140e"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffd970"/>
+      <stop offset="1" stop-color="#f6c453"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.35" r="0.6">
+      <stop offset="0" stop-color="#19c37d" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#19c37d" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <circle cx="256" cy="200" r="170" fill="url(#glow)"/>
+
+  <!-- Trophy -->
+  <g fill="url(#gold)">
+    <!-- bowl -->
+    <path d="M168 120 h176 v54 a88 88 0 0 1 -176 0 z"/>
+    <!-- left handle -->
+    <path d="M168 132 h-30 a44 44 0 0 0 -44 44 a60 60 0 0 0 60 60 h22 a96 96 0 0 1 -28 -52 a210 210 0 0 1 -2 -24 h-14 a20 20 0 0 1 0 -40 h36 z"/>
+    <!-- right handle (mirror) -->
+    <path d="M344 132 h30 a44 44 0 0 1 44 44 a60 60 0 0 1 -60 60 h-22 a96 96 0 0 0 28 -52 a210 210 0 0 0 2 -24 h14 a20 20 0 0 0 0 -40 h-36 z"/>
+    <!-- stem -->
+    <rect x="236" y="300" width="40" height="56" rx="6"/>
+    <!-- base -->
+    <rect x="188" y="356" width="136" height="26" rx="10"/>
+    <rect x="168" y="386" width="176" height="30" rx="12"/>
+  </g>
+
+  <!-- star accent -->
+  <path d="M256 150 l12 26 28 3 -21 19 6 28 -25 -14 -25 14 6 -28 -21 -19 28 -3 z" fill="#04140e" opacity="0.85"/>
+</svg>

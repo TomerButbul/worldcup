@@ -63,7 +63,7 @@ export default async function DashboardPage({
     "w-full rounded-xl border border-white/15 bg-black/20 px-3 py-2.5 text-sm text-chalk outline-none placeholder:text-chalk-dim focus:border-grass focus:ring-2 focus:ring-grass/30";
 
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 space-y-8 p-6">
+    <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 p-4 sm:space-y-8 sm:p-6">
       <Reveal>
         <header className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -141,7 +141,7 @@ export default async function DashboardPage({
         <Reveal index={1}>
           <form action={createLeague} className="glass-strong space-y-3 rounded-2xl p-5">
             <h2 className="font-display text-chalk">Create a league</h2>
-            <input name="name" required placeholder="League name" className={inputClass} />
+            <input name="name" required placeholder="League name" aria-label="League name" className={inputClass} />
             <GameButton type="submit" variant="primary" className="w-full">
               Create
             </GameButton>
@@ -155,6 +155,7 @@ export default async function DashboardPage({
               name="join_code"
               required
               placeholder="JOIN CODE"
+              aria-label="Join code"
               className={`${inputClass} font-mono uppercase tracking-widest`}
             />
             <GameButton type="submit" variant="gold" className="w-full">

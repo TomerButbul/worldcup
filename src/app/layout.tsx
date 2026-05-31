@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Anton } from "next/font/google";
 import "./globals.css";
 import AnimatedBackground from "@/components/AnimatedBackground";
@@ -22,8 +22,28 @@ const anton = Anton({
 });
 
 export const metadata: Metadata = {
-  title: "WorldCuP — 2026 Bracket & Prediction Game",
+  title: {
+    default: "WorldCuP — 2026 Bracket & Prediction Game",
+    template: "%s · WorldCuP",
+  },
   description: "Predict the 2026 World Cup bracket and match results. Compete with friends.",
+  applicationName: "WorldCuP",
+  manifest: "/manifest.webmanifest",
+  icons: { icon: "/icon.svg", apple: "/icon.svg" },
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "WorldCuP" },
+  openGraph: {
+    title: "WorldCuP 2026 — Bracket & Prediction Game",
+    description: "Predict the bracket, call every match, and battle your friends across three leaderboards.",
+    type: "website",
+  },
+  twitter: { card: "summary", title: "WorldCuP 2026", description: "Predict the World Cup. Compete with friends." },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#04140e",
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

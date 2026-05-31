@@ -22,10 +22,26 @@ export function isMuted(): boolean {
   return window.localStorage.getItem(MUTE_KEY) === "1";
 }
 
+// --- External store so React can read mute state via useSyncExternalStore ---
+const muteListeners = new Set<() => void>();
+
 export function setMuted(muted: boolean) {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(MUTE_KEY, muted ? "1" : "0");
+  muteListeners.forEach((cb) => cb());
 }
+
+export function subscribeMuted(cb: () => void): () => void {
+  muteListeners.add(cb);
+  if (typeof window !== "undefined") window.addEventListener("storage", cb);
+  return () => {
+    muteListeners.delete(cb);
+    if (typeof window !== "undefined") window.removeEventListener("storage", cb);
+  };
+}
+
+export const getMutedSnapshot = () => isMuted();
+export const getMutedServerSnapshot = () => false;
 
 function tone(
   freq: number,

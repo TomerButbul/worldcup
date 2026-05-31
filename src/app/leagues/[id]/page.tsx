@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import Leaderboard from "./Leaderboard";
 import { btnClass, GOLD_GRADIENT } from "@/components/buttonStyles";
 import Reveal from "@/components/Reveal";
+import { nowMs } from "@/lib/clock";
 
 export default async function LeaguePage({
   params,
@@ -24,7 +25,7 @@ export default async function LeaguePage({
     .maybeSingle();
   if (!league) notFound();
 
-  const locked = new Date(league.bracket_lock_at).getTime() <= Date.now();
+  const locked = new Date(league.bracket_lock_at).getTime() <= nowMs();
 
   const { data: scores } = await supabase
     .from("scores")
@@ -51,9 +52,9 @@ export default async function LeaguePage({
   });
 
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 space-y-8 p-6">
+    <main className="mx-auto w-full max-w-3xl flex-1 space-y-6 p-4 sm:space-y-8 sm:p-6">
       <Reveal>
-        <div className="glass-strong rounded-3xl p-6">
+        <div className="glass-strong rounded-3xl p-5 sm:p-6">
           <Link href="/dashboard" className="text-sm text-chalk-dim hover:text-chalk">
             &larr; Dashboard
           </Link>
@@ -87,7 +88,7 @@ export default async function LeaguePage({
       <Reveal index={1}>
         <section>
           <h2 className="mb-3 font-display text-xl text-chalk">Leaderboard</h2>
-          <Leaderboard leagueId={id} initialRows={rows} />
+          <Leaderboard leagueId={id} initialRows={rows} meId={user.id} />
           <p className="mt-2 text-xs text-chalk-dim">
             Three crowns: top Upfront 🎯, top Live ⚡, top Total 👑. Updates live.
           </p>

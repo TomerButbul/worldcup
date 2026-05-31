@@ -123,6 +123,12 @@ export default function BracketEditor({
 
   const finalists = knockout.final.map((id) => teamsById.get(id)).filter(Boolean) as Team[];
 
+  // Completeness: each knockout stage filled to its max + a champion chosen.
+  const stagesDone = STAGES.filter((s) => knockout[s.key].length === s.max).length;
+  const stepsDone = stagesDone + (champion != null ? 1 : 0);
+  const totalSteps = STAGES.length + 1;
+  const allComplete = stepsDone === totalSteps;
+
   return (
     <div className="space-y-10 pb-24">
       {/* Group stage */}
@@ -152,7 +158,7 @@ export default function BracketEditor({
                         <button
                           onClick={() => move(label, i, -1)}
                           disabled={i === 0}
-                          className="rounded px-1 text-chalk-dim hover:text-chalk disabled:opacity-20"
+                          className="rounded px-2.5 py-1 text-base leading-none text-chalk-dim hover:text-chalk disabled:opacity-20"
                           aria-label="Move up"
                         >
                           ↑
@@ -160,7 +166,7 @@ export default function BracketEditor({
                         <button
                           onClick={() => move(label, i, 1)}
                           disabled={i === teams.length - 1}
-                          className="rounded px-1 text-chalk-dim hover:text-chalk disabled:opacity-20"
+                          className="rounded px-2.5 py-1 text-base leading-none text-chalk-dim hover:text-chalk disabled:opacity-20"
                           aria-label="Move down"
                         >
                           ↓
@@ -256,10 +262,17 @@ export default function BracketEditor({
 
       {!locked && (
         <div className="fixed inset-x-0 bottom-0 z-20 border-t border-white/10 bg-night/80 backdrop-blur">
-          <div className="mx-auto flex max-w-4xl items-center gap-3 px-6 py-4">
+          <div className="mx-auto flex max-w-4xl items-center gap-3 px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] pr-16 sm:px-6 sm:pr-20">
             <GameButton onClick={save} disabled={pending} variant="gold">
               {pending ? "Saving…" : "💾 Save picks"}
             </GameButton>
+            <span
+              className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                allComplete ? "bg-grass/20 text-grass-bright" : "glass text-chalk-dim"
+              }`}
+            >
+              {allComplete ? "✓ Bracket complete" : `${stepsDone}/${totalSteps} done`}
+            </span>
             {msg && <span className="text-sm text-chalk-dim">{msg}</span>}
           </div>
         </div>

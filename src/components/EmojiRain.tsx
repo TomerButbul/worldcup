@@ -3,6 +3,13 @@
 import { motion } from "motion/react";
 import { useMemo } from "react";
 
+// Deterministic pseudo-random in [0,1) from a seed — pure (no Math.random),
+// so it's safe to call during render. Varied enough for confetti.
+function rand(seed: number): number {
+  const x = Math.sin(seed * 12.9898) * 43758.5453;
+  return x - Math.floor(x);
+}
+
 // A burst of emojis raining down once. Re-mount (change `key`) to replay.
 export default function EmojiRain({
   emojis = ["🍅", "🤡", "💩", "👎"],
@@ -15,12 +22,12 @@ export default function EmojiRain({
     () =>
       Array.from({ length: count }).map((_, i) => ({
         id: i,
-        left: Math.random() * 100,
-        emoji: emojis[Math.floor(Math.random() * emojis.length)],
-        delay: Math.random() * 0.5,
-        dur: 1.6 + Math.random() * 1.2,
-        rotate: (Math.random() - 0.5) * 720,
-        size: 18 + Math.random() * 22,
+        left: rand(i + 1) * 100,
+        emoji: emojis[Math.floor(rand(i * 7 + 3) * emojis.length)],
+        delay: rand(i * 3 + 2) * 0.5,
+        dur: 1.6 + rand(i * 5 + 4) * 1.2,
+        rotate: (rand(i * 9 + 5) - 0.5) * 720,
+        size: 18 + rand(i * 11 + 6) * 22,
       })),
     [count, emojis],
   );

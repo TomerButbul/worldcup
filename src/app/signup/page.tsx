@@ -16,7 +16,7 @@ export default async function SignupPage({
   return (
     <main className="flex flex-1 items-center justify-center p-6">
       <Reveal className="w-full max-w-sm">
-        <div className="glass-strong rounded-3xl p-8 space-y-6">
+        <div className="glass-strong rounded-3xl p-6 space-y-6 sm:p-8">
           <div className="text-center">
             <div className="mb-2 text-4xl">⚽</div>
             <h1 className="font-display text-3xl text-chalk">Join the game</h1>
@@ -28,14 +28,16 @@ export default async function SignupPage({
           )}
 
           <form action={signup} className="space-y-4">
-            <input name="display_name" type="text" required placeholder="Display name" className={inputClass} />
-            <input name="email" type="email" required placeholder="Email" className={inputClass} />
+            <input name="display_name" type="text" required placeholder="Display name" aria-label="Display name" autoComplete="name" className={inputClass} />
+            <input name="email" type="email" required placeholder="Email" aria-label="Email" autoComplete="email" className={inputClass} />
             <input
               name="password"
               type="password"
               required
               minLength={6}
               placeholder="Password (min 6 chars)"
+              aria-label="Password"
+              autoComplete="new-password"
               className={inputClass}
             />
             <GameButton type="submit" variant="gold" className="w-full">
