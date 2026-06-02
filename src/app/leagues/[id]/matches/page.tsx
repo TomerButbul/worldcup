@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Player } from "@/lib/types";
 import MatchCard, { type MatchCardData } from "./MatchCard";
 import AutoRefresh from "@/components/AutoRefresh";
+import { fetchLineups } from "@/lib/apiFootball";
 import { nowMs, KICKOFF_MS } from "@/lib/clock";
 
 export default async function MatchesPage({
@@ -66,6 +67,32 @@ export default async function MatchesPage({
   }
   past.reverse(); // most recent first
 
+  // Pull official lineups for matches kicking off within ~75 min so the scorer
+  // picker can show the real XI + subs (falls back to full squad otherwise).
+  const lineupByMatch = new Map<number, Record<number, { starters: number[]; subs: number[] }>>();
+  const imminent = (upcoming ?? []).filter((m) => {
+    const k = new Date(m.kickoff_at).getTime();
+    return k > now && k <= now + 75 * 60 * 1000;
+  });
+  await Promise.all(
+    imminent.map(async (m) => {
+      try {
+        const ls = await fetchLineups(m.id);
+        if (!ls.length) return;
+        const byTeam: Record<number, { starters: number[]; subs: number[] }> = {};
+        for (const l of ls) {
+          byTeam[l.team.id] = {
+            starters: l.startXI.map((x) => x.player.id),
+            subs: l.substitutes.map((x) => x.player.id),
+          };
+        }
+        lineupByMatch.set(m.id, byTeam);
+      } catch {
+        // Lineup not posted yet — fall back to the full squad.
+      }
+    }),
+  );
+
   // Group upcoming by matchday so the page isn't a wall of cards: show the next
   // matchday, tuck the rest behind a "predict earlier" disclosure.
   const dayLabel = (iso: string) =>
@@ -105,6 +132,8 @@ export default async function MatchesPage({
         awayPlayers={m.away_team_id ? (playersByTeam.get(m.away_team_id) ?? []) : []}
         initial={predByMatch.get(m.id) ?? null}
         bracketScore={groupScores[String(m.id)] ?? null}
+        homeLineup={m.home_team_id ? (lineupByMatch.get(m.id)?.[m.home_team_id] ?? null) : null}
+        awayLineup={m.away_team_id ? (lineupByMatch.get(m.id)?.[m.away_team_id] ?? null) : null}
       />
     );
   }

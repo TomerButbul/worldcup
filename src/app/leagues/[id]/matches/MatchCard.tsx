@@ -26,6 +26,11 @@ export interface MatchCardData {
   awayGoalsActual: number | null;
 }
 
+export interface Lineup {
+  starters: number[]; // player ids in the starting XI
+  subs: number[]; // player ids on the bench
+}
+
 interface Props {
   leagueId: string;
   match: MatchCardData;
@@ -34,9 +39,21 @@ interface Props {
   initial: { home_goals: number | null; away_goals: number | null; scorer_goals: Record<string, number> } | null;
   // The user's upfront bracket scoreline for this match (group stage only).
   bracketScore: { h: number; a: number } | null;
+  // Official lineups once posted (~40 min pre-kickoff); null → full squad.
+  homeLineup?: Lineup | null;
+  awayLineup?: Lineup | null;
 }
 
-export default function MatchCard({ leagueId, match, homePlayers, awayPlayers, initial, bracketScore }: Props) {
+export default function MatchCard({
+  leagueId,
+  match,
+  homePlayers,
+  awayPlayers,
+  initial,
+  bracketScore,
+  homeLineup,
+  awayLineup,
+}: Props) {
   // Group scorelines live in the bracket; the live game scores scorers there.
   // Knockouts capture a full scoreline here.
   const isGroup = match.stage === "group";
@@ -194,6 +211,7 @@ export default function MatchCard({ leagueId, match, homePlayers, awayPlayers, i
                 cap={homeCap}
                 sum={sumFor(homePlayers)}
                 scorerGoals={scorerGoals}
+                lineup={homeLineup}
                 onAdjust={(pid, d) => adjust(pid, d, homePlayers, homeCap)}
               />
               <TeamScorers
@@ -202,6 +220,7 @@ export default function MatchCard({ leagueId, match, homePlayers, awayPlayers, i
                 cap={awayCap}
                 sum={sumFor(awayPlayers)}
                 scorerGoals={scorerGoals}
+                lineup={awayLineup}
                 onAdjust={(pid, d) => adjust(pid, d, awayPlayers, awayCap)}
               />
             </div>
@@ -230,6 +249,7 @@ function TeamScorers({
   cap,
   sum,
   scorerGoals,
+  lineup,
   onAdjust,
 }: {
   label: string;
@@ -237,13 +257,32 @@ function TeamScorers({
   cap: number;
   sum: number;
   scorerGoals: Record<string, number>;
+  lineup?: Lineup | null;
   onAdjust: (playerId: number, delta: number) => void;
 }) {
   const atCap = sum >= cap;
+  const starters = new Set(lineup?.starters ?? []);
+  const subs = new Set(lineup?.subs ?? []);
+  const hasLineup = starters.size > 0 || subs.size > 0;
+  // With an official lineup, show only the matchday squad (XI + subs, plus any
+  // already-picked player), starters first. Otherwise show the full squad.
+  const rank = (id: number) => (starters.has(id) ? 0 : subs.has(id) ? 1 : 2);
+  const list = hasLineup
+    ? players
+        .filter((p) => starters.has(p.id) || subs.has(p.id) || (scorerGoals[String(p.id)] ?? 0) > 0)
+        .sort((a, b) => rank(a.id) - rank(b.id))
+    : players;
+  const badgeFor = (id: number) => (!hasLineup ? null : starters.has(id) ? "XI" : subs.has(id) ? "sub" : null);
+
   return (
     <div>
       <p className="mb-1.5 flex items-center justify-between text-xs font-medium text-chalk-dim">
-        <span className="truncate">⚽ {label}</span>
+        <span className="flex min-w-0 items-center gap-1 truncate">
+          ⚽ {label}
+          {hasLineup && (
+            <span className="rounded bg-grass/15 px-1 text-[9px] font-bold uppercase text-grass">lineup</span>
+          )}
+        </span>
         <span className={sum > cap ? "text-red-600" : ""}>
           {sum}/{cap} goals
         </span>
@@ -252,8 +291,16 @@ function TeamScorers({
         <p className="text-[11px] text-chalk-dim">Predict a goal for {label} to assign scorers.</p>
       ) : (
         <div className="flex flex-wrap gap-1.5">
-          {players.map((p) => {
+          {list.map((p) => {
             const count = scorerGoals[String(p.id)] ?? 0;
+            const b = badgeFor(p.id);
+            const badgeEl = b ? (
+              <span
+                className={`ml-0.5 rounded px-1 text-[9px] font-bold uppercase ${b === "XI" ? "bg-grass/20 text-grass" : "bg-night/10 text-chalk-dim"}`}
+              >
+                {b}
+              </span>
+            ) : null;
             if (count === 0) {
               return (
                 <button
@@ -264,6 +311,7 @@ function TeamScorers({
                 >
                   <PlayerAvatar playerId={p.id} name={p.name} size={20} />
                   {p.name}
+                  {badgeEl}
                 </button>
               );
             }
@@ -274,6 +322,7 @@ function TeamScorers({
               >
                 <PlayerAvatar playerId={p.id} name={p.name} size={20} />
                 <span className="font-semibold">{p.name}</span>
+                {badgeEl}
                 <span className="font-display text-grass">×{count}</span>
                 <button
                   onClick={() => onAdjust(p.id, -1)}

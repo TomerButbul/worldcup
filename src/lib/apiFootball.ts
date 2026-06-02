@@ -101,6 +101,19 @@ export function fetchSquad(teamId: number) {
   return apiGet<AfSquad>("/players/squads", { team: teamId }, 86400);
 }
 
+export interface AfLineup {
+  team: { id: number };
+  startXI: { player: { id: number } }[];
+  substitutes: { player: { id: number } }[];
+}
+
+// Official XI + subs for a fixture — only published ~20-40 min before kickoff.
+// Cache 10 min: once announced it's stable, and it keeps the picker fresh
+// without hammering the API while users sit on the page pre-kickoff.
+export function fetchLineups(fixtureId: number) {
+  return apiGet<AfLineup>("/fixtures/lineups", { fixture: fixtureId }, 600);
+}
+
 // Map API-Football round strings to our match_stage enum.
 export function mapStage(round: string): string {
   const r = round.toLowerCase();
