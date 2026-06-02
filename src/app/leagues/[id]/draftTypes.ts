@@ -40,4 +40,6 @@ export function mapMember(row: MemberQueryRow): DraftMember {
   };
 }
 
-export const TURN_SECONDS = 30;
+// Per-pick clock (client-enforced). 2 minutes, default-on when a draft opens;
+// the owner can pause/resume anytime via admin_toggle_timer.
+export const TURN_SECONDS = 120;

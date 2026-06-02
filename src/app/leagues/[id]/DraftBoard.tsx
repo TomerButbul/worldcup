@@ -43,7 +43,8 @@ export default function DraftBoard({
 
   const recent = [...picks].slice(-8).reverse();
   const secs = remaining == null ? null : Math.ceil(remaining);
-  const low = secs != null && secs <= 10;
+  const low = secs != null && secs <= 15;
+  const clock = secs == null ? null : `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}`;
   const canActOnTeam = isMyTurn || isOwner;
 
   function clickTeam(slot: number) {
@@ -84,11 +85,11 @@ export default function DraftBoard({
 
           {secs != null ? (
             <div
-              className={`flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-full border-4 font-display text-2xl tabular-nums ${
+              className={`flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-full border-4 font-display text-xl tabular-nums ${
                 low ? "border-red-500 text-red-600" : "border-gold text-gold"
               }`}
             >
-              {secs}
+              {clock}
             </div>
           ) : (
             <span className="shrink-0 text-sm text-chalk-dim">No time limit</span>
@@ -128,7 +129,7 @@ export default function DraftBoard({
             disabled={busy}
             className="rounded-full border border-night/10 bg-white px-3 py-1.5 text-sm text-chalk transition hover:border-grass hover:bg-grass/10 disabled:opacity-50"
           >
-            {timerEnabled ? "⏱ Disable 30s timer" : "⏱ Enable 30s timer"}
+            {timerEnabled ? "⏸ Pause timer" : "▶️ Resume timer"}
           </button>
           <span className="text-xs text-chalk-dim">Tap any open team to force it for this slot.</span>
         </div>
