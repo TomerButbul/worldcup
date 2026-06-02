@@ -1,6 +1,8 @@
 "use client";
 
 import { motion, useReducedMotion } from "motion/react";
+import SoccerBall from "@/components/SoccerBall";
+import { Trophy, PlayerKick, Pennant } from "@/components/BackgroundSprites";
 
 // Drifting glow orbs + pitch lines behind everything for a stadium feel.
 export default function AnimatedBackground() {
@@ -52,21 +54,22 @@ export default function AnimatedBackground() {
         transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
       />
 
-      {/* floating party balloons — fewer on mobile, none if reduced motion */}
+      {/* floating themed sprites — fewer on mobile, none if reduced motion */}
       {!reduce &&
-        BALLOONS.map((b, i) => (
+        SPRITES.map((s, i) => (
           <motion.div
             key={i}
-            className={`absolute text-3xl opacity-70 ${i >= 3 ? "hidden sm:block" : ""}`}
-            style={{ left: b.left }}
-            initial={{ y: "110vh" }}
-            animate={{ y: "-20vh", x: [0, b.drift, 0] }}
+            className={`absolute opacity-70 ${i >= 3 ? "hidden sm:block" : ""}`}
+            style={{ left: s.left }}
+            initial={{ y: "110vh", rotate: 0 }}
+            animate={{ y: "-20vh", x: [0, s.drift, 0], rotate: [0, s.rotate, 0] }}
             transition={{
-              y: { duration: b.dur, repeat: Infinity, ease: "linear", delay: b.delay },
-              x: { duration: b.dur / 3, repeat: Infinity, ease: "easeInOut" },
+              y: { duration: s.dur, repeat: Infinity, ease: "linear", delay: s.delay },
+              x: { duration: s.dur / 3, repeat: Infinity, ease: "easeInOut" },
+              rotate: { duration: s.dur / 4, repeat: Infinity, ease: "easeInOut" },
             }}
           >
-            {b.emoji}
+            {renderSprite(s)}
           </motion.div>
         ))}
 
@@ -76,11 +79,35 @@ export default function AnimatedBackground() {
   );
 }
 
-const BALLOONS = [
-  { emoji: "🎈", left: "8%", drift: 30, dur: 26, delay: 0 },
-  { emoji: "🎉", left: "48%", drift: -25, dur: 32, delay: 6 },
-  { emoji: "⚽", left: "85%", drift: 20, dur: 24, delay: 9 },
-  { emoji: "🎈", left: "22%", drift: 35, dur: 29, delay: 12 },
-  { emoji: "🥳", left: "67%", drift: -30, dur: 35, delay: 3 },
-  { emoji: "🎈", left: "93%", drift: -20, dur: 38, delay: 15 },
+type SpriteSpec = {
+  kind: "trophy" | "ball" | "player" | "flag";
+  color?: string;
+  size: number;
+  left: string;
+  drift: number;
+  dur: number;
+  delay: number;
+  rotate: number;
+};
+
+const SPRITES: SpriteSpec[] = [
+  { kind: "trophy", size: 40, left: "8%", drift: 30, dur: 26, delay: 0, rotate: 8 },
+  { kind: "flag", color: "#2563eb", size: 38, left: "48%", drift: -25, dur: 32, delay: 6, rotate: -10 },
+  { kind: "ball", size: 34, left: "85%", drift: 20, dur: 24, delay: 9, rotate: 16 },
+  { kind: "player", color: "#db2777", size: 44, left: "22%", drift: 35, dur: 29, delay: 12, rotate: -8 },
+  { kind: "trophy", size: 36, left: "67%", drift: -30, dur: 35, delay: 3, rotate: 10 },
+  { kind: "flag", color: "#10b981", size: 38, left: "93%", drift: -20, dur: 38, delay: 15, rotate: -12 },
 ];
+
+function renderSprite(s: SpriteSpec) {
+  switch (s.kind) {
+    case "trophy":
+      return <Trophy size={s.size} />;
+    case "ball":
+      return <SoccerBall size={s.size} />;
+    case "player":
+      return <PlayerKick size={s.size} color={s.color} />;
+    case "flag":
+      return <Pennant size={s.size} color={s.color} />;
+  }
+}
