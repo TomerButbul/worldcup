@@ -3,17 +3,13 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import type { MatchScore } from "@/lib/types";
 
 export async function saveBracket(
   leagueId: string,
   payload: {
-    group_standings: Record<string, number[]>;
-    knockout: {
-      round_of_16?: number[];
-      quarter?: number[];
-      semi?: number[];
-      final?: number[];
-    };
+    group_scores: Record<string, MatchScore>;
+    knockout: Record<string, number>;
     champion_team_id: number | null;
   },
 ) {
@@ -34,17 +30,19 @@ export async function saveBracket(
     return { ok: false, error: "Bracket is locked" };
   }
 
-  const { error } = await supabase
-    .from("bracket_predictions")
-    .update({
-      group_standings: payload.group_standings,
+  const now = new Date().toISOString();
+  const { error } = await supabase.from("bracket_predictions").upsert(
+    {
+      league_id: leagueId,
+      user_id: user.id,
+      group_scores: payload.group_scores,
       knockout: payload.knockout,
       champion_team_id: payload.champion_team_id,
-      submitted_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
-    .eq("league_id", leagueId)
-    .eq("user_id", user.id);
+      submitted_at: now,
+      updated_at: now,
+    },
+    { onConflict: "league_id,user_id" },
+  );
 
   if (error) return { ok: false, error: error.message };
 
