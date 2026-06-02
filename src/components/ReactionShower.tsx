@@ -83,15 +83,16 @@ export default function ReactionShower({ leagueId }: { leagueId: string }) {
         </AnimatePresence>
       </div>
 
-      {/* Reaction bar — always tappable while you're in the room. */}
-      <div className="fixed inset-x-0 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-40 flex justify-center px-4">
-        <div className="glass-strong flex items-center gap-0.5 rounded-full px-2 py-1.5 shadow-lg">
+      {/* Reaction bar — only the pill is tappable, so it never blocks the
+          content around it. */}
+      <div className="pointer-events-none fixed inset-x-0 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-40 flex justify-center px-3">
+        <div className="glass-strong pointer-events-auto flex items-center gap-1 rounded-full px-2.5 py-2 shadow-xl">
           {EMOJIS.map((e) => (
             <button
               key={e}
               onClick={() => react(e)}
               aria-label={`React ${e}`}
-              className="flex h-9 w-9 items-center justify-center rounded-full text-xl transition hover:scale-125 active:scale-90"
+              className="flex h-11 w-11 items-center justify-center rounded-full text-2xl leading-none transition active:scale-90 hover:bg-night/5"
             >
               {e}
             </button>

@@ -216,7 +216,7 @@ export default function DraftRoom({
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 space-y-6 p-4 pb-24 sm:space-y-8 sm:p-6 sm:pb-24">
-      <ReactionShower leagueId={leagueId} />
+      {state.status === "in_progress" && <ReactionShower leagueId={leagueId} />}
       <div className="glass-strong rounded-3xl p-5 sm:p-6">
         <Link href="/dashboard" className="text-sm text-chalk-dim hover:text-chalk">
           &larr; Dashboard
