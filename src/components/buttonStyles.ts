@@ -3,7 +3,7 @@ export type ButtonVariant = "primary" | "gold" | "ghost";
 const VARIANTS: Record<ButtonVariant, string> = {
   primary: "bg-grass text-night glow-grass hover:brightness-110 font-semibold",
   gold: "text-night font-semibold shine hover:brightness-105",
-  ghost: "glass text-chalk hover:bg-white/10 border border-white/15",
+  ghost: "glass text-chalk hover:bg-night/5",
 };
 
 export function btnClass(variant: ButtonVariant = "primary") {

@@ -18,7 +18,7 @@ export default function GlobalError({
           alignItems: "center",
           justifyContent: "center",
           gap: "1rem",
-          background: "#04140e",
+          background: "#0e1545",
           color: "#eaf3ee",
           fontFamily: "system-ui, sans-serif",
           textAlign: "center",

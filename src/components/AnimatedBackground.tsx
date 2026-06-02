@@ -11,28 +11,45 @@ export default function AnimatedBackground() {
       {/* pitch stripe texture */}
       <div className="absolute inset-0 pitch-stripes opacity-60" />
 
-      {/* center circle (subtle) */}
-      <div className="absolute left-1/2 top-1/2 h-[480px] w-[480px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/5" />
-      <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-white/5" />
+      {/* football pitch markings (subtle) */}
+      <div className="absolute left-1/2 top-1/2 h-[480px] w-[480px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-night/[0.06]" />
+      <div className="absolute left-1/2 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-night/15" />
+      <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-night/[0.05]" />
+      {/* penalty + goal boxes, top and bottom */}
+      <div className="absolute left-1/2 top-0 h-28 w-72 -translate-x-1/2 border-x border-b border-night/[0.07] sm:w-96" />
+      <div className="absolute left-1/2 top-0 h-12 w-40 -translate-x-1/2 border-x border-b border-night/[0.07]" />
+      <div className="absolute bottom-0 left-1/2 h-28 w-72 -translate-x-1/2 border-x border-t border-night/[0.07] sm:w-96" />
+      <div className="absolute bottom-0 left-1/2 h-12 w-40 -translate-x-1/2 border-x border-t border-night/[0.07]" />
+      {/* corner arcs */}
+      <div className="absolute left-0 top-0 h-6 w-6 rounded-br-full border-b border-r border-night/[0.07]" />
+      <div className="absolute right-0 top-0 h-6 w-6 rounded-bl-full border-b border-l border-night/[0.07]" />
+      <div className="absolute bottom-0 left-0 h-6 w-6 rounded-tr-full border-t border-r border-night/[0.07]" />
+      <div className="absolute bottom-0 right-0 h-6 w-6 rounded-tl-full border-t border-l border-night/[0.07]" />
 
-      {/* drifting glow orbs (lighter blur on mobile for paint perf) */}
+      {/* drifting vibrant glow orbs (lighter blur on mobile for paint perf) */}
       <motion.div
         className="absolute -left-32 top-10 h-96 w-96 rounded-full blur-2xl sm:blur-3xl"
-        style={{ background: "radial-gradient(circle, rgba(25,195,125,0.35), transparent 70%)" }}
+        style={{ background: "radial-gradient(circle, rgba(37,99,235,0.22), transparent 70%)" }}
         animate={reduce ? undefined : { x: [0, 60, 0], y: [0, 40, 0] }}
         transition={{ duration: 16, repeat: Infinity, ease: "easeInOut" }}
       />
       <motion.div
-        className="absolute right-0 top-1/3 h-[28rem] w-[28rem] rounded-full blur-2xl sm:blur-3xl"
-        style={{ background: "radial-gradient(circle, rgba(246,196,83,0.22), transparent 70%)" }}
+        className="absolute right-0 top-1/4 h-[28rem] w-[28rem] rounded-full blur-2xl sm:blur-3xl"
+        style={{ background: "radial-gradient(circle, rgba(219,39,119,0.18), transparent 70%)" }}
         animate={reduce ? undefined : { x: [0, -50, 0], y: [0, 60, 0] }}
         transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
       />
       <motion.div
         className="absolute bottom-0 left-1/4 h-80 w-80 rounded-full blur-2xl sm:blur-3xl"
-        style={{ background: "radial-gradient(circle, rgba(11,61,44,0.6), transparent 70%)" }}
+        style={{ background: "radial-gradient(circle, rgba(16,185,129,0.22), transparent 70%)" }}
         animate={reduce ? undefined : { x: [0, 40, 0], y: [0, -30, 0] }}
         transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <motion.div
+        className="absolute -bottom-10 right-1/4 h-72 w-72 rounded-full blur-2xl sm:blur-3xl"
+        style={{ background: "radial-gradient(circle, rgba(245,180,0,0.20), transparent 70%)" }}
+        animate={reduce ? undefined : { x: [0, -35, 0], y: [0, -45, 0] }}
+        transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
       />
 
       {/* floating party balloons — fewer on mobile, none if reduced motion */}
@@ -53,8 +70,8 @@ export default function AnimatedBackground() {
           </motion.div>
         ))}
 
-      {/* vignette */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_55%,rgba(0,0,0,0.55))]" />
+      {/* whisper-soft edge shade (light mode — keeps it airy) */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_80%,rgba(12,20,48,0.05))]" />
     </div>
   );
 }

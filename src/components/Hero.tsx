@@ -26,9 +26,9 @@ export default function Hero() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.2 }}
       >
-        <span className="text-chalk">World</span>
+        <span className="text-gradient-fifa">World</span>
         <span className="text-gradient-gold">CuP</span>{" "}
-        <span className="text-grass-bright">2026</span>
+        <span className="text-grass">2026</span>
       </motion.h1>
 
       <motion.p

@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Predict the 2026 World Cup bracket and match results. Compete with friends.",
     start_url: "/",
     display: "standalone",
-    background_color: "#04140e",
-    theme_color: "#04140e",
+    background_color: "#0e1545",
+    theme_color: "#0e1545",
     orientation: "portrait",
     icons: [
       { src: "/icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" },

@@ -123,12 +123,12 @@ export default function Leaderboard({
       </div>
 
       <div className="glass-strong overflow-hidden rounded-2xl">
-        <div className="grid grid-cols-[1.25rem_1fr_2rem_2rem_2.5rem] items-center gap-1.5 border-b border-white/10 px-3 py-2.5 text-xs uppercase tracking-wider text-chalk-dim sm:grid-cols-[2.5rem_1fr_3.5rem_3.5rem_4rem] sm:gap-2 sm:px-4">
+        <div className="grid grid-cols-[1.25rem_1fr_2rem_2rem_2.5rem] items-center gap-1.5 border-b border-night/10 px-3 py-2.5 text-xs uppercase tracking-wider text-chalk-dim sm:grid-cols-[2.5rem_1fr_3.5rem_3.5rem_4rem] sm:gap-2 sm:px-4">
           <span>#</span>
           <span>Player</span>
-          <span className={`text-right ${tab === "upfront" ? "text-grass-bright" : ""}`}>🎯</span>
-          <span className={`text-right ${tab === "live" ? "text-grass-bright" : ""}`}>⚡</span>
-          <span className={`text-right ${tab === "total" ? "text-grass-bright" : ""}`}>👑</span>
+          <span className={`text-right ${tab === "upfront" ? "text-grass" : ""}`}>🎯</span>
+          <span className={`text-right ${tab === "live" ? "text-grass" : ""}`}>⚡</span>
+          <span className={`text-right ${tab === "total" ? "text-grass" : ""}`}>👑</span>
         </div>
 
         {sorted.length === 0 ? (
@@ -155,7 +155,7 @@ export default function Leaderboard({
                         ? { x: { duration: 0.6, repeat: Infinity, repeatDelay: 2.5 }, layout: { type: "spring", stiffness: 500, damping: 40 } }
                         : { type: "spring", stiffness: 500, damping: 40 }
                     }
-                    className={`grid grid-cols-[1.25rem_1fr_2rem_2rem_2.5rem] items-center gap-1.5 border-b border-white/5 px-3 py-3 text-sm sm:grid-cols-[2.5rem_1fr_3.5rem_3.5rem_4rem] sm:gap-2 sm:px-4 ${
+                    className={`grid grid-cols-[1.25rem_1fr_2rem_2rem_2.5rem] items-center gap-1.5 border-b border-night/5 px-3 py-3 text-sm sm:grid-cols-[2.5rem_1fr_3.5rem_3.5rem_4rem] sm:gap-2 sm:px-4 ${
                       isWinner ? "animate-pulse-glow bg-gold/15" : isLoser ? "bg-red-500/5" : ""
                     } ${isMe ? "ring-1 ring-inset ring-grass/50" : ""}`}
                   >
@@ -167,7 +167,7 @@ export default function Leaderboard({
                       {r.favTeamId && <Flag teamId={r.favTeamId} size={16} />}
                       <span className="min-w-0 flex-1 truncate font-semibold text-chalk">{r.name}</span>
                       {isMe && (
-                        <span className="shrink-0 rounded bg-grass/20 px-1.5 py-0.5 text-[10px] font-bold text-grass-bright">
+                        <span className="shrink-0 rounded bg-grass/20 px-1.5 py-0.5 text-[10px] font-bold text-grass">
                           you
                         </span>
                       )}
@@ -177,7 +177,7 @@ export default function Leaderboard({
                           <span title="Last place" className="shrink-0 text-base">🥄</span>
                           <button
                             onClick={troll}
-                            className="shrink-0 rounded-full border border-red-400/40 px-2 py-1 text-xs text-red-300 transition hover:bg-red-500/20"
+                            className="shrink-0 rounded-full border border-red-400/40 px-2 py-1 text-xs text-red-600 transition hover:bg-red-500/20"
                             title="Rain shame on the loser"
                             aria-label="Rain shame on the loser"
                           >

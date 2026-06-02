@@ -60,7 +60,7 @@ export default async function DashboardPage({
     .filter((l) => l.id);
 
   const inputClass =
-    "w-full rounded-xl border border-white/15 bg-black/20 px-3 py-2.5 text-sm text-chalk outline-none placeholder:text-chalk-dim focus:border-grass focus:ring-2 focus:ring-grass/30";
+    "w-full rounded-xl border border-night/10 bg-white px-3 py-2.5 text-sm text-chalk outline-none placeholder:text-chalk-dim focus:border-grass focus:ring-2 focus:ring-grass/30";
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 p-4 sm:space-y-8 sm:p-6">
@@ -81,7 +81,7 @@ export default async function DashboardPage({
             </div>
           </div>
           <form action={logout} className="shrink-0">
-            <button className="rounded-lg px-3 py-2 text-sm text-chalk-dim transition hover:bg-white/10 hover:text-chalk">
+            <button className="rounded-lg px-3 py-2 text-sm text-chalk-dim transition hover:bg-night/5 hover:text-chalk">
               Log out
             </button>
           </form>
@@ -108,7 +108,7 @@ export default async function DashboardPage({
       </Reveal>
 
       {error && (
-        <p className="rounded-lg bg-red-500/15 px-3 py-2 text-sm text-red-300">{error}</p>
+        <p className="rounded-lg bg-red-500/15 px-3 py-2 text-sm text-red-600">{error}</p>
       )}
 
       <section className="space-y-3">
@@ -123,13 +123,13 @@ export default async function DashboardPage({
               <Reveal key={l.id} index={i}>
                 <Link
                   href={`/leagues/${l.id}`}
-                  className="group flex items-center justify-between rounded-2xl glass p-4 transition hover:border-grass/50 hover:bg-white/10"
+                  className="group flex items-center justify-between rounded-2xl glass p-4 transition hover:border-grass/50 hover:bg-night/5"
                 >
                   <span className="flex items-center gap-3">
                     <span className="text-2xl">🏆</span>
                     <span className="font-semibold text-chalk">{l.name}</span>
                   </span>
-                  <span className="rounded-lg bg-black/30 px-2 py-1 font-mono text-xs text-gold">
+                  <span className="rounded-lg bg-night/5 px-2 py-1 font-mono text-xs text-gold">
                     {l.join_code}
                   </span>
                 </Link>

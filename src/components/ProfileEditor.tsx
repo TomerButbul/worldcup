@@ -65,7 +65,7 @@ export default function ProfileEditor({
   }
 
   const inputClass =
-    "w-full rounded-xl border border-white/15 bg-black/20 px-3 py-2 text-sm text-chalk outline-none placeholder:text-chalk-dim focus:border-grass focus:ring-2 focus:ring-grass/30";
+    "w-full rounded-xl border border-night/10 bg-white px-3 py-2 text-sm text-chalk outline-none placeholder:text-chalk-dim focus:border-grass focus:ring-2 focus:ring-grass/30";
 
   return (
     <div className="glass rounded-2xl p-5">

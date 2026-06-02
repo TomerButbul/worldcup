@@ -1,30 +1,36 @@
 @import "tailwindcss";
 
 @theme inline {
-  /* World Cup palette */
-  --color-night: #04140e;
-  --color-night-2: #07241a;
-  --color-pitch: #0b3d2c;
-  --color-grass: #19c37d;
-  --color-grass-bright: #2de89a;
-  --color-gold: #f6c453;
-  --color-gold-bright: #ffd970;
-  --color-chalk: #eaf3ee;
-  --color-chalk-dim: #8fa89d;
+  /* Bright FIFA World Cup palette — LIGHT mode */
+  --color-night: #0c1430;       /* deep ink: primary dark used as text-on-bright & headings */
+  --color-night-2: #1b2452;
+  --color-pitch: #eaf1ff;
+  --color-grass: #10b981;       /* vivid pitch green (legible as text on light) */
+  --color-grass-bright: #34d399;
+  --color-gold: #e0a400;        /* deep trophy gold (legible on light) */
+  --color-gold-bright: #ffcf3d;
+  --color-chalk: #141b3d;       /* PRIMARY TEXT (dark on light) */
+  --color-chalk-dim: #5b6788;   /* muted text */
 
-  --color-background: var(--color-night);
+  /* energetic accents (deep enough to read as text on light) */
+  --color-electric: #2563eb;
+  --color-magenta: #db2777;
+  --color-orange: #ea580c;
+  --color-cyan: #0891b2;
+
+  --color-background: #eef3ff;
   --color-foreground: var(--color-chalk);
 
   --font-display: var(--font-anton);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 
-  --shadow-glow-gold: 0 0 24px -2px rgba(246, 196, 83, 0.55);
-  --shadow-glow-grass: 0 0 24px -2px rgba(25, 195, 125, 0.6);
+  --shadow-glow-gold: 0 8px 24px -8px rgba(224, 164, 0, 0.5);
+  --shadow-glow-grass: 0 8px 24px -8px rgba(16, 185, 129, 0.5);
 }
 
 html {
-  background: var(--color-night);
+  background: #eef3ff;
   color: var(--color-chalk);
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
@@ -54,11 +60,14 @@ html {
 
 body {
   font-family: var(--font-sans), system-ui, sans-serif;
+  color: var(--color-chalk);
   background:
-    radial-gradient(1200px 600px at 50% -10%, rgba(25, 195, 125, 0.18), transparent 60%),
-    radial-gradient(900px 500px at 100% 0%, rgba(246, 196, 83, 0.12), transparent 55%),
-    radial-gradient(800px 800px at 0% 100%, rgba(11, 61, 44, 0.5), transparent 60%),
-    var(--color-night);
+    radial-gradient(1100px 650px at 12% -8%, rgba(37, 99, 235, 0.16), transparent 60%),
+    radial-gradient(950px 600px at 92% 0%, rgba(219, 39, 119, 0.13), transparent 58%),
+    radial-gradient(1000px 750px at 85% 105%, rgba(16, 185, 129, 0.16), transparent 60%),
+    radial-gradient(900px 650px at 5% 100%, rgba(245, 180, 0, 0.14), transparent 58%),
+    linear-gradient(160deg, #f2f6ff 0%, #ffffff 45%, #eaf5ff 100%);
+  background-attachment: fixed;
   min-height: 100vh;
 }
 
@@ -70,23 +79,17 @@ body {
 }
 
 .glass {
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.06),
-    rgba(255, 255, 255, 0.02)
-  );
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(12, 20, 48, 0.08);
   backdrop-filter: blur(10px);
+  box-shadow: 0 8px 24px -16px rgba(12, 20, 48, 0.35);
 }
 
 .glass-strong {
-  background: linear-gradient(
-    180deg,
-    rgba(7, 36, 26, 0.85),
-    rgba(4, 20, 14, 0.9)
-  );
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(12, 20, 48, 0.1);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 16px 40px -22px rgba(12, 20, 48, 0.4);
 }
 
 .glow-gold {
@@ -103,12 +106,26 @@ body {
   color: transparent;
 }
 
+/* Vibrant FIFA-style multi-colour headline gradient. */
+.text-gradient-fifa {
+  background: linear-gradient(
+    100deg,
+    var(--color-electric),
+    var(--color-magenta),
+    var(--color-grass),
+    var(--color-gold)
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
 /* Pitch stripes overlay */
 .pitch-stripes {
   background-image: repeating-linear-gradient(
     90deg,
-    rgba(255, 255, 255, 0.03) 0px,
-    rgba(255, 255, 255, 0.03) 2px,
+    rgba(16, 185, 129, 0.05) 0px,
+    rgba(16, 185, 129, 0.05) 2px,
     transparent 2px,
     transparent 64px
   );
@@ -158,6 +175,39 @@ body {
   50% { transform: translateY(-12px); }
 }
 
+/* Goal-net crosshatch texture (behind scoreboards). */
+.net {
+  background-image:
+    linear-gradient(rgba(12, 20, 48, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(12, 20, 48, 0.07) 1px, transparent 1px);
+  background-size: 9px 9px;
+}
+
+/* Big "GOAL!" celebration text (injected imperatively). */
+@keyframes goal-pop {
+  0% { transform: translate(-50%, -50%) scale(0.3) rotate(-8deg); opacity: 0; }
+  18% { transform: translate(-50%, -50%) scale(1.12) rotate(0deg); opacity: 1; }
+  70% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.06); opacity: 0; }
+}
+.goal-pop {
+  position: fixed;
+  left: 50%;
+  top: 42%;
+  z-index: 60;
+  pointer-events: none;
+  font-family: var(--font-display), Impact, sans-serif;
+  text-transform: uppercase;
+  font-size: clamp(3rem, 15vw, 9rem);
+  letter-spacing: 0.04em;
+  background: linear-gradient(100deg, var(--color-electric), var(--color-magenta), var(--color-gold));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 8px 20px rgba(12, 20, 48, 0.25));
+  animation: goal-pop 1.4s ease forwards;
+}
+
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
@@ -165,9 +215,9 @@ body {
 .skeleton {
   background: linear-gradient(
     90deg,
-    rgba(255, 255, 255, 0.04) 25%,
-    rgba(255, 255, 255, 0.10) 37%,
-    rgba(255, 255, 255, 0.04) 63%
+    rgba(12, 20, 48, 0.05) 25%,
+    rgba(12, 20, 48, 0.10) 37%,
+    rgba(12, 20, 48, 0.05) 63%
   );
   background-size: 200% 100%;
   animation: shimmer 1.4s ease-in-out infinite;

@@ -5,6 +5,7 @@ import { motion } from "motion/react";
 import type { Player } from "@/lib/types";
 import { savePrediction } from "./actions";
 import { burst } from "@/lib/confetti";
+import { goalCelebration } from "@/lib/goal";
 import Flag from "@/components/Flag";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import { nowMs } from "@/lib/clock";
@@ -74,6 +75,7 @@ export default function MatchCard({ leagueId, match, homePlayers, awayPlayers, i
       const res = await savePrediction(leagueId, match.id, home, away, scorers);
       if (res.ok) {
         burst();
+        goalCelebration("GOAL!");
         setMsg("Saved! 🎉");
       } else {
         setMsg(res.error ?? "Error");
@@ -87,7 +89,7 @@ export default function MatchCard({ leagueId, match, homePlayers, awayPlayers, i
         <span className="truncate font-display text-gold">{STAGE_LABEL[match.stage] ?? match.stage}</span>
         <span className="flex shrink-0 items-center gap-2 whitespace-nowrap">
           {live && (
-            <span className="flex items-center gap-1 rounded-full bg-red-500/20 px-2 py-0.5 text-red-300">
+            <span className="flex items-center gap-1 rounded-full bg-red-500/20 px-2 py-0.5 text-red-600">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-400" /> LIVE
             </span>
           )}
@@ -102,7 +104,7 @@ export default function MatchCard({ leagueId, match, homePlayers, awayPlayers, i
         </span>
 
         {locked ? (
-          <span className="rounded-xl bg-black/30 px-4 py-2 font-display text-xl text-chalk">
+          <span className="net rounded-xl bg-night/5 px-4 py-2 font-display text-xl text-chalk">
             {match.status === "finished" || live
               ? `${match.homeGoalsActual ?? 0} – ${match.awayGoalsActual ?? 0}`
               : "vs"}
@@ -146,7 +148,7 @@ export default function MatchCard({ leagueId, match, homePlayers, awayPlayers, i
                     className={`flex items-center gap-1.5 rounded-full border py-1 pl-0.5 pr-2.5 text-xs transition ${
                       scorers.includes(p.id)
                         ? "border-grass bg-grass text-night"
-                        : "border-white/15 text-chalk hover:bg-white/10"
+                        : "border-night/10 text-chalk hover:bg-night/5"
                     }`}
                   >
                     <PlayerAvatar playerId={p.id} name={p.name} size={20} />
@@ -180,7 +182,7 @@ function Stepper({ value, onDec, onInc }: { value: number; onDec: () => void; on
       <button onClick={onInc} className="px-3 py-1 text-base leading-none text-chalk-dim hover:text-chalk" aria-label="Increase">
         ▲
       </button>
-      <span className="w-9 rounded-lg bg-black/30 py-1 text-center font-display text-lg text-chalk">
+      <span className="net w-9 rounded-lg bg-night/5 py-1 text-center font-display text-lg text-chalk">
         {value}
       </span>
       <button onClick={onDec} className="px-3 py-1 text-base leading-none text-chalk-dim hover:text-chalk" aria-label="Decrease">

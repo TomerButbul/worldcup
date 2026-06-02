@@ -40,7 +40,7 @@ export default function Avatar({
       width={size}
       height={size}
       onError={() => setFailed(true)}
-      className={`inline-block shrink-0 rounded-full object-cover ring-2 ring-white/15 ${className}`}
+      className={`inline-block shrink-0 rounded-full object-cover ring-2 ring-night/10 ${className}`}
       style={{ width: size, height: size }}
     />
   );

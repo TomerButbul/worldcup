@@ -62,9 +62,9 @@ export default async function LeaguePage({
             <div>
               <h1 className="font-display text-3xl break-words text-gradient-gold sm:text-4xl">{league.name}</h1>
               <p className="mt-1 text-sm text-chalk-dim">
-                Code <span className="rounded bg-black/30 px-2 py-0.5 font-mono text-gold">{league.join_code}</span>
+                Code <span className="rounded bg-night/5 px-2 py-0.5 font-mono text-gold">{league.join_code}</span>
                 {"  ·  "}
-                <span className={locked ? "text-red-300" : "text-grass-bright"}>
+                <span className={locked ? "text-red-600" : "text-grass"}>
                   {locked ? "🔒 Bracket locked" : "🟢 Bracket open"}
                 </span>
               </p>

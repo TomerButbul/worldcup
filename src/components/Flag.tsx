@@ -26,7 +26,7 @@ export default function Flag({
   if (!src || failed) {
     return (
       <span
-        className={`inline-flex shrink-0 items-center justify-center rounded-sm bg-black/30 text-[8px] font-bold text-chalk-dim ${className}`}
+        className={`inline-flex shrink-0 items-center justify-center rounded-sm bg-night/10 text-[8px] font-bold text-chalk-dim ${className}`}
         style={{ width: size, height: size }}
         title={name}
       >

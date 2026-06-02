@@ -21,10 +21,10 @@ export default async function LoginPage({
           </div>
 
           {info && (
-            <p className="rounded-lg bg-grass/15 px-3 py-2 text-sm text-grass-bright">{info}</p>
+            <p className="rounded-lg bg-grass/15 px-3 py-2 text-sm text-grass">{info}</p>
           )}
           {error && (
-            <p className="rounded-lg bg-red-500/15 px-3 py-2 text-sm text-red-300">{error}</p>
+            <p className="rounded-lg bg-red-500/15 px-3 py-2 text-sm text-red-600">{error}</p>
           )}
 
           <form action={login} className="space-y-4">
@@ -35,7 +35,7 @@ export default async function LoginPage({
               placeholder="Email"
               aria-label="Email"
               autoComplete="email"
-              className="w-full rounded-xl border border-white/15 bg-black/20 px-3 py-2.5 text-sm text-chalk outline-none placeholder:text-chalk-dim focus:border-grass focus:ring-2 focus:ring-grass/30"
+              className="w-full rounded-xl border border-night/10 bg-white px-3 py-2.5 text-sm text-chalk outline-none placeholder:text-chalk-dim focus:border-grass focus:ring-2 focus:ring-grass/30"
             />
             <input
               name="password"
@@ -44,7 +44,7 @@ export default async function LoginPage({
               placeholder="Password"
               aria-label="Password"
               autoComplete="current-password"
-              className="w-full rounded-xl border border-white/15 bg-black/20 px-3 py-2.5 text-sm text-chalk outline-none placeholder:text-chalk-dim focus:border-grass focus:ring-2 focus:ring-grass/30"
+              className="w-full rounded-xl border border-night/10 bg-white px-3 py-2.5 text-sm text-chalk outline-none placeholder:text-chalk-dim focus:border-grass focus:ring-2 focus:ring-grass/30"
             />
             <GameButton type="submit" variant="primary" className="w-full">
               Log in

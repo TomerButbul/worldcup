@@ -16,7 +16,7 @@ export default function OgImage() {
           justifyContent: "center",
           padding: "80px",
           background:
-            "radial-gradient(1000px 500px at 30% 0%, #19c37d55, transparent), linear-gradient(135deg, #0b3d2c, #04140e)",
+            "radial-gradient(800px 500px at 12% 0%, #2aa8ff66, transparent), radial-gradient(800px 500px at 90% 100%, #ff4d8d55, transparent), radial-gradient(700px 500px at 80% 10%, #18d48855, transparent), linear-gradient(135deg, #182264, #0e1545)",
           color: "#eaf3ee",
           fontFamily: "sans-serif",
         }}

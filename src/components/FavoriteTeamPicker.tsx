@@ -54,7 +54,7 @@ export default function FavoriteTeamPicker({
         <button
           onClick={() => setOpen((o) => !o)}
           disabled={pending}
-          className="shrink-0 rounded-lg border border-white/15 px-3 py-2 text-xs text-chalk transition hover:bg-white/10"
+          className="shrink-0 rounded-lg border border-night/10 px-3 py-2 text-xs text-chalk transition hover:bg-night/5"
         >
           {open ? "Close" : currentTeam ? "Change" : "Pick team"}
         </button>
@@ -74,7 +74,7 @@ export default function FavoriteTeamPicker({
                 className={`flex items-center gap-2 rounded-lg border px-2.5 py-2.5 text-left text-sm transition ${
                   selected === t.id
                     ? "border-grass bg-grass/15 text-chalk"
-                    : "border-white/10 text-chalk hover:bg-white/10"
+                    : "border-night/10 text-chalk hover:bg-night/5"
                 }`}
               >
                 <Flag teamId={t.id} logoUrl={t.logo_url} code={t.code} name={t.name} size={18} />

@@ -5,6 +5,7 @@ import { motion } from "motion/react";
 import type { Team } from "@/lib/types";
 import { saveBracket } from "./actions";
 import { burst, celebrate } from "@/lib/confetti";
+import { goalCelebration } from "@/lib/goal";
 import GameButton from "@/components/GameButton";
 import Flag from "@/components/Flag";
 
@@ -97,7 +98,10 @@ export default function BracketEditor({
 
   function pickChampion(id: number | null) {
     setChampion(id);
-    if (id != null) celebrate();
+    if (id != null) {
+      celebrate();
+      goalCelebration("CHAMPION!");
+    }
   }
 
   function save() {
@@ -144,14 +148,14 @@ export default function BracketEditor({
                     key={t.id}
                     layout
                     className={`flex items-center justify-between rounded-lg px-2 py-1.5 text-sm ${
-                      i < 2 ? "bg-grass/10" : "bg-black/10"
+                      i < 2 ? "bg-grass/15" : "bg-night/[0.04]"
                     }`}
                   >
                     <span className="flex min-w-0 items-center gap-2">
                       <span className="w-4 shrink-0 text-chalk-dim">{i + 1}</span>
                       <Flag teamId={t.id} logoUrl={t.logo_url} code={t.code} name={t.name} size={18} />
                       <span className="truncate text-chalk">{t.name}</span>
-                      {i < 2 && <span className="shrink-0 text-xs text-grass-bright">✓</span>}
+                      {i < 2 && <span className="shrink-0 text-xs text-grass">✓</span>}
                     </span>
                     {!locked && (
                       <span className="flex shrink-0 gap-1">
@@ -182,7 +186,7 @@ export default function BracketEditor({
       </section>
 
       {/* Knockout funnel */}
-      <section className="space-y-5 border-t border-white/10 pt-8">
+      <section className="space-y-5 border-t border-night/10 pt-8">
         <h2 className="font-display text-xl text-chalk">🔥 Knockout — pick who advances</h2>
         {STAGES.map((stage) => {
           const pool = poolFor(stage.key);
@@ -194,7 +198,7 @@ export default function BracketEditor({
                 <h3 className="font-display text-sm text-chalk">{stage.label}</h3>
                 <span
                   className={`rounded-full px-2 py-0.5 text-xs ${
-                    complete ? "bg-grass/20 text-grass-bright" : "text-chalk-dim"
+                    complete ? "bg-grass/20 text-grass" : "text-chalk-dim"
                   }`}
                 >
                   {chosen.length}/{stage.max}
@@ -216,7 +220,7 @@ export default function BracketEditor({
                         className={`flex min-h-10 items-center gap-1.5 rounded-full border px-3 py-2 text-sm transition disabled:cursor-not-allowed disabled:opacity-30 ${
                           active
                             ? "border-grass bg-grass text-night glow-grass"
-                            : "border-white/15 text-chalk hover:bg-white/10"
+                            : "border-night/10 text-chalk hover:bg-night/5"
                         }`}
                       >
                         <Flag teamId={t.id} logoUrl={t.logo_url} code={t.code} name={t.name} size={16} />
@@ -247,7 +251,7 @@ export default function BracketEditor({
                   className={`flex items-center gap-2 rounded-xl border px-5 py-3 font-display text-base transition sm:text-lg ${
                     champion === t.id
                       ? "border-gold bg-gold/15 text-gold glow-gold"
-                      : "border-white/15 text-chalk hover:bg-white/10"
+                      : "border-night/10 text-chalk hover:bg-night/5"
                   }`}
                 >
                   {champion === t.id && "👑"}
@@ -261,14 +265,14 @@ export default function BracketEditor({
       </section>
 
       {!locked && (
-        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-white/10 bg-night/80 backdrop-blur">
+        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-night/10 bg-white/85 backdrop-blur">
           <div className="mx-auto flex max-w-4xl flex-wrap items-center gap-x-3 gap-y-1.5 px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] pr-16 sm:px-6 sm:pr-20">
             <GameButton onClick={save} disabled={pending} variant="gold">
               {pending ? "Saving…" : "💾 Save picks"}
             </GameButton>
             <span
               className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                allComplete ? "bg-grass/20 text-grass-bright" : "glass text-chalk-dim"
+                allComplete ? "bg-grass/20 text-grass" : "glass text-chalk-dim"
               }`}
             >
               {allComplete ? "✓ Bracket complete" : `${stepsDone}/${totalSteps} done`}

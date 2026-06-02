@@ -21,7 +21,7 @@ export default function FavoriteTeamStatus({ status }: { status: FavTeamStatus }
     ? "border-grass/60 glow-grass"
     : bad
       ? "border-red-500/50"
-      : "border-white/15";
+      : "border-night/10";
 
   const kickoff = status.next
     ? new Date(status.next.kickoff).toLocaleString(undefined, {
@@ -56,7 +56,7 @@ export default function FavoriteTeamStatus({ status }: { status: FavTeamStatus }
 
         <div className="min-w-0 flex-1">
           <p className="text-xs uppercase tracking-wider text-chalk-dim">Your team {status.emoji}</p>
-          <p className={`font-display text-lg ${good ? "text-grass-bright" : bad ? "text-red-300" : "text-chalk"}`}>
+          <p className={`font-display text-lg ${good ? "text-grass" : bad ? "text-red-600" : "text-chalk"}`}>
             {status.headline}
           </p>
           {kickoff && (

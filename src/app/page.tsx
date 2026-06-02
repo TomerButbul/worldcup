@@ -31,7 +31,7 @@ export default async function Home() {
         ].map((f) => (
           <div
             key={f.t}
-            className="glass rounded-2xl p-4 text-left transition duration-300 hover:-translate-y-1 hover:border-grass/40 hover:bg-white/10"
+            className="glass rounded-2xl p-4 text-left transition duration-300 hover:-translate-y-1 hover:border-grass/40 hover:bg-night/5"
           >
             <h3 className="font-display text-lg text-gradient-gold">{f.t}</h3>
             <p className="mt-1 text-sm text-chalk-dim">{f.d}</p>

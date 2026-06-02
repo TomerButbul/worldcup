@@ -8,7 +8,7 @@ const COLORS = [
 export default function FlagGarland({ count = 16 }: { count?: number }) {
   return (
     <div aria-hidden className="relative h-6 w-full overflow-hidden">
-      <div className="absolute left-0 top-1 h-px w-full bg-white/20" />
+      <div className="absolute left-0 top-1 h-px w-full bg-night/20" />
       <div className="flex w-full justify-between px-1">
         {Array.from({ length: count }).map((_, i) => (
           <span
