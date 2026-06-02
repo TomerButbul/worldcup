@@ -2,23 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { KICKOFF_MS } from "@/lib/clock";
+import { KICKOFF_MS, countdownParts, type CountdownParts } from "@/lib/clock";
 import { celebrate } from "@/lib/confetti";
 import { goalCelebration } from "@/lib/goal";
-
-type Parts = { days: number; hours: number; mins: number; secs: number };
-
-function partsUntil(target: number): Parts | null {
-  const diff = target - Date.now();
-  if (diff <= 0) return null;
-  const total = Math.floor(diff / 1000);
-  return {
-    days: Math.floor(total / 86400),
-    hours: Math.floor((total % 86400) / 3600),
-    mins: Math.floor((total % 3600) / 60),
-    secs: total % 60,
-  };
-}
 
 export default function Countdown({
   target = KICKOFF_MS,
@@ -27,10 +13,9 @@ export default function Countdown({
   target?: number;
   className?: string;
 }) {
-  // parts stays null until mounted (keeps SSR + first client render identical),
-  // and again once kickoff passes.
-  const [parts, setParts] = useState<Parts | null>(null);
-  const [mounted, setMounted] = useState(false);
+  // parts stays null until the ticking effect runs (keeps SSR + first client
+  // render identical), and again once kickoff passes.
+  const [parts, setParts] = useState<CountdownParts | null>(null);
   const [live, setLive] = useState(false);
   const reduce = useReducedMotion();
 
@@ -40,10 +25,8 @@ export default function Countdown({
   const sawCountdown = useRef(false);
 
   useEffect(() => {
-    setMounted(true);
-
     const tick = () => {
-      const p = partsUntil(target);
+      const p = countdownParts(target);
       if (p) {
         sawCountdown.current = true;
         setParts(p);
@@ -63,7 +46,7 @@ export default function Countdown({
     return () => window.clearInterval(id);
   }, [target]);
 
-  if (mounted && live) return <LiveBadge className={className} reduce={!!reduce} />;
+  if (live) return <LiveBadge className={className} reduce={!!reduce} />;
 
   const units = [
     { value: parts?.days ?? null, label: "Days" },

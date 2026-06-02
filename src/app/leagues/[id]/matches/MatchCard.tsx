@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { motion } from "motion/react";
 import type { Player } from "@/lib/types";
 import { savePrediction } from "./actions";
@@ -8,7 +9,9 @@ import { burst } from "@/lib/confetti";
 import { goalCelebration } from "@/lib/goal";
 import Flag from "@/components/Flag";
 import PlayerAvatar from "@/components/PlayerAvatar";
+import MatchCountdown from "@/components/MatchCountdown";
 import { nowMs } from "@/lib/clock";
+import { stageLabel } from "@/lib/stages";
 
 export interface MatchCardData {
   id: number;
@@ -31,18 +34,10 @@ interface Props {
   initial: { home_goals: number; away_goals: number; scorer_ids: number[] } | null;
 }
 
-const STAGE_LABEL: Record<string, string> = {
-  group: "Group Stage",
-  round_of_32: "Round of 32",
-  round_of_16: "Round of 16",
-  quarter: "Quarter-final",
-  semi: "Semi-final",
-  third_place: "Third place",
-  final: "Final",
-};
-
 export default function MatchCard({ leagueId, match, homePlayers, awayPlayers, initial }: Props) {
-  const locked = new Date(match.kickoff_at).getTime() <= nowMs();
+  // Starts from the at-load lock state, then flips live the moment the
+  // per-match countdown reaches kickoff — no refresh needed.
+  const [locked, setLocked] = useState(() => new Date(match.kickoff_at).getTime() <= nowMs());
   const [home, setHome] = useState(initial?.home_goals ?? 0);
   const [away, setAway] = useState(initial?.away_goals ?? 0);
   const [scorers, setScorers] = useState<number[]>(initial?.scorer_ids ?? []);
@@ -85,15 +80,18 @@ export default function MatchCard({ leagueId, match, homePlayers, awayPlayers, i
 
   return (
     <motion.div layout className="glass rounded-2xl p-4">
-      <div className="mb-3 flex items-center justify-between gap-2 text-xs text-chalk-dim">
-        <span className="truncate font-display text-gold">{STAGE_LABEL[match.stage] ?? match.stage}</span>
-        <span className="flex shrink-0 items-center gap-2 whitespace-nowrap">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs text-chalk-dim">
+        <span className="font-display text-gold">{stageLabel(match.stage)}</span>
+        <span className="flex shrink-0 items-center gap-2">
           {live && (
             <span className="flex items-center gap-1 rounded-full bg-red-500/20 px-2 py-0.5 text-red-600">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-400" /> LIVE
             </span>
           )}
-          {kickoff}
+          {!locked && (
+            <MatchCountdown kickoff={match.kickoff_at} onExpire={() => setLocked(true)} />
+          )}
+          <span className="whitespace-nowrap">{kickoff}</span>
         </span>
       </div>
 
@@ -124,15 +122,23 @@ export default function MatchCard({ leagueId, match, homePlayers, awayPlayers, i
       </div>
 
       {locked ? (
-        <div className="mt-3 text-center text-xs text-chalk-dim">
-          {initial ? (
-            <>
-              Your pick: <span className="text-chalk">{initial.home_goals}–{initial.away_goals}</span>
-              {initial.scorer_ids.length > 0 && <> · {initial.scorer_ids.map(playerName).join(", ")}</>}
-            </>
-          ) : (
-            <span>🔒 Locked — no prediction made</span>
-          )}
+        <div className="mt-3 flex flex-col items-center gap-1.5 text-center text-xs text-chalk-dim">
+          <span>
+            {initial ? (
+              <>
+                Your pick: <span className="text-chalk">{initial.home_goals}–{initial.away_goals}</span>
+                {initial.scorer_ids.length > 0 && <> · {initial.scorer_ids.map(playerName).join(", ")}</>}
+              </>
+            ) : (
+              <span>🔒 Locked — no prediction made</span>
+            )}
+          </span>
+          <Link
+            href={`/leagues/${leagueId}/matches/${match.id}`}
+            className="font-semibold text-gold transition hover:text-gold-bright"
+          >
+            Match summary →
+          </Link>
         </div>
       ) : (
         <>
