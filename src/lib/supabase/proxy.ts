@@ -40,7 +40,11 @@ export async function updateSession(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
   const isAuthRoute = pathname.startsWith("/login") || pathname.startsWith("/signup");
-  const isPublic = pathname === "/" || pathname.startsWith("/preview") || isAuthRoute;
+  // API routes self-authenticate (e.g. /api/sync via SYNC_SECRET) and must return
+  // JSON, never an HTML redirect to /login — otherwise the cron silently 307s.
+  const isApi = pathname.startsWith("/api");
+  const isPublic =
+    pathname === "/" || pathname.startsWith("/preview") || isAuthRoute || isApi;
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();

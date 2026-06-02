@@ -48,8 +48,11 @@ export async function GET(request: NextRequest) {
     for (const league of standings) {
       for (const group of league.league?.standings ?? []) {
         for (const row of group) {
-          const label = row.group?.replace(/^Group\s*/i, "").trim() || null;
-          if (label) groupUpdates.push({ id: row.team.id, group_label: label });
+          // Only real group tables ("Group A".."Group L"). The 48-team format also
+          // returns a "Ranking of third-placed teams" table that would otherwise
+          // clobber each group's 4th team with a junk label.
+          const m = row.group?.match(/^Group\s+([A-L])$/i);
+          if (m) groupUpdates.push({ id: row.team.id, group_label: m[1].toUpperCase() });
         }
       }
     }
