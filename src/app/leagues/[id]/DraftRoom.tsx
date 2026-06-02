@@ -8,6 +8,7 @@ import { playPop, playDing, playWhistle, playWomp } from "@/lib/sound";
 import { celebrate } from "@/lib/confetti";
 import SeatGrid from "./SeatGrid";
 import DraftBoard from "./DraftBoard";
+import ReactionShower from "@/components/ReactionShower";
 import DraftResults from "./DraftResults";
 import type { StandingRow } from "@/lib/draft-scoring";
 import {
@@ -214,7 +215,8 @@ export default function DraftRoom({
         : { text: "🟢 Lobby open", cls: "text-grass" };
 
   return (
-    <main className="mx-auto w-full max-w-4xl flex-1 space-y-6 p-4 sm:space-y-8 sm:p-6">
+    <main className="mx-auto w-full max-w-4xl flex-1 space-y-6 p-4 pb-24 sm:space-y-8 sm:p-6 sm:pb-24">
+      <ReactionShower leagueId={leagueId} />
       <div className="glass-strong rounded-3xl p-5 sm:p-6">
         <Link href="/dashboard" className="text-sm text-chalk-dim hover:text-chalk">
           &larr; Dashboard
