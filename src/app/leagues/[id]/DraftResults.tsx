@@ -2,7 +2,9 @@
 
 import { motion } from "motion/react";
 import Avatar from "@/components/Avatar";
+import AutoRefresh from "@/components/AutoRefresh";
 import { DRAFT_POTS, POT_LABELS, teamAt, type Pot } from "@/lib/draft";
+import type { StandingRow } from "@/lib/draft-scoring";
 import type { DraftMember, PickRow } from "./draftTypes";
 
 const POTS: Pot[] = [1, 2, 3];
@@ -10,10 +12,15 @@ const POTS: Pot[] = [1, 2, 3];
 export default function DraftResults({
   picks,
   members,
+  standings,
+  tournamentStarted,
 }: {
   picks: PickRow[];
   members: DraftMember[];
+  standings: { perPot: Record<number, StandingRow[]>; totals: StandingRow[] };
+  tournamentStarted: boolean;
 }) {
+  const memberById = new Map(members.map((m) => [m.userId, m]));
   // Pivot the flat pick list into per-manager, per-pot squads.
   const byUser = new Map<string, Map<number, PickRow>>();
   for (const p of picks) {
@@ -41,10 +48,64 @@ export default function DraftResults({
           Every squad is locked in. Whoever&apos;s team goes furthest in each pot takes the crown —
           winners &amp; losers are decided once the tournament plays out.
         </p>
-        <p className="mt-3 inline-block rounded-full bg-gold/15 px-3 py-1 text-xs font-semibold text-gold">
-          📊 Pot standings unlock at kickoff
-        </p>
+        {!tournamentStarted && (
+          <p className="mt-3 inline-block rounded-full bg-gold/15 px-3 py-1 text-xs font-semibold text-gold">
+            📊 Pot standings unlock at kickoff
+          </p>
+        )}
       </motion.div>
+
+      {tournamentStarted && (
+        <div className="space-y-4">
+          {/* Standings fill in live as drafted teams advance. */}
+          <AutoRefresh enabled />
+          {POTS.map((pot) => {
+            const rows = standings.perPot[pot] ?? [];
+            return (
+              <div key={pot} className="glass rounded-2xl p-4">
+                <h3 className="mb-2 font-display text-chalk">{POT_LABELS[pot]} — standings</h3>
+                <ul className="space-y-1.5">
+                  {rows.map((r, i) => {
+                    const m = memberById.get(r.userId);
+                    const isWinner = i === 0 && r.points > 0;
+                    const isSpoon = i === rows.length - 1 && rows.length > 1;
+                    return (
+                      <li key={r.userId} className="flex items-center gap-2 text-sm">
+                        <span className="w-5 shrink-0 text-center text-chalk-dim">{i + 1}</span>
+                        <Avatar url={m?.avatarUrl} name={m?.name ?? "?"} size={22} />
+                        <span className="min-w-0 flex-1 truncate text-chalk">{m?.name ?? "?"}</span>
+                        {isWinner && <span title="Pot winner">🏆</span>}
+                        {isSpoon && <span title="Wooden Spoon — worst team in the pot">🥄</span>}
+                        <span className="font-display text-gold">{r.points}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            );
+          })}
+
+          <div className="glass rounded-2xl p-4">
+            <h3 className="font-display text-chalk">🍻 Bragging-rights total</h3>
+            <p className="mb-2 text-[11px] text-chalk-dim">
+              All three pots combined — just for fun; doesn&apos;t affect the pot competitions.
+            </p>
+            <ul className="space-y-1.5">
+              {standings.totals.map((r, i) => {
+                const m = memberById.get(r.userId);
+                return (
+                  <li key={r.userId} className="flex items-center gap-2 text-sm">
+                    <span className="w-5 shrink-0 text-center text-chalk-dim">{i + 1}</span>
+                    <Avatar url={m?.avatarUrl} name={m?.name ?? "?"} size={22} />
+                    <span className="min-w-0 flex-1 truncate text-chalk">{m?.name ?? "?"}</span>
+                    <span className="font-display text-gold">{r.points}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {roster.map((m, i) => {

@@ -9,6 +9,7 @@ import { celebrate } from "@/lib/confetti";
 import SeatGrid from "./SeatGrid";
 import DraftBoard from "./DraftBoard";
 import DraftResults from "./DraftResults";
+import type { StandingRow } from "@/lib/draft-scoring";
 import {
   type DraftStateRow,
   type PickRow,
@@ -26,6 +27,8 @@ export default function DraftRoom({
   initialState,
   initialPicks,
   initialMembers,
+  standings,
+  tournamentStarted,
 }: {
   leagueId: string;
   leagueName: string;
@@ -34,6 +37,8 @@ export default function DraftRoom({
   initialState: DraftStateRow;
   initialPicks: PickRow[];
   initialMembers: DraftMember[];
+  standings: { perPot: Record<number, StandingRow[]>; totals: StandingRow[] };
+  tournamentStarted: boolean;
 }) {
   const supabase = useMemo(() => createClient(), []);
   const [state, setState] = useState(initialState);
@@ -265,7 +270,12 @@ export default function DraftRoom({
       )}
 
       {state.status === "complete" && (
-        <DraftResults picks={picks} members={members} />
+        <DraftResults
+          picks={picks}
+          members={members}
+          standings={standings}
+          tournamentStarted={tournamentStarted}
+        />
       )}
     </main>
   );

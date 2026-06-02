@@ -14,6 +14,9 @@ import { btnClass, GOLD_GRADIENT } from "@/components/buttonStyles";
 import Reveal from "@/components/Reveal";
 import AutoRefresh from "@/components/AutoRefresh";
 import { nowMs, KICKOFF_MS } from "@/lib/clock";
+import { computeActuals, type MatchRow } from "@/lib/scoring-core";
+import { teamAt } from "@/lib/draft";
+import { draftTeamIds, teamProgressPoints, draftScores } from "@/lib/draft-scoring";
 
 export default async function LeaguePage({
   params,
@@ -63,6 +66,22 @@ export default async function LeaguePage({
       mapMember,
     );
 
+    // Draft standings: each drafted team's tournament progress → 3 independent
+    // pot competitions + a bragging-rights total. Fills in as matches play.
+    const [matchesRes, teamsRes] = await Promise.all([
+      supabase
+        .from("matches")
+        .select("id, stage, group_label, status, home_team_id, away_team_id, home_goals, away_goals"),
+      supabase.from("teams").select("id, name"),
+    ]);
+    const actual = computeActuals((matchesRes.data ?? []) as MatchRow[], new Map());
+    const idByDraftName = draftTeamIds(teamsRes.data ?? []);
+    const standings = draftScores(initialPicks, (pot, slot) => {
+      const team = teamAt(pot, slot);
+      const teamId = team ? (idByDraftName.get(team.name) ?? null) : null;
+      return teamProgressPoints(teamId, actual.advancers, actual.champion);
+    });
+
     return (
       <DraftRoom
         leagueId={id}
@@ -72,6 +91,8 @@ export default async function LeaguePage({
         initialState={initialState}
         initialPicks={initialPicks}
         initialMembers={initialMembers}
+        standings={standings}
+        tournamentStarted={nowMs() >= KICKOFF_MS}
       />
     );
   }
