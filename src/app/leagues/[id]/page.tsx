@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import Leaderboard from "./Leaderboard";
+import LeagueNameEditor from "./LeagueNameEditor";
 import DraftRoom from "./DraftRoom";
 import {
   type DraftStateRow,
@@ -109,7 +110,11 @@ export default async function LeaguePage({
           </Link>
           <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
             <div>
-              <h1 className="font-display text-3xl break-words text-gradient-gold sm:text-4xl">{league.name}</h1>
+              <LeagueNameEditor
+                leagueId={id}
+                initialName={league.name}
+                isOwner={league.owner_id === user.id}
+              />
               <p className="mt-1 text-sm text-chalk-dim">
                 Code <span className="rounded bg-night/5 px-2 py-0.5 font-mono text-gold">{league.join_code}</span>
                 {"  ·  "}
