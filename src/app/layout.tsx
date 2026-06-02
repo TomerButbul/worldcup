@@ -3,7 +3,6 @@ import { Geist, Geist_Mono, Anton } from "next/font/google";
 import "./globals.css";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import FlagGarland from "@/components/FlagGarland";
-import SoundToggle from "@/components/SoundToggle";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -64,7 +63,6 @@ export default function RootLayout({
         <div className="relative z-10 flex min-h-screen flex-col pt-[calc(env(safe-area-inset-top)+1.75rem)]">
           {children}
         </div>
-        <SoundToggle />
       </body>
     </html>
   );
