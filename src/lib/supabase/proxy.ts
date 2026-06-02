@@ -47,8 +47,10 @@ export async function updateSession(request: NextRequest) {
     pathname === "/" || pathname.startsWith("/preview") || isAuthRoute || isApi;
 
   if (!user && !isPublic) {
+    // Not signed in on a protected route (e.g. a shared /leagues/<id> link) →
+    // send to sign-up. New folks get an account; existing users tap "Log in".
     const url = request.nextUrl.clone();
-    url.pathname = "/login";
+    url.pathname = "/signup";
     return NextResponse.redirect(url);
   }
   if (user && isAuthRoute) {
