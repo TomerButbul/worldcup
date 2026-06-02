@@ -1,5 +1,5 @@
 import type { Group, MatchStage } from "@/lib/types";
-import { computeGroupTables, type GroupStat, type GroupTable } from "@/lib/scoring-core";
+import type { GroupStat, GroupTable } from "@/lib/scoring-core";
 import { assignThirdsAnnexC } from "@/lib/annex-c";
 
 // A reference to a team's slot in the fixed bracket, resolved once results exist.
