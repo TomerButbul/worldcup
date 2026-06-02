@@ -1,0 +1,29 @@
+name: Live sync
+
+# Keeps match results, goals/cards, and scores fresh during the tournament.
+# Vercel Hobby crons only fire daily, so we drive the cadence from GitHub
+# Actions instead (plan-agnostic). The /api/sync route is idempotent and its
+# API-Football calls are cached, so running often is cheap.
+on:
+  schedule:
+    - cron: "*/10 * * * *" # every 10 minutes
+  workflow_dispatch: {} # allow manual runs
+
+# Don't pile up overlapping runs if one is slow.
+concurrency:
+  group: live-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger /api/sync
+        run: |
+          # Secret goes in the Authorization header (not the URL) so it never
+          # lands in logs, even on a curl error.
+          curl -fsS --max-time 120 \
+            -H "Authorization: Bearer ${{ secrets.SYNC_SECRET }}" \
+            "https://worldcup-liart.vercel.app/api/sync" -o response.json
+          echo "Sync response:"
+          cat response.json
