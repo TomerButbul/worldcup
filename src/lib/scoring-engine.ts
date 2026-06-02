@@ -9,6 +9,7 @@ export async function recomputeAllScores(supabase: SupabaseClient) {
     .from("matches")
     .select("id, stage, group_label, status, home_team_id, away_team_id, home_goals, away_goals");
   const { data: goals } = await supabase.from("match_goals").select("match_id, player_id");
+  const { data: teams } = await supabase.from("teams").select("id, fifa_rank");
 
   const goalsByMatch = new Map<number, number[]>();
   for (const g of goals ?? []) {
@@ -16,7 +17,14 @@ export async function recomputeAllScores(supabase: SupabaseClient) {
     goalsByMatch.get(g.match_id)!.push(g.player_id);
   }
 
-  const actual = computeActuals((matches ?? []) as MatchRow[], goalsByMatch);
+  const matchRows = (matches ?? []) as MatchRow[];
+  const actual = computeActuals(matchRows, goalsByMatch);
+  const groupFixtures = matchRows.filter((m) => m.stage === "group");
+
+  const fifaRank = new Map<number, number>();
+  for (const t of teams ?? []) {
+    if (t.fifa_rank != null) fifaRank.set(t.id, t.fifa_rank);
+  }
 
   const { data: leagues } = await supabase.from("leagues").select("id, scoring");
 
@@ -25,7 +33,7 @@ export async function recomputeAllScores(supabase: SupabaseClient) {
 
     const { data: brackets } = await supabase
       .from("bracket_predictions")
-      .select("user_id, group_standings, knockout, champion_team_id")
+      .select("user_id, group_scores, knockout, champion_team_id")
       .eq("league_id", league.id);
 
     const { data: matchPreds } = await supabase
@@ -42,7 +50,7 @@ export async function recomputeAllScores(supabase: SupabaseClient) {
     const updates = (brackets ?? []).map((b) => ({
       league_id: league.id,
       user_id: b.user_id,
-      upfront_points: scoreUpfront(cfg, actual, b),
+      upfront_points: scoreUpfront(cfg, actual, b, { groupFixtures, fifaRank }),
       live_points: scoreLive(cfg, actual, predsByUser.get(b.user_id) ?? []),
       updated_at: new Date().toISOString(),
     }));
