@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { signup } from "@/app/auth/actions";
 import GameButton from "@/components/GameButton";
-import GoogleSignInButton from "@/components/GoogleSignInButton";
 import Reveal from "@/components/Reveal";
 
 export default async function SignupPage({
@@ -45,14 +44,6 @@ export default async function SignupPage({
               Sign up
             </GameButton>
           </form>
-
-          <div className="flex items-center gap-3" aria-hidden="true">
-            <span className="h-px flex-1 bg-night/10" />
-            <span className="text-xs uppercase tracking-wide text-chalk-dim">or</span>
-            <span className="h-px flex-1 bg-night/10" />
-          </div>
-
-          <GoogleSignInButton label="Sign up with Google" />
 
           <p className="text-center text-sm text-chalk-dim">
             Already have an account?{" "}
