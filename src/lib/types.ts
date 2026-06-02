@@ -37,8 +37,10 @@ export interface Match {
 
 export interface ScoringConfig {
   upfront: {
-    group_winner: number;
-    group_qualifier: number;
+    group_exact_score: number;   // nailed the exact group scoreline
+    group_correct_result: number; // got W/D/L right
+    group_winner: number;         // predicted the group winner correctly
+    advance_round_of_32: number;
     advance_round_of_16: number;
     advance_quarter: number;
     advance_semi: number;
@@ -61,18 +63,21 @@ export interface League {
   bracket_lock_at: string;
 }
 
-// group_standings: { "A": [teamId1..4] ordered 1st..4th }
-// knockout: which teams a player predicts to reach each round
+export type Group = "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J" | "K" | "L";
+
+// One predicted scoreline. h = home goals, a = away goals.
+export interface MatchScore {
+  h: number;
+  a: number;
+}
+
+// group_scores: { "<db_match_id>": { h, a } } for the 72 group matches.
+// knockout: { "<canonical_match_no 73..104>": winnerTeamId } — winner per tie.
 export interface BracketPrediction {
   league_id: string;
   user_id: string;
-  group_standings: Record<string, number[]>;
-  knockout: {
-    round_of_16?: number[];
-    quarter?: number[];
-    semi?: number[];
-    final?: number[];
-  };
+  group_scores: Record<string, MatchScore>;
+  knockout: Record<string, number>;
   champion_team_id: number | null;
   submitted_at: string | null;
 }
@@ -87,8 +92,10 @@ export interface ScoreRow {
 
 export const DEFAULT_SCORING: ScoringConfig = {
   upfront: {
+    group_exact_score: 3,
+    group_correct_result: 1,
     group_winner: 3,
-    group_qualifier: 1,
+    advance_round_of_32: 1,
     advance_round_of_16: 2,
     advance_quarter: 4,
     advance_semi: 6,
