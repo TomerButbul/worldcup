@@ -1,4 +1,5 @@
-import type { ScoringConfig, MatchStage } from "@/lib/types";
+import type { ScoringConfig, MatchStage, MatchScore } from "@/lib/types";
+import { buildBracket, predictedAdvancers } from "@/lib/bracket-core";
 
 // Pure scoring logic — no Supabase, fully unit-testable.
 
@@ -21,8 +22,8 @@ export interface ActualOutcomes {
 }
 
 export interface BracketPick {
-  group_standings: Record<string, number[]>;
-  knockout: Record<string, number[]>;
+  group_scores: Record<string, MatchScore>; // DB match id (string) → predicted score
+  knockout: Record<string, number>;          // canonical match no (string) → winner team id
   champion_team_id: number | null;
 }
 
@@ -34,6 +35,7 @@ export interface MatchPick {
 }
 
 export const ADVANCE_KEYS: Record<string, keyof ScoringConfig["upfront"]> = {
+  round_of_32: "advance_round_of_32",
   round_of_16: "advance_round_of_16",
   quarter: "advance_quarter",
   semi: "advance_semi",
@@ -217,30 +219,54 @@ export function scoreUpfront(
   cfg: ScoringConfig,
   actual: ActualOutcomes,
   bracket: BracketPick | null,
+  ctx: { groupFixtures: MatchRow[]; fifaRank: Map<number, number> },
 ): number {
   if (!bracket) return 0;
   let pts = 0;
 
-  for (const [label, actualOrder] of Object.entries(actual.groupStandings)) {
-    const predicted = bracket.group_standings?.[label];
-    if (!predicted?.length) continue;
-    const actualTop2 = new Set(actualOrder.slice(0, 2));
-    for (const teamId of predicted.slice(0, 2)) {
-      if (actualTop2.has(teamId)) pts += cfg.upfront.group_qualifier;
+  // Overlay the user's predicted scorelines onto the real group fixtures, then
+  // derive predicted standings and the full knockout bracket from them.
+  const predictedRows: MatchRow[] = ctx.groupFixtures.map((fx) => {
+    const s = bracket.group_scores?.[String(fx.id)];
+    return s ? { ...fx, home_goals: s.h, away_goals: s.a, status: "finished" } : fx;
+  });
+  const tables = computeGroupTables(predictedRows, ctx.fifaRank);
+  const { round32 } = buildBracket(tables, ctx.fifaRank);
+  const adv = predictedAdvancers(round32, bracket.knockout ?? {});
+
+  // Group-stage scoreline accuracy: an exact score beats a merely correct result.
+  for (const [idStr, guess] of Object.entries(bracket.group_scores ?? {})) {
+    const r = actual.results.get(Number(idStr));
+    if (!r) continue;
+    if (guess.h === r.home && guess.a === r.away) {
+      pts += cfg.upfront.group_exact_score;
+    } else if (Math.sign(guess.h - guess.a) === Math.sign(r.home - r.away)) {
+      pts += cfg.upfront.group_correct_result;
     }
-    if (predicted[0] === actualOrder[0]) pts += cfg.upfront.group_winner;
   }
 
+  // Group-winner bonus: predicted 1st place matches the real 1st place.
+  for (const [label, actualOrder] of Object.entries(actual.groupStandings)) {
+    const predictedWinner = tables[label]?.order[0];
+    if (predictedWinner != null && predictedWinner === actualOrder[0]) {
+      pts += cfg.upfront.group_winner;
+    }
+  }
+
+  // Survival/advancement: per stage, award for each predicted team that the real
+  // tournament also pushed into that stage.
   for (const [stage, key] of Object.entries(ADVANCE_KEYS)) {
     const reached = actual.advancers[stage];
-    const predicted = bracket.knockout?.[stage];
-    if (!reached || !predicted?.length) continue;
+    const predicted = adv.byStage[stage];
+    if (!reached || !predicted) continue;
     for (const teamId of predicted) {
       if (reached.has(teamId)) pts += cfg.upfront[key];
     }
   }
 
-  if (actual.champion != null && bracket.champion_team_id === actual.champion) {
+  // Champion: the winner the user picked in the final (match 104).
+  const predictedChampion = adv.champion ?? bracket.champion_team_id;
+  if (actual.champion != null && predictedChampion === actual.champion) {
     pts += cfg.upfront.champion;
   }
 

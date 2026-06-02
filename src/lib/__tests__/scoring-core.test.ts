@@ -145,55 +145,75 @@ describe("computeActuals", () => {
 });
 
 describe("scoreUpfront", () => {
-  const actual = computeActuals(
-    [
-      ...groupA,
-      ko(10, "round_of_16", 1, 8),
-      ko(11, "round_of_16", 3, 7),
-      ko(20, "final", 1, 5, 2, 0, "finished"),
-    ],
-    new Map(),
-  );
-
-  it("awards group winner + both qualifiers when fully correct", () => {
-    const pts = scoreUpfront(cfg, actual, {
-      group_standings: { A: [1, 3, 2, 4] },
-      knockout: {},
-      champion_team_id: null,
-    });
-    // winner(3) + 2 qualifiers(1 each) = 5
-    expect(pts).toBe(5);
+  const ctx = (groupFixtures: MatchRow[] = []) => ({
+    groupFixtures,
+    fifaRank: new Map<number, number>(),
   });
 
-  it("gives qualifier points but not winner when order is swapped", () => {
-    const pts = scoreUpfront(cfg, actual, {
-      group_standings: { A: [3, 1, 2, 4] },
-      knockout: {},
-      champion_team_id: null,
-    });
-    expect(pts).toBe(2); // 2 qualifiers, no winner bonus
+  it("scores group results: exact beats correct-result, wrong earns nothing", () => {
+    const actual = computeActuals(groupA, new Map());
+    const pts = scoreUpfront(
+      cfg,
+      actual,
+      {
+        group_scores: {
+          "1": { h: 2, a: 0 }, // actual 2-0 → exact
+          "2": { h: 3, a: 1 }, // actual 2-1 → home win → correct result
+          "3": { h: 0, a: 1 }, // actual 1-0 → wrong sign
+        },
+        knockout: {},
+        champion_team_id: null,
+      },
+      ctx(groupA),
+    );
+    expect(pts).toBe(cfg.upfront.group_exact_score + cfg.upfront.group_correct_result);
   });
 
-  it("awards advancer points per correct team that reached a round", () => {
-    const pts = scoreUpfront(cfg, actual, {
-      group_standings: {},
-      knockout: { round_of_16: [1, 8, 999] }, // 1 and 8 reached, 999 did not
-      champion_team_id: null,
-    });
-    expect(pts).toBe(cfg.upfront.advance_round_of_16 * 2);
+  it("awards the group-winner bonus when predicted scores yield the real winner", () => {
+    const actual = computeActuals(groupA, new Map());
+    // Predict every Group A match exactly → predicted standings == actual → winner = team 1.
+    const group_scores: Record<string, { h: number; a: number }> = {
+      "1": { h: 2, a: 0 },
+      "2": { h: 2, a: 1 },
+      "3": { h: 1, a: 0 },
+      "4": { h: 1, a: 1 },
+      "5": { h: 3, a: 1 },
+      "6": { h: 0, a: 1 },
+    };
+    const pts = scoreUpfront(
+      cfg,
+      actual,
+      { group_scores, knockout: {}, champion_team_id: null },
+      ctx(groupA),
+    );
+    expect(pts).toBe(6 * cfg.upfront.group_exact_score + cfg.upfront.group_winner);
   });
 
-  it("awards champion points only for the exact champion", () => {
+  it("awards advancement points for a knockout pick that reaches its stage", () => {
+    // Team 5 actually reached the Round of 16; we predicted it to win R32 match 73.
+    const actual = computeActuals([ko(10, "round_of_16", 5, 8)], new Map());
+    const pts = scoreUpfront(
+      cfg,
+      actual,
+      { group_scores: {}, knockout: { "73": 5 }, champion_team_id: null },
+      ctx(),
+    );
+    expect(pts).toBe(cfg.upfront.advance_round_of_16);
+  });
+
+  it("awards champion points only for the exact champion (from the final pick)", () => {
+    const actual = computeActuals([ko(20, "final", 7, 9, 2, 0, "finished")], new Map());
     expect(
-      scoreUpfront(cfg, actual, { group_standings: {}, knockout: {}, champion_team_id: 1 }),
+      scoreUpfront(cfg, actual, { group_scores: {}, knockout: { "104": 7 }, champion_team_id: null }, ctx()),
     ).toBe(cfg.upfront.champion);
     expect(
-      scoreUpfront(cfg, actual, { group_standings: {}, knockout: {}, champion_team_id: 5 }),
+      scoreUpfront(cfg, actual, { group_scores: {}, knockout: { "104": 8 }, champion_team_id: null }, ctx()),
     ).toBe(0);
   });
 
   it("returns 0 for a null bracket", () => {
-    expect(scoreUpfront(cfg, actual, null)).toBe(0);
+    const actual = computeActuals(groupA, new Map());
+    expect(scoreUpfront(cfg, actual, null, ctx(groupA))).toBe(0);
   });
 });
 
