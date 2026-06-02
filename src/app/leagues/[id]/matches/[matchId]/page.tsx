@@ -116,6 +116,7 @@ export default async function MatchSummaryPage({
     results: new Map([
       [matchNum, { home: match.home_goals ?? 0, away: match.away_goals ?? 0, scorers: goalCounts, stage: match.stage as MatchStage }],
     ]),
+    awards: {},
   };
 
   const isGroup = match.stage === "group";

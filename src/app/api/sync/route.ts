@@ -70,7 +70,15 @@ export async function GET(request: NextRequest) {
         const list = squads[0]?.players ?? [];
         if (list.length) {
           await supabase.from("players").upsert(
-            list.map((p) => ({ id: p.id, team_id: t.id, name: p.name })),
+            list.map((p) => ({
+              id: p.id,
+              team_id: t.id,
+              name: p.name,
+              position: p.position ?? null,
+              age: p.age ?? null,
+              number: p.number ?? null,
+              photo_url: p.photo ?? null,
+            })),
           );
           players += list.length;
         }

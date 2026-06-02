@@ -77,6 +77,12 @@ export default async function BracketPage({
             ? "🔒 Predictions are locked."
             : "Predict every group scoreline — the knockout bracket builds itself from your results. Then call the winners all the way to the trophy."}
         </p>
+        <Link
+          href={`/leagues/${id}/awards`}
+          className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-gold/10 px-3 py-1.5 text-sm font-semibold text-gold transition hover:bg-gold/20"
+        >
+          🏅 Predict individual awards →
+        </Link>
       </div>
 
       {groupMatches.length === 0 ? (

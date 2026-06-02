@@ -217,6 +217,34 @@ describe("scoreUpfront", () => {
   });
 });
 
+describe("scoreUpfront — individual awards", () => {
+  const ctx = () => ({ groupFixtures: [] as MatchRow[], fifaRank: new Map<number, number>() });
+
+  it("derives Golden Boot as the tournament top scorer", () => {
+    const a = computeActuals(
+      [ko(73, "round_of_32", 1, 4, 2, 1, "finished"), ko(74, "round_of_16", 5, 6, 1, 0, "finished")],
+      new Map([
+        [73, new Map([[101, 2], [102, 1]])],
+        [74, new Map([[101, 1]])],
+      ]),
+    );
+    expect(a.awards.golden_boot).toBe(101); // 3 goals total beats 102's 1
+  });
+
+  it("scores correct award picks, ignores wrong and unresolved ones", () => {
+    const a = computeActuals([], new Map());
+    a.awards = { golden_boot: 101, golden_ball: 202, golden_glove: null, young_player: 404 };
+    const bracket = {
+      group_scores: {},
+      knockout: {},
+      champion_team_id: null,
+      awards: { golden_boot: 101, golden_ball: 999, golden_glove: 303, young_player: 404 },
+    };
+    // boot ✓, ball ✗, glove (no winner) ✗, young player ✓
+    expect(scoreUpfront(cfg, a, bracket, ctx())).toBe(cfg.upfront.golden_boot + cfg.upfront.young_player);
+  });
+});
+
 describe("scoreLive", () => {
   // Knockout → scoreline + scorers; players 101 and 102 each scored once.
   const koActual = computeActuals(

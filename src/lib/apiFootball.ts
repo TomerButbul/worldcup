@@ -86,7 +86,14 @@ export function fetchFixtureEvents(fixtureId: number) {
 
 export interface AfSquad {
   team: { id: number };
-  players: { id: number; name: string }[];
+  players: {
+    id: number;
+    name: string;
+    age: number | null;
+    number: number | null;
+    position: string | null;
+    photo: string | null;
+  }[];
 }
 
 // Squad for a team — used so users can predict goal scorers. Cache 24h.

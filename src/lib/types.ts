@@ -21,6 +21,10 @@ export interface Player {
   id: number;
   team_id: number | null;
   name: string;
+  position?: string | null;
+  age?: number | null;
+  number?: number | null;
+  photo_url?: string | null;
 }
 
 export interface Match {
@@ -46,6 +50,10 @@ export interface ScoringConfig {
     advance_semi: number;
     advance_final: number;
     champion: number;
+    golden_boot: number;
+    golden_ball: number;
+    golden_glove: number;
+    young_player: number;
   };
   live: {
     exact_score: number;
@@ -101,6 +109,10 @@ export const DEFAULT_SCORING: ScoringConfig = {
     advance_semi: 6,
     advance_final: 8,
     champion: 15,
+    golden_boot: 12,
+    golden_ball: 10,
+    golden_glove: 8,
+    young_player: 8,
   },
   live: {
     exact_score: 5,

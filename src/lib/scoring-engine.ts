@@ -10,6 +10,7 @@ export async function recomputeAllScores(supabase: SupabaseClient) {
     .select("id, stage, group_label, status, home_team_id, away_team_id, home_goals, away_goals");
   const { data: goals } = await supabase.from("match_goals").select("match_id, player_id, goals");
   const { data: teams } = await supabase.from("teams").select("id, fifa_rank");
+  const { data: awardRows } = await supabase.from("tournament_awards").select("key, player_id");
 
   const goalsByMatch = new Map<number, Map<number, number>>();
   for (const g of goals ?? []) {
@@ -19,6 +20,8 @@ export async function recomputeAllScores(supabase: SupabaseClient) {
 
   const matchRows = (matches ?? []) as MatchRow[];
   const actual = computeActuals(matchRows, goalsByMatch);
+  // Overlay admin-entered award winners (overrides the derived Golden Boot too).
+  for (const a of awardRows ?? []) actual.awards[a.key] = a.player_id;
   const groupFixtures = matchRows.filter((m) => m.stage === "group");
 
   const fifaRank = new Map<number, number>();
@@ -33,7 +36,7 @@ export async function recomputeAllScores(supabase: SupabaseClient) {
 
     const { data: brackets } = await supabase
       .from("bracket_predictions")
-      .select("user_id, group_scores, knockout, champion_team_id")
+      .select("user_id, group_scores, knockout, champion_team_id, awards")
       .eq("league_id", league.id);
 
     const { data: matchPreds } = await supabase

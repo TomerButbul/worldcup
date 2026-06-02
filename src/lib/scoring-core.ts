@@ -19,12 +19,16 @@ export interface ActualOutcomes {
   advancers: Record<string, Set<number>>;
   champion: number | null;
   results: Map<number, { home: number; away: number; scorers: Map<number, number>; stage: MatchStage }>;
+  // Individual-award winners (award key -> player id). Golden Boot is derived
+  // from goal data; the rest are filled from admin-entered results.
+  awards: Record<string, number | null>;
 }
 
 export interface BracketPick {
   group_scores: Record<string, MatchScore>; // DB match id (string) → predicted score
   knockout: Record<string, number>;          // canonical match no (string) → winner team id
   champion_team_id: number | null;
+  awards?: Record<string, number>;           // award key → predicted player id
 }
 
 export interface MatchPick {
@@ -33,6 +37,9 @@ export interface MatchPick {
   away_goals: number | null;
   scorer_goals: Record<string, number>; // player_id -> predicted goal count
 }
+
+// Individual award keys (also the matching scoring-config keys).
+export const AWARD_KEYS = ["golden_boot", "golden_ball", "golden_glove", "young_player"] as const;
 
 export const ADVANCE_KEYS: Record<string, keyof ScoringConfig["upfront"]> = {
   round_of_32: "advance_round_of_32",
@@ -213,7 +220,27 @@ export function computeActuals(
     }
   }
 
-  return { groupStandings: computeGroupStandings(matches), advancers, champion, results };
+  // Golden Boot: most goals across the tournament (a downstream admin result
+  // can override this — e.g. official tiebreakers).
+  const goalTotals = new Map<number, number>();
+  for (const r of results.values())
+    for (const [pid, c] of r.scorers) goalTotals.set(pid, (goalTotals.get(pid) ?? 0) + c);
+  let topScorer: number | null = null;
+  let topGoals = 0;
+  for (const [pid, g] of goalTotals) {
+    if (g > topGoals || (g === topGoals && topScorer !== null && pid < topScorer)) {
+      topScorer = pid;
+      topGoals = g;
+    }
+  }
+
+  return {
+    groupStandings: computeGroupStandings(matches),
+    advancers,
+    champion,
+    results,
+    awards: { golden_boot: topScorer },
+  };
 }
 
 export function scoreUpfront(
@@ -269,6 +296,15 @@ export function scoreUpfront(
   const predictedChampion = adv.champion ?? bracket.champion_team_id;
   if (actual.champion != null && predictedChampion === actual.champion) {
     pts += cfg.upfront.champion;
+  }
+
+  // Individual awards: a correct player pick scores its configured points.
+  for (const key of AWARD_KEYS) {
+    const pick = bracket.awards?.[key];
+    const winner = actual.awards[key];
+    if (pick != null && winner != null && pick === winner) {
+      pts += cfg.upfront[key];
+    }
   }
 
   return pts;
