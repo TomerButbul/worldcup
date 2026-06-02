@@ -4,7 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import Flag from "@/components/Flag";
 import Avatar from "@/components/Avatar";
 import { stageLabel } from "@/lib/stages";
-import { nowMs } from "@/lib/clock";
+import AutoRefresh from "@/components/AutoRefresh";
+import { nowMs, KICKOFF_MS } from "@/lib/clock";
 import { scoreLive, type ActualOutcomes } from "@/lib/scoring-core";
 import { DEFAULT_SCORING, type ScoringConfig, type MatchStage } from "@/lib/types";
 
@@ -188,6 +189,7 @@ export default async function MatchSummaryPage({
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 p-4 sm:space-y-8 sm:p-6">
+      <AutoRefresh enabled={nowMs() >= KICKOFF_MS} />
       <div className="glass-strong rounded-3xl p-5 sm:p-6">
         <Link href={`/leagues/${id}/matches`} className="text-sm text-chalk-dim hover:text-chalk">
           &larr; Matches

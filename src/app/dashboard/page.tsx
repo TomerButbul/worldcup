@@ -13,7 +13,8 @@ import FavoriteTeamStatus from "@/components/FavoriteTeamStatus";
 import Countdown from "@/components/Countdown";
 import NextMatchCard, { type NextMatchData, type LeaguePrediction } from "@/components/NextMatchCard";
 import { computeFavStatus } from "@/lib/favoriteStatus";
-import { nowMs } from "@/lib/clock";
+import AutoRefresh from "@/components/AutoRefresh";
+import { nowMs, KICKOFF_MS } from "@/lib/clock";
 import type { Team, Match } from "@/lib/types";
 
 export default async function DashboardPage({
@@ -135,6 +136,7 @@ export default async function DashboardPage({
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 p-4 sm:space-y-8 sm:p-6">
+      <AutoRefresh enabled={nowMs() >= KICKOFF_MS} />
       <Reveal>
         <header className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">

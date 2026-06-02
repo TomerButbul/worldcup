@@ -12,7 +12,8 @@ import {
 } from "./draftTypes";
 import { btnClass, GOLD_GRADIENT } from "@/components/buttonStyles";
 import Reveal from "@/components/Reveal";
-import { nowMs } from "@/lib/clock";
+import AutoRefresh from "@/components/AutoRefresh";
+import { nowMs, KICKOFF_MS } from "@/lib/clock";
 
 export default async function LeaguePage({
   params,
@@ -103,6 +104,7 @@ export default async function LeaguePage({
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 space-y-6 p-4 sm:space-y-8 sm:p-6">
+      <AutoRefresh enabled={nowMs() >= KICKOFF_MS} />
       <Reveal>
         <div className="glass-strong rounded-3xl p-5 sm:p-6">
           <Link href="/dashboard" className="text-sm text-chalk-dim hover:text-chalk">
