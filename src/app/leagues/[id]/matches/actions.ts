@@ -8,7 +8,7 @@ export async function savePrediction(
   matchId: number,
   homeGoals: number | null,
   awayGoals: number | null,
-  scorerIds: number[],
+  scorerGoals: Record<string, number>,
 ) {
   const supabase = await createClient();
   const {
@@ -27,12 +27,30 @@ export async function savePrediction(
     return { ok: false, error: "This match has kicked off — predictions are locked" };
   }
 
+  // Keep only positive integer goal counts, keyed by player id.
+  const clean: Record<string, number> = {};
+  for (const [pid, n] of Object.entries(scorerGoals ?? {})) {
+    const count = Math.floor(Number(n));
+    if (Number.isInteger(Number(pid)) && count > 0) clean[String(Number(pid))] = count;
+  }
+
   // Group matches: the scoreline is owned by the upfront bracket, so the live
-  // pick is scorers-only (no scoreline stored). Knockouts: full score + scorers.
+  // pick is scorers-only (no scoreline stored) and the scorer cap comes from the
+  // bracket. Knockouts: full score + scorers, capped by the predicted score.
   const isGroup = match.stage === "group";
   let home: number | null = null;
   let away: number | null = null;
-  if (!isGroup) {
+  let totalCap: number;
+  if (isGroup) {
+    const { data: bracket } = await supabase
+      .from("bracket_predictions")
+      .select("group_scores")
+      .eq("league_id", leagueId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    const gs = (bracket?.group_scores as Record<string, { h: number; a: number }> | null)?.[String(matchId)];
+    totalCap = gs ? gs.h + gs.a : 0;
+  } else {
     if (
       !Number.isInteger(homeGoals) ||
       !Number.isInteger(awayGoals) ||
@@ -43,6 +61,17 @@ export async function savePrediction(
     }
     home = homeGoals;
     away = awayGoals;
+    totalCap = (homeGoals as number) + (awayGoals as number);
+  }
+
+  const totalPicked = Object.values(clean).reduce((s, n) => s + n, 0);
+  if (totalPicked > totalCap) {
+    return {
+      ok: false,
+      error: isGroup
+        ? "Set your bracket score first — you picked more scorers than goals"
+        : "You picked more goal scorers than your predicted score",
+    };
   }
 
   const { error } = await supabase.from("match_predictions").upsert(
@@ -52,7 +81,8 @@ export async function savePrediction(
       match_id: matchId,
       home_goals: home,
       away_goals: away,
-      scorer_ids: scorerIds,
+      scorer_goals: clean,
+      scorer_ids: Object.keys(clean).map(Number), // legacy column kept in sync
       submitted_at: new Date().toISOString(),
     },
     { onConflict: "league_id,user_id,match_id" },

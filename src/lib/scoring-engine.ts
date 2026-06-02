@@ -8,13 +8,13 @@ export async function recomputeAllScores(supabase: SupabaseClient) {
   const { data: matches } = await supabase
     .from("matches")
     .select("id, stage, group_label, status, home_team_id, away_team_id, home_goals, away_goals");
-  const { data: goals } = await supabase.from("match_goals").select("match_id, player_id");
+  const { data: goals } = await supabase.from("match_goals").select("match_id, player_id, goals");
   const { data: teams } = await supabase.from("teams").select("id, fifa_rank");
 
-  const goalsByMatch = new Map<number, number[]>();
+  const goalsByMatch = new Map<number, Map<number, number>>();
   for (const g of goals ?? []) {
-    if (!goalsByMatch.has(g.match_id)) goalsByMatch.set(g.match_id, []);
-    goalsByMatch.get(g.match_id)!.push(g.player_id);
+    if (!goalsByMatch.has(g.match_id)) goalsByMatch.set(g.match_id, new Map());
+    goalsByMatch.get(g.match_id)!.set(g.player_id, g.goals ?? 1);
   }
 
   const matchRows = (matches ?? []) as MatchRow[];
@@ -38,7 +38,7 @@ export async function recomputeAllScores(supabase: SupabaseClient) {
 
     const { data: matchPreds } = await supabase
       .from("match_predictions")
-      .select("user_id, match_id, home_goals, away_goals, scorer_ids")
+      .select("user_id, match_id, home_goals, away_goals, scorer_goals")
       .eq("league_id", league.id);
 
     const predsByUser = new Map<string, typeof matchPreds>();

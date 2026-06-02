@@ -31,7 +31,7 @@ interface Props {
   match: MatchCardData;
   homePlayers: Player[];
   awayPlayers: Player[];
-  initial: { home_goals: number | null; away_goals: number | null; scorer_ids: number[] } | null;
+  initial: { home_goals: number | null; away_goals: number | null; scorer_goals: Record<string, number> } | null;
   // The user's upfront bracket scoreline for this match (group stage only).
   bracketScore: { h: number; a: number } | null;
 }
@@ -41,12 +41,11 @@ export default function MatchCard({ leagueId, match, homePlayers, awayPlayers, i
   // Knockouts capture a full scoreline here.
   const isGroup = match.stage === "group";
 
-  // Starts from the at-load lock state, then flips live the moment the
-  // per-match countdown reaches kickoff — no refresh needed.
   const [locked, setLocked] = useState(() => new Date(match.kickoff_at).getTime() <= nowMs());
   const [home, setHome] = useState(initial?.home_goals ?? 0);
   const [away, setAway] = useState(initial?.away_goals ?? 0);
-  const [scorers, setScorers] = useState<number[]>(initial?.scorer_ids ?? []);
+  // player_id (string) -> predicted goals for that player.
+  const [scorerGoals, setScorerGoals] = useState<Record<string, number>>(() => ({ ...(initial?.scorer_goals ?? {}) }));
   const [pending, startTransition] = useTransition();
   const [msg, setMsg] = useState<string | null>(null);
 
@@ -62,8 +61,22 @@ export default function MatchCard({ leagueId, match, homePlayers, awayPlayers, i
   const allPlayers = [...homePlayers, ...awayPlayers];
   const playerName = (id: number) => allPlayers.find((p) => p.id === id)?.name ?? `#${id}`;
 
-  function toggleScorer(id: number) {
-    setScorers((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  // Per-team goal caps: group → your bracket scoreline; knockout → the steppers.
+  const homeCap = isGroup ? (bracketScore?.h ?? 0) : home;
+  const awayCap = isGroup ? (bracketScore?.a ?? 0) : away;
+  const sumFor = (players: Player[]) => players.reduce((s, p) => s + (scorerGoals[String(p.id)] ?? 0), 0);
+
+  function adjust(playerId: number, delta: number, players: Player[], cap: number) {
+    setScorerGoals((prev) => {
+      const cur = prev[String(playerId)] ?? 0;
+      const next = cur + delta;
+      if (next < 0) return prev;
+      if (delta > 0 && players.reduce((s, p) => s + (prev[String(p.id)] ?? 0), 0) >= cap) return prev;
+      const out = { ...prev };
+      if (next === 0) delete out[String(playerId)];
+      else out[String(playerId)] = next;
+      return out;
+    });
   }
 
   function step(setter: (fn: (n: number) => number) => void, delta: number) {
@@ -73,8 +86,7 @@ export default function MatchCard({ leagueId, match, homePlayers, awayPlayers, i
   function save() {
     setMsg(null);
     startTransition(async () => {
-      // Group → scorers only (no scoreline); knockout → full score + scorers.
-      const res = await savePrediction(leagueId, match.id, isGroup ? null : home, isGroup ? null : away, scorers);
+      const res = await savePrediction(leagueId, match.id, isGroup ? null : home, isGroup ? null : away, scorerGoals);
       if (res.ok) {
         burst();
         goalCelebration("GOAL!");
@@ -85,7 +97,6 @@ export default function MatchCard({ leagueId, match, homePlayers, awayPlayers, i
     });
   }
 
-  // Scoreline text for the locked "your pick" line.
   const pickScore = isGroup
     ? bracketScore
       ? `${bracketScore.h}–${bracketScore.a}`
@@ -93,6 +104,10 @@ export default function MatchCard({ leagueId, match, homePlayers, awayPlayers, i
     : initial && initial.home_goals != null
       ? `${initial.home_goals}–${initial.away_goals}`
       : null;
+
+  const lockedScorers = Object.entries(initial?.scorer_goals ?? {})
+    .map(([pid, n]) => `${playerName(Number(pid))}${n > 1 ? ` ×${n}` : ""}`)
+    .join(", ");
 
   return (
     <motion.div layout className="glass rounded-2xl p-4">
@@ -104,9 +119,7 @@ export default function MatchCard({ leagueId, match, homePlayers, awayPlayers, i
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-400" /> LIVE
             </span>
           )}
-          {!locked && (
-            <MatchCountdown kickoff={match.kickoff_at} onExpire={() => setLocked(true)} />
-          )}
+          {!locked && <MatchCountdown kickoff={match.kickoff_at} onExpire={() => setLocked(true)} />}
           <span className="whitespace-nowrap">{kickoff}</span>
         </span>
       </div>
@@ -124,7 +137,6 @@ export default function MatchCard({ leagueId, match, homePlayers, awayPlayers, i
               : "vs"}
           </span>
         ) : isGroup ? (
-          // Group: the scoreline comes from the bracket — shown read-only here.
           <span className="flex flex-col items-center">
             <span className="net rounded-xl bg-gold/10 px-4 py-2 font-display text-xl text-gold">
               {bracketScore ? `${bracketScore.h}–${bracketScore.a}` : "—"}
@@ -148,13 +160,11 @@ export default function MatchCard({ leagueId, match, homePlayers, awayPlayers, i
       {locked ? (
         <div className="mt-3 flex flex-col items-center gap-1.5 text-center text-xs text-chalk-dim">
           <span>
-            {pickScore || (initial?.scorer_ids.length ?? 0) > 0 ? (
+            {pickScore || lockedScorers ? (
               <>
                 Your pick:{" "}
                 {pickScore && <span className="text-chalk">{pickScore}</span>}
-                {(initial?.scorer_ids.length ?? 0) > 0 && (
-                  <> {pickScore ? "· " : ""}{initial!.scorer_ids.map(playerName).join(", ")}</>
-                )}
+                {lockedScorers && <> {pickScore ? "· " : ""}⚽ {lockedScorers}</>}
               </>
             ) : (
               <span>🔒 Locked — no prediction made</span>
@@ -169,36 +179,32 @@ export default function MatchCard({ leagueId, match, homePlayers, awayPlayers, i
         </div>
       ) : (
         <>
-          {isGroup && (
-            <p className="mt-3 text-center text-xs text-chalk-dim">
-              Scoreline comes from your bracket — pick who scores below.
+          {isGroup && !bracketScore && (
+            <p className="mt-3 rounded-xl bg-gold/10 px-3 py-2 text-center text-xs text-chalk-dim">
+              Set your <Link href={`/leagues/${leagueId}/bracket`} className="font-semibold text-gold">bracket score</Link> for this match to pick its scorers.
             </p>
           )}
-          {allPlayers.length > 0 ? (
-            <div className="mt-4">
-              <p className="mb-1.5 text-xs font-medium text-chalk-dim">⚽ Goal scorers</p>
-              <div className="flex flex-wrap gap-1.5">
-                {allPlayers.map((p) => (
-                  <motion.button
-                    key={p.id}
-                    whileTap={{ scale: 0.88 }}
-                    onClick={() => toggleScorer(p.id)}
-                    className={`flex items-center gap-1.5 rounded-full border py-1 pl-0.5 pr-2.5 text-xs transition ${
-                      scorers.includes(p.id)
-                        ? "border-grass bg-grass text-night"
-                        : "border-night/10 text-chalk hover:bg-night/5"
-                    }`}
-                  >
-                    <PlayerAvatar playerId={p.id} name={p.name} size={20} />
-                    {p.name}
-                  </motion.button>
-                ))}
-              </div>
-            </div>
+          {allPlayers.length === 0 ? (
+            <p className="mt-4 text-xs text-chalk-dim">⚽ Goal-scorer list loads once squads are synced.</p>
           ) : (
-            <p className="mt-4 text-xs text-chalk-dim">
-              ⚽ Goal-scorer list loads once squads are synced.
-            </p>
+            <div className="mt-4 space-y-3">
+              <TeamScorers
+                label={match.homeName}
+                players={homePlayers}
+                cap={homeCap}
+                sum={sumFor(homePlayers)}
+                scorerGoals={scorerGoals}
+                onAdjust={(pid, d) => adjust(pid, d, homePlayers, homeCap)}
+              />
+              <TeamScorers
+                label={match.awayName}
+                players={awayPlayers}
+                cap={awayCap}
+                sum={sumFor(awayPlayers)}
+                scorerGoals={scorerGoals}
+                onAdjust={(pid, d) => adjust(pid, d, awayPlayers, awayCap)}
+              />
+            </div>
           )}
           <div className="mt-4 flex items-center gap-3">
             <motion.button
@@ -215,6 +221,81 @@ export default function MatchCard({ leagueId, match, homePlayers, awayPlayers, i
         </>
       )}
     </motion.div>
+  );
+}
+
+function TeamScorers({
+  label,
+  players,
+  cap,
+  sum,
+  scorerGoals,
+  onAdjust,
+}: {
+  label: string;
+  players: Player[];
+  cap: number;
+  sum: number;
+  scorerGoals: Record<string, number>;
+  onAdjust: (playerId: number, delta: number) => void;
+}) {
+  const atCap = sum >= cap;
+  return (
+    <div>
+      <p className="mb-1.5 flex items-center justify-between text-xs font-medium text-chalk-dim">
+        <span className="truncate">⚽ {label}</span>
+        <span className={sum > cap ? "text-red-600" : ""}>
+          {sum}/{cap} goals
+        </span>
+      </p>
+      {cap === 0 ? (
+        <p className="text-[11px] text-chalk-dim">Predict a goal for {label} to assign scorers.</p>
+      ) : (
+        <div className="flex flex-wrap gap-1.5">
+          {players.map((p) => {
+            const count = scorerGoals[String(p.id)] ?? 0;
+            if (count === 0) {
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => onAdjust(p.id, 1)}
+                  disabled={atCap}
+                  className="flex items-center gap-1.5 rounded-full border border-night/10 py-1 pl-0.5 pr-2.5 text-xs text-chalk transition hover:bg-night/5 disabled:opacity-40"
+                >
+                  <PlayerAvatar playerId={p.id} name={p.name} size={20} />
+                  {p.name}
+                </button>
+              );
+            }
+            return (
+              <span
+                key={p.id}
+                className="flex items-center gap-1 rounded-full border border-grass bg-grass/15 py-0.5 pl-0.5 pr-1 text-xs text-chalk"
+              >
+                <PlayerAvatar playerId={p.id} name={p.name} size={20} />
+                <span className="font-semibold">{p.name}</span>
+                <span className="font-display text-grass">×{count}</span>
+                <button
+                  onClick={() => onAdjust(p.id, -1)}
+                  aria-label={`One fewer for ${p.name}`}
+                  className="ml-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-night/10 text-sm leading-none text-chalk hover:bg-night/20"
+                >
+                  −
+                </button>
+                <button
+                  onClick={() => onAdjust(p.id, 1)}
+                  disabled={atCap}
+                  aria-label={`One more for ${p.name}`}
+                  className="flex h-5 w-5 items-center justify-center rounded-full bg-grass text-sm leading-none text-night hover:brightness-110 disabled:opacity-40"
+                >
+                  +
+                </button>
+              </span>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
 

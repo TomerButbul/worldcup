@@ -18,7 +18,7 @@ export interface ActualOutcomes {
   groupStandings: Record<string, number[]>;
   advancers: Record<string, Set<number>>;
   champion: number | null;
-  results: Map<number, { home: number; away: number; scorers: Set<number>; stage: MatchStage }>;
+  results: Map<number, { home: number; away: number; scorers: Map<number, number>; stage: MatchStage }>;
 }
 
 export interface BracketPick {
@@ -31,7 +31,7 @@ export interface MatchPick {
   match_id: number;
   home_goals: number | null; // null for group matches (live game scores scorers only there)
   away_goals: number | null;
-  scorer_ids: number[];
+  scorer_goals: Record<string, number>; // player_id -> predicted goal count
 }
 
 export const ADVANCE_KEYS: Record<string, keyof ScoringConfig["upfront"]> = {
@@ -188,11 +188,11 @@ export function computeGroupStandings(
 
 export function computeActuals(
   matches: MatchRow[],
-  goalsByMatch: Map<number, number[]>,
+  goalsByMatch: Map<number, Map<number, number>>,
 ): ActualOutcomes {
   const advancers: Record<string, Set<number>> = {};
   let champion: number | null = null;
-  const results = new Map<number, { home: number; away: number; scorers: Set<number>; stage: MatchStage }>();
+  const results = new Map<number, { home: number; away: number; scorers: Map<number, number>; stage: MatchStage }>();
 
   for (const m of matches) {
     if (m.stage !== "group") {
@@ -204,7 +204,7 @@ export function computeActuals(
       results.set(m.id, {
         home: m.home_goals,
         away: m.away_goals,
-        scorers: new Set(goalsByMatch.get(m.id) ?? []),
+        scorers: goalsByMatch.get(m.id) ?? new Map(),
         stage: m.stage,
       });
       if (m.stage === "final") {
@@ -294,8 +294,11 @@ export function scoreLive(
         if (predSign === actualSign) pts += cfg.live.correct_result;
       }
     }
-    for (const scorerId of p.scorer_ids) {
-      if (r.scorers.has(scorerId)) pts += cfg.live.goal_scorer;
+    // Goal scorers: credit each correctly attributed goal, capped at how many
+    // that player actually scored (so over-predicting a brace earns no extra).
+    for (const [pid, predCount] of Object.entries(p.scorer_goals ?? {})) {
+      const actualCount = r.scorers.get(Number(pid)) ?? 0;
+      pts += cfg.live.goal_scorer * Math.min(predCount, actualCount);
     }
   }
   return pts;

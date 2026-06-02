@@ -134,9 +134,13 @@ export async function GET(request: NextRequest) {
         await supabase.from("players").upsert([...involved.values()]);
       }
 
-      if (goals.length) {
+      // Count goals per player (a player can score a brace/hat-trick) so the
+      // live game can credit per-scorer goal counts, not just "did they score".
+      const goalCount = new Map<number, number>();
+      for (const g of goals) goalCount.set(g.player.id!, (goalCount.get(g.player.id!) ?? 0) + 1);
+      if (goalCount.size) {
         await supabase.from("match_goals").upsert(
-          goals.map((g) => ({ match_id: m.id, player_id: g.player.id! })),
+          [...goalCount].map(([player_id, cnt]) => ({ match_id: m.id, player_id, goals: cnt })),
         );
         goalsImported += goals.length;
       }

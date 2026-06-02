@@ -34,7 +34,7 @@ export default async function MatchesPage({
       supabase.from("players").select("id, team_id, name"),
       supabase
         .from("match_predictions")
-        .select("match_id, home_goals, away_goals, scorer_ids")
+        .select("match_id, home_goals, away_goals, scorer_goals")
         .eq("league_id", id)
         .eq("user_id", user.id),
       supabase
@@ -64,6 +64,20 @@ export default async function MatchesPage({
     (new Date(m.kickoff_at).getTime() > now ? upcoming : past).push(m);
   }
   past.reverse(); // most recent first
+
+  // Group upcoming by matchday so the page isn't a wall of cards: show the next
+  // matchday, tuck the rest behind a "predict earlier" disclosure.
+  const dayLabel = (iso: string) =>
+    new Date(iso).toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
+  const upcomingByDay: { day: string; matches: NonNullable<typeof matches> }[] = [];
+  for (const m of upcoming ?? []) {
+    const day = dayLabel(m.kickoff_at);
+    const last = upcomingByDay[upcomingByDay.length - 1];
+    if (last && last.day === day) last.matches.push(m);
+    else upcomingByDay.push({ day, matches: [m] });
+  }
+  const [firstDay, ...laterDays] = upcomingByDay;
+  const laterCount = laterDays.reduce((s, d) => s + d.matches.length, 0);
 
   function toCard(m: NonNullable<typeof matches>[number]): MatchCardData {
     return {
@@ -112,14 +126,38 @@ export default async function MatchesPage({
         </p>
       ) : (
         <>
-          <section className="space-y-3">
-            <h2 className="font-display text-xl text-chalk">Upcoming</h2>
-            {upcoming.length === 0 ? (
+          {upcoming.length === 0 ? (
+            <section className="space-y-3">
+              <h2 className="font-display text-xl text-chalk">Upcoming</h2>
               <p className="text-sm text-chalk-dim">No upcoming matches.</p>
-            ) : (
-              upcoming.map(renderCard)
-            )}
-          </section>
+            </section>
+          ) : (
+            <>
+              <section className="space-y-3">
+                <h2 className="font-display text-xl text-chalk">
+                  Upcoming · <span className="text-chalk-dim">{firstDay?.day}</span>
+                </h2>
+                {(firstDay?.matches ?? []).map(renderCard)}
+              </section>
+
+              {laterDays.length > 0 && (
+                <details className="group space-y-3">
+                  <summary className="flex cursor-pointer list-none items-center justify-center gap-2 rounded-2xl glass p-3 text-sm font-semibold text-gold transition hover:text-gold-bright">
+                    ⏳ Predict earlier — {laterCount} more game{laterCount === 1 ? "" : "s"}
+                    <span className="transition group-open:rotate-180">▾</span>
+                  </summary>
+                  <div className="mt-4 space-y-6">
+                    {laterDays.map((d) => (
+                      <section key={d.day} className="space-y-3">
+                        <h3 className="font-display text-base text-chalk-dim">{d.day}</h3>
+                        {d.matches.map(renderCard)}
+                      </section>
+                    ))}
+                  </div>
+                </details>
+              )}
+            </>
+          )}
 
           {past.length > 0 && (
             <section className="space-y-3">
