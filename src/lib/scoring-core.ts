@@ -40,10 +40,15 @@ export const ADVANCE_KEYS: Record<string, keyof ScoringConfig["upfront"]> = {
   final: "advance_final",
 };
 
-interface GroupStat {
+export interface GroupStat {
   pts: number;
   gd: number;
   gf: number;
+}
+
+export interface GroupTable {
+  order: number[];
+  stats: Map<number, GroupStat>;
 }
 
 // Tally points/GD/GF for `teamIds` using only matches *among those teams*.
@@ -134,10 +139,10 @@ function resolveTied(
   return out;
 }
 
-export function computeGroupStandings(
+export function computeGroupTables(
   matches: MatchRow[],
   fifaRank: Map<number, number> = new Map(),
-): Record<string, number[]> {
+): Record<string, GroupTable> {
   const byGroup = new Map<string, MatchRow[]>();
   for (const m of matches) {
     if (m.stage !== "group" || !m.group_label) continue;
@@ -145,7 +150,7 @@ export function computeGroupStandings(
     byGroup.get(m.group_label)!.push(m);
   }
 
-  const standings: Record<string, number[]> = {};
+  const tables: Record<string, GroupTable> = {};
   for (const [label, groupMatches] of byGroup) {
     if (!groupMatches.every((m) => m.status === "finished")) continue;
 
@@ -159,13 +164,24 @@ export function computeGroupStandings(
     const byPoints = [...teamIds].sort((x, y) => overall.get(y)!.pts - overall.get(x)!.pts);
     const samePoints = (x: number, y: number) => overall.get(x)!.pts === overall.get(y)!.pts;
 
-    const ordered: number[] = [];
+    const order: number[] = [];
     for (const run of runs(byPoints, samePoints)) {
-      ordered.push(...resolveTied(run, groupMatches, overall, fifaRank));
+      order.push(...resolveTied(run, groupMatches, overall, fifaRank));
     }
-    standings[label] = ordered;
+    tables[label] = { order, stats: overall };
   }
-  return standings;
+  return tables;
+}
+
+export function computeGroupStandings(
+  matches: MatchRow[],
+  fifaRank: Map<number, number> = new Map(),
+): Record<string, number[]> {
+  const out: Record<string, number[]> = {};
+  for (const [label, table] of Object.entries(computeGroupTables(matches, fifaRank))) {
+    out[label] = table.order;
+  }
+  return out;
 }
 
 export function computeActuals(

@@ -1,4 +1,6 @@
 import type { Group, MatchStage } from "@/lib/types";
+import { computeGroupTables, type GroupStat, type GroupTable } from "@/lib/scoring-core";
+import { assignThirdsAnnexC } from "@/lib/annex-c";
 
 // A reference to a team's slot in the fixed bracket, resolved once results exist.
 //  winner/runner  -> 1st/2nd of a group
@@ -74,4 +76,45 @@ export function stageOf(matchNo: number): MatchStage {
   if (matchNo === 103) return "third_place";
   if (matchNo === 104) return "final";
   throw new Error(`not a knockout match number: ${matchNo}`);
+}
+
+export type GroupTables = Record<string, GroupTable>;
+
+export interface ThirdPlaceEntry {
+  group: Group;
+  teamId: number;
+  stat: GroupStat;
+}
+
+// Rank the (up to 12) third-placed teams across groups — spec §5 across-group
+// ladder: points → GD → GF → FIFA ranking → team id (the underivable conduct /
+// drawing-of-lots criteria are skipped).
+export function rankThirdPlaceTeams(
+  tables: GroupTables,
+  fifaRank: Map<number, number> = new Map(),
+): ThirdPlaceEntry[] {
+  const rank = (id: number) => fifaRank.get(id) ?? Number.MAX_SAFE_INTEGER;
+  const thirds: ThirdPlaceEntry[] = [];
+  for (const [group, t] of Object.entries(tables)) {
+    if (t.order.length < 3) continue;
+    const teamId = t.order[2];
+    const stat = t.stats.get(teamId);
+    if (stat) thirds.push({ group: group as Group, teamId, stat });
+  }
+  return thirds.sort(
+    (x, y) =>
+      y.stat.pts - x.stat.pts ||
+      y.stat.gd - x.stat.gd ||
+      y.stat.gf - x.stat.gf ||
+      rank(x.teamId) - rank(y.teamId) ||
+      x.teamId - y.teamId,
+  );
+}
+
+export function pickBestEightThirds(
+  tables: GroupTables,
+  fifaRank: Map<number, number> = new Map(),
+): { teams: ThirdPlaceEntry[]; groups: Set<Group> } {
+  const teams = rankThirdPlaceTeams(tables, fifaRank).slice(0, 8);
+  return { teams, groups: new Set(teams.map((t) => t.group)) };
 }

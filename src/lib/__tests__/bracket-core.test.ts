@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { ROUND32, BRACKET_TREE, THIRD_MATCHES, stageOf } from "@/lib/bracket-core";
+import { ROUND32, BRACKET_TREE, THIRD_MATCHES, stageOf, rankThirdPlaceTeams, pickBestEightThirds, type GroupTables } from "@/lib/bracket-core";
+import type { GroupStat } from "@/lib/scoring-core";
+
+// Minimal table: only the 3rd-placed team's stats are needed for ranking.
+function tbl(order: number[], thirdStat: GroupStat): GroupTables[string] {
+  const stats = new Map<number, GroupStat>([[order[2], thirdStat]]);
+  return { order, stats };
+}
 
 describe("canonical template", () => {
   it("has 16 Round-of-32 matches (73–88)", () => {
@@ -44,5 +51,29 @@ describe("canonical template", () => {
     expect(stageOf(101)).toBe("semi");
     expect(stageOf(102)).toBe("semi");
     expect(stageOf(104)).toBe("final");
+  });
+});
+
+describe("third-place ranking", () => {
+  it("ranks thirds by points then GD then GF", () => {
+    const tables: GroupTables = {
+      A: tbl([10, 11, 12, 13], { pts: 4, gd: 1, gf: 3 }), // third = 12
+      B: tbl([20, 21, 22, 23], { pts: 6, gd: 2, gf: 4 }), // third = 22 (best, most pts)
+      C: tbl([30, 31, 32, 33], { pts: 4, gd: 2, gf: 5 }), // third = 32 (beats A on GD)
+    };
+    const ranked = rankThirdPlaceTeams(tables);
+    expect(ranked.map((t) => t.teamId)).toEqual([22, 32, 12]);
+  });
+
+  it("picks the best 8 of 12 and reports their groups", () => {
+    const tables: GroupTables = {};
+    const groups = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"];
+    groups.forEach((g, i) => {
+      // pts descending A..L so A's third is best, L's worst.
+      tables[g] = tbl([i * 10, i * 10 + 1, i * 10 + 2, i * 10 + 3], { pts: 24 - i, gd: 0, gf: 0 });
+    });
+    const best = pickBestEightThirds(tables);
+    expect(best.teams).toHaveLength(8);
+    expect([...best.groups].sort()).toEqual(["A", "B", "C", "D", "E", "F", "G", "H"]);
   });
 });
