@@ -11,7 +11,9 @@ import ProfileEditor from "@/components/ProfileEditor";
 import FavoriteTeamPicker from "@/components/FavoriteTeamPicker";
 import FavoriteTeamStatus from "@/components/FavoriteTeamStatus";
 import Countdown from "@/components/Countdown";
+import NextMatchCard, { type NextMatchData, type LeaguePrediction } from "@/components/NextMatchCard";
 import { computeFavStatus } from "@/lib/favoriteStatus";
+import { nowMs } from "@/lib/clock";
 import type { Team, Match } from "@/lib/types";
 
 export default async function DashboardPage({
@@ -60,6 +62,52 @@ export default async function DashboardPage({
     .map((m) => ({ role: m.role, ...(m.leagues as unknown as { id: string; name: string; join_code: string }) }))
     .filter((l) => l.id);
 
+  // Soonest match still open for prediction (kickoff in the future), tournament-wide.
+  const { data: nextMatchRows } = await supabase
+    .from("matches")
+    .select("id, stage, kickoff_at, home_team_id, away_team_id")
+    .gt("kickoff_at", new Date(nowMs()).toISOString())
+    .order("kickoff_at")
+    .limit(1);
+  const nextMatch = nextMatchRows?.[0] ?? null;
+
+  let nextMatchData: NextMatchData | null = null;
+  let nextPredictions: LeaguePrediction[] = [];
+  if (nextMatch) {
+    const teamById = new Map(teams.map((t) => [t.id, t]));
+    const home = nextMatch.home_team_id ? teamById.get(nextMatch.home_team_id) : null;
+    const away = nextMatch.away_team_id ? teamById.get(nextMatch.away_team_id) : null;
+    nextMatchData = {
+      stage: nextMatch.stage,
+      kickoff_at: nextMatch.kickoff_at,
+      homeTeamId: nextMatch.home_team_id,
+      awayTeamId: nextMatch.away_team_id,
+      homeName: home?.name ?? "TBD",
+      awayName: away?.name ?? "TBD",
+      homeCode: home?.code ?? null,
+      awayCode: away?.code ?? null,
+      homeLogoUrl: home?.logo_url ?? null,
+      awayLogoUrl: away?.logo_url ?? null,
+    };
+
+    if (leagues.length > 0) {
+      const { data: myPreds } = await supabase
+        .from("match_predictions")
+        .select("league_id, home_goals, away_goals")
+        .eq("user_id", user.id)
+        .eq("match_id", nextMatch.id);
+      const predByLeague = new Map((myPreds ?? []).map((p) => [p.league_id, p]));
+      nextPredictions = leagues.map((l) => {
+        const p = predByLeague.get(l.id);
+        return {
+          leagueId: l.id,
+          leagueName: l.name,
+          pred: p ? { home: p.home_goals, away: p.away_goals } : null,
+        };
+      });
+    }
+  }
+
   const inputClass =
     "w-full rounded-xl border border-night/10 bg-white px-3 py-2.5 text-sm text-chalk outline-none placeholder:text-chalk-dim focus:border-grass focus:ring-2 focus:ring-grass/30";
 
@@ -94,6 +142,15 @@ export default async function DashboardPage({
           <Countdown />
         </div>
       </Reveal>
+
+      {nextMatchData && (
+        <Reveal>
+          <section className="space-y-3">
+            <h2 className="font-display text-lg text-chalk">Up next</h2>
+            <NextMatchCard match={nextMatchData} predictions={nextPredictions} />
+          </section>
+        </Reveal>
+      )}
 
       <Reveal>
         <ProfileEditor
