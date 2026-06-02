@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
+import Countdown from "@/components/Countdown";
 
 export default function Hero() {
   return (
@@ -40,6 +41,15 @@ export default function Hero() {
         Predict the bracket, call every match, and battle your friends across three
         leaderboards. Glory awaits.
       </motion.p>
+
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.6 }}
+        className="pt-2"
+      >
+        <Countdown />
+      </motion.div>
     </div>
   );
 }

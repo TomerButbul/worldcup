@@ -2,6 +2,13 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import Leaderboard from "./Leaderboard";
+import DraftRoom from "./DraftRoom";
+import {
+  type DraftStateRow,
+  type PickRow,
+  type MemberQueryRow,
+  mapMember,
+} from "./draftTypes";
 import { btnClass, GOLD_GRADIENT } from "@/components/buttonStyles";
 import Reveal from "@/components/Reveal";
 import { nowMs } from "@/lib/clock";
@@ -20,10 +27,52 @@ export default async function LeaguePage({
 
   const { data: league } = await supabase
     .from("leagues")
-    .select("id, name, join_code, owner_id, bracket_lock_at")
+    .select("id, name, join_code, owner_id, bracket_lock_at, kind")
     .eq("id", id)
     .maybeSingle();
   if (!league) notFound();
+
+  if (league.kind === "draft") {
+    const [stateRes, picksRes, membersRes] = await Promise.all([
+      supabase
+        .from("draft_state")
+        .select("status, current_pick_index, timer_enabled, turn_started_at")
+        .eq("league_id", id)
+        .maybeSingle(),
+      supabase
+        .from("draft_picks")
+        .select("user_id, pot, slot, pick_no")
+        .eq("league_id", id)
+        .order("pick_no"),
+      supabase
+        .from("league_members")
+        .select("user_id, draft_seat, profiles ( display_name, team_name, avatar_url )")
+        .eq("league_id", id),
+    ]);
+
+    const initialState: DraftStateRow = (stateRes.data as DraftStateRow | null) ?? {
+      status: "not_started",
+      current_pick_index: 0,
+      timer_enabled: false,
+      turn_started_at: null,
+    };
+    const initialPicks = (picksRes.data as PickRow[] | null) ?? [];
+    const initialMembers = ((membersRes.data as unknown as MemberQueryRow[] | null) ?? []).map(
+      mapMember,
+    );
+
+    return (
+      <DraftRoom
+        leagueId={id}
+        leagueName={league.name}
+        meId={user.id}
+        isOwner={league.owner_id === user.id}
+        initialState={initialState}
+        initialPicks={initialPicks}
+        initialMembers={initialMembers}
+      />
+    );
+  }
 
   const locked = new Date(league.bracket_lock_at).getTime() <= nowMs();
 

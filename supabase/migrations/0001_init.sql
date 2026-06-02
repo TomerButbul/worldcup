@@ -50,8 +50,8 @@ create table leagues (
       "goal_scorer": 2
     }
   }'::jsonb,
-  -- predictions lock at tournament kickoff
-  bracket_lock_at timestamptz not null default '2026-06-11T16:00:00Z',
+  -- predictions lock at tournament kickoff (noon Israel / IDT = 09:00 UTC)
+  bracket_lock_at timestamptz not null default '2026-06-11T09:00:00Z',
   created_at  timestamptz not null default now()
 );
 

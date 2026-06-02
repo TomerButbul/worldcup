@@ -10,6 +10,7 @@ import Avatar from "@/components/Avatar";
 import ProfileEditor from "@/components/ProfileEditor";
 import FavoriteTeamPicker from "@/components/FavoriteTeamPicker";
 import FavoriteTeamStatus from "@/components/FavoriteTeamStatus";
+import Countdown from "@/components/Countdown";
 import { computeFavStatus } from "@/lib/favoriteStatus";
 import type { Team, Match } from "@/lib/types";
 
@@ -86,6 +87,12 @@ export default async function DashboardPage({
             </button>
           </form>
         </header>
+      </Reveal>
+
+      <Reveal>
+        <div className="glass-strong rounded-3xl p-5 sm:p-6">
+          <Countdown />
+        </div>
       </Reveal>
 
       <Reveal>
