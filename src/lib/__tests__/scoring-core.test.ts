@@ -70,6 +70,53 @@ describe("computeGroupStandings", () => {
     const s = computeGroupStandings([ko(99, "final", 1, 2, 1, 0, "finished")]);
     expect(Object.keys(s)).toHaveLength(0);
   });
+
+  it("head-to-head beats overall GD for two level teams", () => {
+    // 1 and 2 both finish on 6 pts. 2 has the better overall GD (+6 vs +3),
+    // but 1 won their head-to-head, so 1 must rank above 2.
+    const g: MatchRow[] = [
+      gm(1, "A", 1, 2, 1, 0), // 1 beats 2 (head-to-head)
+      gm(2, "A", 3, 1, 1, 0), // 3 beats 1
+      gm(3, "A", 1, 4, 3, 0), // 1 beats 4
+      gm(4, "A", 2, 3, 2, 0), // 2 beats 3
+      gm(5, "A", 2, 4, 5, 0), // 2 beats 4 (pads 2's overall GD)
+      gm(6, "A", 3, 4, 1, 1), // 3 draws 4
+    ];
+    const s = computeGroupStandings(g);
+    expect(s.A[0]).toBe(1);
+    expect(s.A[1]).toBe(2);
+  });
+
+  it("breaks a 3-way points tie by head-to-head goal difference", () => {
+    const g: MatchRow[] = [
+      gm(1, "B", 1, 2, 2, 0), // 1 beats 2 by 2
+      gm(2, "B", 2, 3, 2, 0), // 2 beats 3 by 2
+      gm(3, "B", 3, 1, 1, 0), // 3 beats 1 by 1
+      gm(4, "B", 1, 4, 1, 0),
+      gm(5, "B", 2, 4, 1, 0),
+      gm(6, "B", 3, 4, 1, 0),
+    ];
+    // H2H among {1,2,3}: each 3 pts. GD: 1 = +2-1=+1, 2 = -2+2=0, 3 = -2+1=-1.
+    const s = computeGroupStandings(g);
+    expect(s.B.slice(0, 3)).toEqual([1, 2, 3]);
+    expect(s.B[3]).toBe(4);
+  });
+
+  it("falls through to FIFA ranking when teams are dead level on all score criteria", () => {
+    // Perfect 1-0 cycle among 1,2,3; all beat 4 by 3-0 → identical pts/GD/GF
+    // and an equal head-to-head cycle. FIFA ranking decides: 2 < 3 < 1.
+    const g: MatchRow[] = [
+      gm(1, "C", 1, 2, 1, 0),
+      gm(2, "C", 2, 3, 1, 0),
+      gm(3, "C", 3, 1, 1, 0),
+      gm(4, "C", 1, 4, 3, 0),
+      gm(5, "C", 2, 4, 3, 0),
+      gm(6, "C", 3, 4, 3, 0),
+    ];
+    const fifaRank = new Map<number, number>([[2, 1], [3, 2], [1, 3]]);
+    const s = computeGroupStandings(g, fifaRank);
+    expect(s.C.slice(0, 3)).toEqual([2, 3, 1]);
+  });
 });
 
 describe("computeActuals", () => {

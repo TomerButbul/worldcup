@@ -40,7 +40,104 @@ export const ADVANCE_KEYS: Record<string, keyof ScoringConfig["upfront"]> = {
   final: "advance_final",
 };
 
-export function computeGroupStandings(matches: MatchRow[]): Record<string, number[]> {
+interface GroupStat {
+  pts: number;
+  gd: number;
+  gf: number;
+}
+
+// Tally points/GD/GF for `teamIds` using only matches *among those teams*.
+// Passing the full group → the overall table; passing a tied subset → that
+// subset's head-to-head mini-table (matches touching an outside team are skipped).
+function tally(teamIds: Iterable<number>, matches: MatchRow[]): Map<number, GroupStat> {
+  const stat = new Map<number, GroupStat>();
+  for (const id of teamIds) stat.set(id, { pts: 0, gd: 0, gf: 0 });
+  for (const m of matches) {
+    if (m.home_team_id == null || m.away_team_id == null) continue;
+    const h = stat.get(m.home_team_id);
+    const a = stat.get(m.away_team_id);
+    if (!h || !a) continue; // skip matches involving a team outside the set
+    const hg = m.home_goals ?? 0;
+    const ag = m.away_goals ?? 0;
+    h.gf += hg;
+    a.gf += ag;
+    h.gd += hg - ag;
+    a.gd += ag - hg;
+    if (hg > ag) h.pts += 3;
+    else if (hg < ag) a.pts += 3;
+    else {
+      h.pts += 1;
+      a.pts += 1;
+    }
+  }
+  return stat;
+}
+
+// Split an already-sorted list into maximal runs where `equal(prev, next)` holds.
+function runs<T>(sorted: T[], equal: (x: T, y: T) => boolean): T[][] {
+  const out: T[][] = [];
+  let i = 0;
+  while (i < sorted.length) {
+    let j = i + 1;
+    while (j < sorted.length && equal(sorted[i], sorted[j])) j++;
+    out.push(sorted.slice(i, j));
+    i = j;
+  }
+  return out;
+}
+
+// Final, non-head-to-head criteria: overall GD → overall GF → FIFA ranking → id.
+function byOverall(tied: number[], overall: Map<number, GroupStat>, fifaRank: Map<number, number>): number[] {
+  const rank = (id: number) => fifaRank.get(id) ?? Number.MAX_SAFE_INTEGER;
+  return [...tied].sort(
+    (x, y) =>
+      overall.get(y)!.gd - overall.get(x)!.gd ||
+      overall.get(y)!.gf - overall.get(x)!.gf ||
+      rank(x) - rank(y) ||
+      x - y,
+  );
+}
+
+// Resolve a set of teams already level on overall points (spec §5 criteria 2–8).
+function resolveTied(
+  tied: number[],
+  groupMatches: MatchRow[],
+  overall: Map<number, GroupStat>,
+  fifaRank: Map<number, number>,
+): number[] {
+  if (tied.length === 1) return tied;
+
+  const h2h = tally(tied, groupMatches);
+  const sorted = [...tied].sort(
+    (x, y) =>
+      h2h.get(y)!.pts - h2h.get(x)!.pts ||
+      h2h.get(y)!.gd - h2h.get(x)!.gd ||
+      h2h.get(y)!.gf - h2h.get(x)!.gf,
+  );
+  const equalH2h = (x: number, y: number) =>
+    h2h.get(x)!.pts === h2h.get(y)!.pts &&
+    h2h.get(x)!.gd === h2h.get(y)!.gd &&
+    h2h.get(x)!.gf === h2h.get(y)!.gf;
+
+  const out: number[] = [];
+  for (const run of runs(sorted, equalH2h)) {
+    if (run.length === 1) {
+      out.push(run[0]);
+    } else if (run.length < tied.length) {
+      // Head-to-head separated some teams; re-apply it to the still-tied subset.
+      out.push(...resolveTied(run, groupMatches, overall, fifaRank));
+    } else {
+      // Head-to-head did not separate anyone → overall criteria + ranking.
+      out.push(...byOverall(run, overall, fifaRank));
+    }
+  }
+  return out;
+}
+
+export function computeGroupStandings(
+  matches: MatchRow[],
+  fifaRank: Map<number, number> = new Map(),
+): Record<string, number[]> {
   const byGroup = new Map<string, MatchRow[]>();
   for (const m of matches) {
     if (m.stage !== "group" || !m.group_label) continue;
@@ -52,31 +149,21 @@ export function computeGroupStandings(matches: MatchRow[]): Record<string, numbe
   for (const [label, groupMatches] of byGroup) {
     if (!groupMatches.every((m) => m.status === "finished")) continue;
 
-    const stats = new Map<number, { pts: number; gd: number; gf: number }>();
-    const ensure = (id: number) => {
-      if (!stats.has(id)) stats.set(id, { pts: 0, gd: 0, gf: 0 });
-      return stats.get(id)!;
-    };
+    const teamIds = new Set<number>();
     for (const m of groupMatches) {
-      if (m.home_team_id == null || m.away_team_id == null) continue;
-      const h = ensure(m.home_team_id);
-      const a = ensure(m.away_team_id);
-      const hg = m.home_goals ?? 0;
-      const ag = m.away_goals ?? 0;
-      h.gf += hg;
-      a.gf += ag;
-      h.gd += hg - ag;
-      a.gd += ag - hg;
-      if (hg > ag) h.pts += 3;
-      else if (hg < ag) a.pts += 3;
-      else {
-        h.pts += 1;
-        a.pts += 1;
-      }
+      if (m.home_team_id != null) teamIds.add(m.home_team_id);
+      if (m.away_team_id != null) teamIds.add(m.away_team_id);
     }
-    standings[label] = [...stats.entries()]
-      .sort((x, y) => y[1].pts - x[1].pts || y[1].gd - x[1].gd || y[1].gf - x[1].gf)
-      .map(([id]) => id);
+
+    const overall = tally(teamIds, groupMatches);
+    const byPoints = [...teamIds].sort((x, y) => overall.get(y)!.pts - overall.get(x)!.pts);
+    const samePoints = (x: number, y: number) => overall.get(x)!.pts === overall.get(y)!.pts;
+
+    const ordered: number[] = [];
+    for (const run of runs(byPoints, samePoints)) {
+      ordered.push(...resolveTied(run, groupMatches, overall, fifaRank));
+    }
+    standings[label] = ordered;
   }
   return standings;
 }
