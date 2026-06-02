@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import Leaderboard from "./Leaderboard";
 import LeagueNameEditor from "./LeagueNameEditor";
@@ -28,14 +28,15 @@ export default async function LeaguePage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect("/signup");
 
   const { data: league } = await supabase
     .from("leagues")
     .select("id, name, join_code, owner_id, bracket_lock_at, kind")
     .eq("id", id)
     .maybeSingle();
-  if (!league) notFound();
+  // Logged in but not a member (RLS hides the row) → their own dashboard, not a 404.
+  if (!league) redirect("/dashboard");
 
   if (league.kind === "draft") {
     const [stateRes, picksRes, membersRes] = await Promise.all([

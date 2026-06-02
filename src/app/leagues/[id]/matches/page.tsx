@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Player } from "@/lib/types";
 import MatchCard, { type MatchCardData } from "./MatchCard";
@@ -17,14 +17,14 @@ export default async function MatchesPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect("/signup");
 
   const { data: league } = await supabase
     .from("leagues")
     .select("id, name")
     .eq("id", id)
     .maybeSingle();
-  if (!league) notFound();
+  if (!league) redirect("/dashboard");
 
   const [{ data: matches }, { data: teams }, { data: players }, { data: preds }, { data: bracket }] =
     await Promise.all([

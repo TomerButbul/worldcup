@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { MatchScore, Team } from "@/lib/types";
 import BracketEditor, { type GroupMatch } from "./BracketEditor";
@@ -15,14 +15,14 @@ export default async function BracketPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect("/signup");
 
   const { data: league } = await supabase
     .from("leagues")
     .select("id, name, bracket_lock_at")
     .eq("id", id)
     .maybeSingle();
-  if (!league) notFound();
+  if (!league) redirect("/dashboard");
 
   const locked = new Date(league.bracket_lock_at).getTime() <= nowMs();
 

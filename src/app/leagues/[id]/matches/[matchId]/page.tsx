@@ -28,14 +28,14 @@ export default async function MatchSummaryPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect("/signup");
 
   const { data: league } = await supabase
     .from("leagues")
     .select("id, name, scoring")
     .eq("id", id)
     .maybeSingle();
-  if (!league) notFound();
+  if (!league) redirect("/dashboard");
 
   const { data: match } = await supabase
     .from("matches")
