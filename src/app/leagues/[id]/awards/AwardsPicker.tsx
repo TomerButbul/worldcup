@@ -10,6 +10,7 @@ export interface AwardPlayer {
   team: string;
   position: string | null;
   age: number | null;
+  height: number | null;
 }
 
 const AWARDS = [
@@ -45,7 +46,9 @@ export default function AwardsPicker({
   }
 
   const meta = (p: AwardPlayer) =>
-    [p.team, p.age ? `${p.age}y` : null, p.position].filter(Boolean).join(" · ");
+    [p.team, p.age ? `${p.age}y` : null, p.height ? `${p.height}cm` : null, p.position]
+      .filter(Boolean)
+      .join(" · ");
 
   return (
     <div className="space-y-4">

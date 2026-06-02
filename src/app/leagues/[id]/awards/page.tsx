@@ -21,7 +21,7 @@ export default async function AwardsPage({ params }: { params: Promise<{ id: str
   const locked = new Date(league.bracket_lock_at).getTime() <= nowMs();
 
   const [{ data: players }, { data: teams }, { data: pred }] = await Promise.all([
-    supabase.from("players").select("id, name, team_id, position, age"),
+    supabase.from("players").select("id, name, team_id, position, age, height_cm"),
     supabase.from("teams").select("id, name"),
     supabase
       .from("bracket_predictions")
@@ -39,6 +39,7 @@ export default async function AwardsPage({ params }: { params: Promise<{ id: str
       team: p.team_id ? (teamName.get(p.team_id) ?? "") : "",
       position: p.position ?? null,
       age: p.age ?? null,
+      height: p.height_cm ?? null,
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
   const initial = (pred?.awards ?? {}) as Record<string, number>;

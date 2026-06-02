@@ -25,6 +25,10 @@ export interface Player {
   age?: number | null;
   number?: number | null;
   photo_url?: string | null;
+  height_cm?: number | null;
+  weight_kg?: number | null;
+  birth_date?: string | null;
+  nationality?: string | null;
 }
 
 export interface Match {

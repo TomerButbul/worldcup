@@ -114,6 +114,41 @@ export function fetchLineups(fixtureId: number) {
   return apiGet<AfLineup>("/fixtures/lineups", { fixture: fixtureId }, 600);
 }
 
+// Like apiGet but also returns the total page count (for paginated endpoints).
+async function apiGetPaged<T>(
+  path: string,
+  params: Record<string, string | number>,
+  revalidateSeconds: number,
+): Promise<{ response: T[]; totalPages: number }> {
+  const key = process.env.API_FOOTBALL_KEY;
+  if (!key) throw new Error("API_FOOTBALL_KEY is not set");
+  const url = new URL(BASE + path);
+  for (const [k, v] of Object.entries(params)) url.searchParams.set(k, String(v));
+  const res = await fetch(url, {
+    headers: { "x-apisports-key": key },
+    next: { revalidate: revalidateSeconds },
+  });
+  if (!res.ok) throw new Error(`API-Football ${path} -> ${res.status} ${res.statusText}`);
+  const json = (await res.json()) as ApiResponse<T> & { paging?: { total?: number } };
+  return { response: json.response ?? [], totalPages: json.paging?.total ?? 1 };
+}
+
+export interface AfPlayerProfile {
+  player: {
+    id: number;
+    name: string;
+    birth: { date: string | null } | null;
+    nationality: string | null;
+    height: string | null; // e.g. "176" (cm)
+    weight: string | null; // e.g. "70" (kg)
+  };
+}
+
+// Player physical/bio profiles for a team (paginated, ~3 pages/team). Cache 24h.
+export function fetchPlayersByTeam(teamId: number, page: number) {
+  return apiGetPaged<AfPlayerProfile>("/players", { team: teamId, season: SEASON(), page }, 86400);
+}
+
 // Map API-Football round strings to our match_stage enum.
 export function mapStage(round: string): string {
   const r = round.toLowerCase();

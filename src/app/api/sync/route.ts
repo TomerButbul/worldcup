@@ -7,6 +7,7 @@ import {
   fetchFixtures,
   fetchFixtureEvents,
   fetchSquad,
+  fetchPlayersByTeam,
   mapStage,
   mapStatus,
 } from "@/lib/apiFootball";
@@ -84,6 +85,41 @@ export async function GET(request: NextRequest) {
         }
       }
       summary.players = players;
+    }
+
+    // 2c) Player profiles: height/weight/birth/nationality (paginated /players;
+    // on demand behind ?profiles=1 since it's ~3 calls per team).
+    if (request.nextUrl.searchParams.get("profiles") === "1") {
+      const { data: allTeams } = await supabase.from("teams").select("id");
+      const num = (s: string | null) => {
+        const n = parseInt(s ?? "", 10);
+        return Number.isFinite(n) ? n : null;
+      };
+      let enriched = 0;
+      for (const t of allTeams ?? []) {
+        let page = 1;
+        let total = 1;
+        do {
+          const { response, totalPages } = await fetchPlayersByTeam(t.id, page);
+          total = totalPages;
+          if (response.length) {
+            await supabase.from("players").upsert(
+              response.map((r) => ({
+                id: r.player.id,
+                team_id: t.id,
+                name: r.player.name,
+                height_cm: num(r.player.height),
+                weight_kg: num(r.player.weight),
+                birth_date: r.player.birth?.date ?? null,
+                nationality: r.player.nationality ?? null,
+              })),
+            );
+            enriched += response.length;
+          }
+          page++;
+        } while (page <= total);
+      }
+      summary.profiles = enriched;
     }
 
     // 3) Fixtures -> matches
