@@ -53,10 +53,11 @@ export interface AfStanding {
 }
 
 export interface AfFixtureEvent {
-  type: string; // "Goal"
-  detail: string; // "Normal Goal", "Penalty", "Own Goal", "Missed Penalty"
+  type: string; // "Goal", "Card", "subst", "Var"
+  detail: string; // "Normal Goal" | "Penalty" | "Own Goal" | "Yellow Card" | "Red Card" | "Second Yellow card"
   player: { id: number | null; name: string | null };
   team: { id: number };
+  time: { elapsed: number | null; extra: number | null };
 }
 
 // Teams change rarely — cache 12h.

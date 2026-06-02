@@ -109,6 +109,7 @@ export async function GET(request: NextRequest) {
       .eq("goals_synced", false);
 
     let goalsImported = 0;
+    let cardsImported = 0;
     for (const m of pending ?? []) {
       const events = await fetchFixtureEvents(m.id);
       const goals = events.filter(
@@ -118,24 +119,50 @@ export async function GET(request: NextRequest) {
           e.detail !== "Own Goal" &&
           e.player?.id != null,
       );
+      const cards = events.filter((e) => e.type === "Card" && e.player?.id != null);
 
-      // upsert players then goals (FK)
+      // Upsert every player we're about to reference (FK), from goals and cards alike.
+      const involved = new Map<number, { id: number; team_id: number; name: string }>();
+      for (const e of [...goals, ...cards]) {
+        involved.set(e.player.id!, {
+          id: e.player.id!,
+          team_id: e.team.id,
+          name: e.player.name ?? "Unknown",
+        });
+      }
+      if (involved.size) {
+        await supabase.from("players").upsert([...involved.values()]);
+      }
+
       if (goals.length) {
-        await supabase.from("players").upsert(
-          goals.map((g) => ({
-            id: g.player.id!,
-            team_id: g.team.id,
-            name: g.player.name ?? "Unknown",
-          })),
-        );
         await supabase.from("match_goals").upsert(
           goals.map((g) => ({ match_id: m.id, player_id: g.player.id! })),
         );
         goalsImported += goals.length;
       }
+
+      // Cards: delete+reinsert so re-runs stay idempotent (a player can earn two).
+      await supabase.from("match_cards").delete().eq("match_id", m.id);
+      if (cards.length) {
+        await supabase.from("match_cards").insert(
+          cards.map((c) => ({
+            match_id: m.id,
+            player_id: c.player.id!,
+            team_id: c.team.id,
+            type:
+              c.detail === "Red Card" || c.detail === "Second Yellow card"
+                ? "red"
+                : "yellow",
+            minute: c.time?.elapsed ?? null,
+          })),
+        );
+        cardsImported += cards.length;
+      }
+
       await supabase.from("matches").update({ goals_synced: true }).eq("id", m.id);
     }
     summary.goals = goalsImported;
+    summary.cards = cardsImported;
 
     // 5) Recompute scores
     await recomputeAllScores(supabase);
