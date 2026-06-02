@@ -118,3 +118,78 @@ export function pickBestEightThirds(
   const teams = rankThirdPlaceTeams(tables, fifaRank).slice(0, 8);
   return { teams, groups: new Set(teams.map((t) => t.group)) };
 }
+
+export type Round32 = Record<number, { home: number | null; away: number | null }>;
+
+export function buildRound32(tables: GroupTables, annex: Record<number, Group>): Round32 {
+  const teamAt = (g: Group, pos: number): number | null => tables[g]?.order[pos] ?? null;
+  const resolve = (s: SlotRef): number | null => {
+    switch (s.kind) {
+      case "winner":
+        return teamAt(s.group, 0);
+      case "runner":
+        return teamAt(s.group, 1);
+      case "third": {
+        const g = annex[s.match];
+        return g ? teamAt(g, 2) : null;
+      }
+      default:
+        return null; // matchWinner/Loser do not occur in the Round of 32
+    }
+  };
+  const out: Round32 = {};
+  for (const noStr of Object.keys(ROUND32)) {
+    const no = Number(noStr);
+    out[no] = { home: resolve(ROUND32[no].home), away: resolve(ROUND32[no].away) };
+  }
+  return out;
+}
+
+export interface BuiltBracket {
+  round32: Round32;
+  bestThirds: ThirdPlaceEntry[];
+  annex: Record<number, Group>;
+}
+
+export function buildBracket(tables: GroupTables, fifaRank: Map<number, number> = new Map()): BuiltBracket {
+  const best = pickBestEightThirds(tables, fifaRank);
+  const annex = best.groups.size === 8 ? assignThirdsAnnexC(best.groups) : {};
+  return { round32: buildRound32(tables, annex), bestThirds: best.teams, annex };
+}
+
+const NEXT_STAGE: Record<string, MatchStage | "champion"> = {
+  round_of_32: "round_of_16",
+  round_of_16: "quarter",
+  quarter: "semi",
+  semi: "final",
+  final: "champion",
+};
+
+export interface PredictedAdvancers {
+  byStage: Record<string, Set<number>>;
+  champion: number | null;
+}
+
+// Survival semantics: reaching the next stage = winning the current tie. The 32
+// teams placed into the Round of 32 all "reach" round_of_32. picks are keyed by
+// canonical match number → predicted winner team id.
+export function predictedAdvancers(round32: Round32, picks: Record<string, number>): PredictedAdvancers {
+  const byStage: Record<string, Set<number>> = {
+    round_of_32: new Set(),
+    round_of_16: new Set(),
+    quarter: new Set(),
+    semi: new Set(),
+    final: new Set(),
+  };
+  for (const m of Object.values(round32)) {
+    if (m.home != null) byStage.round_of_32.add(m.home);
+    if (m.away != null) byStage.round_of_32.add(m.away);
+  }
+  let champion: number | null = null;
+  for (const [noStr, winner] of Object.entries(picks)) {
+    const next = NEXT_STAGE[stageOf(Number(noStr))];
+    if (next === "champion") champion = winner;
+    else if (next) byStage[next].add(winner);
+  }
+  return { byStage, champion };
+}

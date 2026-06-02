@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { ROUND32, BRACKET_TREE, THIRD_MATCHES, stageOf, rankThirdPlaceTeams, pickBestEightThirds, type GroupTables } from "@/lib/bracket-core";
+import { ROUND32, BRACKET_TREE, THIRD_MATCHES, stageOf, rankThirdPlaceTeams, pickBestEightThirds, buildRound32, buildBracket, predictedAdvancers, type GroupTables, type Round32 } from "@/lib/bracket-core";
 import type { GroupStat } from "@/lib/scoring-core";
 
 // Minimal table: only the 3rd-placed team's stats are needed for ranking.
@@ -75,5 +75,53 @@ describe("third-place ranking", () => {
     const best = pickBestEightThirds(tables);
     expect(best.teams).toHaveLength(8);
     expect([...best.groups].sort()).toEqual(["A", "B", "C", "D", "E", "F", "G", "H"]);
+  });
+});
+
+describe("buildRound32", () => {
+  it("resolves fixed and third-place slots from the group order + Annex C", () => {
+    const tables: GroupTables = {
+      A: tbl([1, 2, 3, 4], { pts: 0, gd: 0, gf: 0 }),
+      B: tbl([11, 12, 13, 14], { pts: 0, gd: 0, gf: 0 }),
+      C: tbl([21, 22, 23, 24], { pts: 0, gd: 0, gf: 0 }),
+    };
+    const annex = { 79: "C" } as Record<number, import("@/lib/types").Group>;
+    const r32 = buildRound32(tables, annex);
+    expect(r32[73]).toEqual({ home: 2, away: 12 }); // 2A v 2B (runners)
+    expect(r32[79]).toEqual({ home: 1, away: 23 }); // 1A v 3C (winner A, third of C)
+  });
+});
+
+describe("buildBracket (12 synthetic groups)", () => {
+  it("fully populates all 16 Round-of-32 matches", () => {
+    const groups = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"];
+    const tables: GroupTables = {};
+    groups.forEach((g, i) => {
+      tables[g] = tbl([i * 10, i * 10 + 1, i * 10 + 2, i * 10 + 3], { pts: 24 - i, gd: 0, gf: 0 });
+    });
+    const { round32, bestThirds } = buildBracket(tables);
+    expect(bestThirds).toHaveLength(8);
+    for (const m of Object.values(round32)) {
+      expect(m.home).not.toBeNull();
+      expect(m.away).not.toBeNull();
+    }
+    expect(round32[73]).toEqual({ home: 1, away: 11 }); // 2A v 2B
+  });
+});
+
+describe("predictedAdvancers", () => {
+  it("derives per-stage survival sets and the champion from winner picks", () => {
+    const round32: Round32 = {
+      73: { home: 1, away: 2 },
+      74: { home: 3, away: 4 },
+    };
+    const picks = { "73": 1, "74": 3, "89": 1, "97": 1, "101": 1, "104": 1 };
+    const a = predictedAdvancers(round32, picks);
+    expect(a.byStage.round_of_32).toEqual(new Set([1, 2, 3, 4]));
+    expect(a.byStage.round_of_16).toEqual(new Set([1, 3]));
+    expect(a.byStage.quarter).toEqual(new Set([1]));
+    expect(a.byStage.semi).toEqual(new Set([1]));
+    expect(a.byStage.final).toEqual(new Set([1]));
+    expect(a.champion).toBe(1);
   });
 });
