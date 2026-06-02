@@ -6,7 +6,7 @@ import Avatar from "@/components/Avatar";
 import { stageLabel } from "@/lib/stages";
 import { nowMs } from "@/lib/clock";
 import { scoreLive, type ActualOutcomes } from "@/lib/scoring-core";
-import { DEFAULT_SCORING, type ScoringConfig } from "@/lib/types";
+import { DEFAULT_SCORING, type ScoringConfig, type MatchStage } from "@/lib/types";
 
 interface PredProfile {
   display_name: string;
@@ -47,7 +47,7 @@ export default async function MatchSummaryPage({
     (t): t is number => t != null,
   );
 
-  const [{ data: teams }, { data: goals }, { data: cards }, { data: players }, { data: preds }] =
+  const [{ data: teams }, { data: goals }, { data: cards }, { data: players }, { data: preds }, { data: brackets }] =
     await Promise.all([
       teamIds.length
         ? supabase.from("teams").select("id, name, code, logo_url").in("id", teamIds)
@@ -62,6 +62,12 @@ export default async function MatchSummaryPage({
         .select("user_id, home_goals, away_goals, scorer_ids, profiles ( display_name, team_name, avatar_url )")
         .eq("league_id", id)
         .eq("match_id", matchNum),
+      // For group matches the predicted scoreline lives in the bracket, so pull
+      // every member's bracket to show what each person predicted.
+      supabase
+        .from("bracket_predictions")
+        .select("user_id, group_scores, profiles ( display_name, team_name, avatar_url )")
+        .eq("league_id", id),
     ]);
 
   const teamById = new Map((teams ?? []).map((t) => [t.id, t]));
@@ -107,35 +113,66 @@ export default async function MatchSummaryPage({
     advancers: {},
     champion: null,
     results: new Map([
-      [matchNum, { home: match.home_goals ?? 0, away: match.away_goals ?? 0, scorers: scorerSet }],
+      [matchNum, { home: match.home_goals ?? 0, away: match.away_goals ?? 0, scorers: scorerSet, stage: match.stage as MatchStage }],
     ]),
   };
 
-  const predRows = (preds ?? []).map((p) => {
-    const prof = p.profiles as unknown as PredProfile | null;
-    const points = finished
-      ? scoreLive(cfg, actual, [
-          {
-            match_id: matchNum,
-            home_goals: p.home_goals,
-            away_goals: p.away_goals,
-            scorer_ids: p.scorer_ids ?? [],
-          },
-        ])
-      : null;
-    return {
+  const isGroup = match.stage === "group";
+  const nameOf = (prof: PredProfile | null) => prof?.team_name || prof?.display_name || "?";
+  const scorerNamesOf = (ids: number[]) =>
+    ids.map((sid) => playerById.get(sid)?.name).filter((n): n is string => !!n);
+
+  interface PredRow {
+    userId: string;
+    name: string;
+    avatarUrl: string | null;
+    score: string | null;
+    scorerNames: string[];
+    points: number | null;
+    isMe: boolean;
+  }
+
+  let predRows: PredRow[];
+  if (isGroup) {
+    // Group: the prediction is the bracket scoreline + any live scorer picks.
+    const scorersByUser = new Map<string, number[]>(
+      (preds ?? []).map((p) => [p.user_id, p.scorer_ids ?? []]),
+    );
+    predRows = (brackets ?? [])
+      .map((b): PredRow | null => {
+        const prof = b.profiles as unknown as PredProfile | null;
+        const gs = (b.group_scores as Record<string, { h: number; a: number }> | null)?.[String(matchNum)];
+        const sids = scorersByUser.get(b.user_id) ?? [];
+        if (!gs && sids.length === 0) return null; // no prediction for this match
+        return {
+          userId: b.user_id,
+          name: nameOf(prof),
+          avatarUrl: prof?.avatar_url ?? null,
+          score: gs ? `${gs.h}–${gs.a}` : null,
+          scorerNames: scorerNamesOf(sids),
+          points: finished
+            ? scoreLive(cfg, actual, [{ match_id: matchNum, home_goals: null, away_goals: null, scorer_ids: sids }])
+            : null,
+          isMe: b.user_id === user.id,
+        };
+      })
+      .filter((r): r is PredRow => r !== null);
+  } else {
+    // Knockout: the prediction is the live score + scorers.
+    predRows = (preds ?? []).map((p): PredRow => ({
       userId: p.user_id,
-      name: prof?.team_name || prof?.display_name || "?",
-      avatarUrl: prof?.avatar_url ?? null,
-      home: p.home_goals,
-      away: p.away_goals,
-      scorerNames: (p.scorer_ids ?? [])
-        .map((sid: number) => playerById.get(sid)?.name)
-        .filter((n: string | undefined): n is string => !!n),
-      points,
+      name: nameOf(p.profiles as unknown as PredProfile | null),
+      avatarUrl: (p.profiles as unknown as PredProfile | null)?.avatar_url ?? null,
+      score: p.home_goals != null ? `${p.home_goals}–${p.away_goals}` : null,
+      scorerNames: scorerNamesOf(p.scorer_ids ?? []),
+      points: finished
+        ? scoreLive(cfg, actual, [
+            { match_id: matchNum, home_goals: p.home_goals, away_goals: p.away_goals, scorer_ids: p.scorer_ids ?? [] },
+          ])
+        : null,
       isMe: p.user_id === user.id,
-    };
-  });
+    }));
+  }
   predRows.sort((a, b) => (b.points ?? 0) - (a.points ?? 0) || a.name.localeCompare(b.name));
 
   return (
@@ -231,9 +268,9 @@ export default async function MatchSummaryPage({
                     <p className="truncate text-xs text-chalk-dim">⚽ {r.scorerNames.join(", ")}</p>
                   )}
                 </div>
-                <span className="font-display text-lg text-chalk">
-                  {r.home}–{r.away}
-                </span>
+                {r.score && (
+                  <span className="font-display text-lg text-chalk">{r.score}</span>
+                )}
                 {r.points != null && (
                   <span
                     className={`shrink-0 rounded-lg px-2 py-1 text-xs font-bold ${

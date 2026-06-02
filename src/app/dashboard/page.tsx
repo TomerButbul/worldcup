@@ -91,20 +91,42 @@ export default async function DashboardPage({
     };
 
     if (leagues.length > 0) {
-      const { data: myPreds } = await supabase
-        .from("match_predictions")
-        .select("league_id, home_goals, away_goals")
-        .eq("user_id", user.id)
-        .eq("match_id", nextMatch.id);
-      const predByLeague = new Map((myPreds ?? []).map((p) => [p.league_id, p]));
-      nextPredictions = leagues.map((l) => {
-        const p = predByLeague.get(l.id);
-        return {
-          leagueId: l.id,
-          leagueName: l.name,
-          pred: p ? { home: p.home_goals, away: p.away_goals } : null,
-        };
-      });
+      if (nextMatch.stage === "group") {
+        // Group: the predicted scoreline lives in each league's bracket.
+        const { data: myBrackets } = await supabase
+          .from("bracket_predictions")
+          .select("league_id, group_scores")
+          .eq("user_id", user.id);
+        const gsByLeague = new Map(
+          (myBrackets ?? []).map((b) => [
+            b.league_id,
+            (b.group_scores ?? {}) as Record<string, { h: number; a: number }>,
+          ]),
+        );
+        nextPredictions = leagues.map((l) => {
+          const gs = gsByLeague.get(l.id)?.[String(nextMatch.id)];
+          return {
+            leagueId: l.id,
+            leagueName: l.name,
+            pred: gs ? { home: gs.h, away: gs.a } : null,
+          };
+        });
+      } else {
+        const { data: myPreds } = await supabase
+          .from("match_predictions")
+          .select("league_id, home_goals, away_goals")
+          .eq("user_id", user.id)
+          .eq("match_id", nextMatch.id);
+        const predByLeague = new Map((myPreds ?? []).map((p) => [p.league_id, p]));
+        nextPredictions = leagues.map((l) => {
+          const p = predByLeague.get(l.id);
+          return {
+            leagueId: l.id,
+            leagueName: l.name,
+            pred: p && p.home_goals != null ? { home: p.home_goals, away: p.away_goals } : null,
+          };
+        });
+      }
     }
   }
 

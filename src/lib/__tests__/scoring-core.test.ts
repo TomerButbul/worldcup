@@ -140,7 +140,7 @@ describe("computeActuals", () => {
   it("records finished results with scorers", () => {
     const goals = new Map<number, number[]>([[5, [101, 102]]]);
     const a = computeActuals([gm(5, "A", 1, 4, 3, 1)], goals);
-    expect(a.results.get(5)).toEqual({ home: 3, away: 1, scorers: new Set([101, 102]) });
+    expect(a.results.get(5)).toEqual({ home: 3, away: 1, scorers: new Set([101, 102]), stage: "group" });
   });
 });
 
@@ -218,35 +218,52 @@ describe("scoreUpfront", () => {
 });
 
 describe("scoreLive", () => {
-  const actual = computeActuals(
+  // Knockout result → full live scoring (scoreline + scorers).
+  const koActual = computeActuals(
+    [ko(73, "round_of_32", 1, 4, 3, 1, "finished")],
+    new Map([[73, [101, 102]]]),
+  );
+  // Group result → scorers only; the scoreline is owned by the upfront bracket.
+  const groupActual = computeActuals(
     [gm(5, "A", 1, 4, 3, 1)],
     new Map([[5, [101, 102]]]),
   );
 
-  it("awards exact-score points (and not double-counts result)", () => {
-    const pts = scoreLive(cfg, actual, [{ match_id: 5, home_goals: 3, away_goals: 1, scorer_ids: [] }]);
+  it("knockout: awards exact-score points (and not double-counts result)", () => {
+    const pts = scoreLive(cfg, koActual, [{ match_id: 73, home_goals: 3, away_goals: 1, scorer_ids: [] }]);
     expect(pts).toBe(cfg.live.exact_score);
   });
 
-  it("awards correct-result points for right winner, wrong score", () => {
-    const pts = scoreLive(cfg, actual, [{ match_id: 5, home_goals: 2, away_goals: 0, scorer_ids: [] }]);
+  it("knockout: awards correct-result points for right winner, wrong score", () => {
+    const pts = scoreLive(cfg, koActual, [{ match_id: 73, home_goals: 2, away_goals: 0, scorer_ids: [] }]);
     expect(pts).toBe(cfg.live.correct_result);
   });
 
-  it("awards nothing for the wrong result", () => {
-    const pts = scoreLive(cfg, actual, [{ match_id: 5, home_goals: 0, away_goals: 2, scorer_ids: [] }]);
+  it("knockout: awards nothing for the wrong result", () => {
+    const pts = scoreLive(cfg, koActual, [{ match_id: 73, home_goals: 0, away_goals: 2, scorer_ids: [] }]);
     expect(pts).toBe(0);
   });
 
-  it("adds goal-scorer points for each correct scorer", () => {
-    const pts = scoreLive(cfg, actual, [
-      { match_id: 5, home_goals: 3, away_goals: 1, scorer_ids: [101, 102, 999] },
+  it("knockout: adds goal-scorer points on top of the scoreline", () => {
+    const pts = scoreLive(cfg, koActual, [
+      { match_id: 73, home_goals: 3, away_goals: 1, scorer_ids: [101, 102, 999] },
     ]);
     expect(pts).toBe(cfg.live.exact_score + cfg.live.goal_scorer * 2);
   });
 
+  it("group: scores goal scorers only, never the scoreline", () => {
+    // A perfect 3-1 line earns nothing in the live game for a group match...
+    expect(
+      scoreLive(cfg, groupActual, [{ match_id: 5, home_goals: 3, away_goals: 1, scorer_ids: [] }]),
+    ).toBe(0);
+    // ...but correct scorers still count (scoreline stored as null).
+    expect(
+      scoreLive(cfg, groupActual, [{ match_id: 5, home_goals: null, away_goals: null, scorer_ids: [101, 102] }]),
+    ).toBe(cfg.live.goal_scorer * 2);
+  });
+
   it("ignores predictions for matches with no result yet", () => {
-    const pts = scoreLive(cfg, actual, [{ match_id: 777, home_goals: 1, away_goals: 0, scorer_ids: [] }]);
+    const pts = scoreLive(cfg, koActual, [{ match_id: 777, home_goals: 1, away_goals: 0, scorer_ids: [] }]);
     expect(pts).toBe(0);
   });
 });

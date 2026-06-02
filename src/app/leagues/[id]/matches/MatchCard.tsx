@@ -31,10 +31,16 @@ interface Props {
   match: MatchCardData;
   homePlayers: Player[];
   awayPlayers: Player[];
-  initial: { home_goals: number; away_goals: number; scorer_ids: number[] } | null;
+  initial: { home_goals: number | null; away_goals: number | null; scorer_ids: number[] } | null;
+  // The user's upfront bracket scoreline for this match (group stage only).
+  bracketScore: { h: number; a: number } | null;
 }
 
-export default function MatchCard({ leagueId, match, homePlayers, awayPlayers, initial }: Props) {
+export default function MatchCard({ leagueId, match, homePlayers, awayPlayers, initial, bracketScore }: Props) {
+  // Group scorelines live in the bracket; the live game scores scorers there.
+  // Knockouts capture a full scoreline here.
+  const isGroup = match.stage === "group";
+
   // Starts from the at-load lock state, then flips live the moment the
   // per-match countdown reaches kickoff — no refresh needed.
   const [locked, setLocked] = useState(() => new Date(match.kickoff_at).getTime() <= nowMs());
@@ -67,7 +73,8 @@ export default function MatchCard({ leagueId, match, homePlayers, awayPlayers, i
   function save() {
     setMsg(null);
     startTransition(async () => {
-      const res = await savePrediction(leagueId, match.id, home, away, scorers);
+      // Group → scorers only (no scoreline); knockout → full score + scorers.
+      const res = await savePrediction(leagueId, match.id, isGroup ? null : home, isGroup ? null : away, scorers);
       if (res.ok) {
         burst();
         goalCelebration("GOAL!");
@@ -77,6 +84,15 @@ export default function MatchCard({ leagueId, match, homePlayers, awayPlayers, i
       }
     });
   }
+
+  // Scoreline text for the locked "your pick" line.
+  const pickScore = isGroup
+    ? bracketScore
+      ? `${bracketScore.h}–${bracketScore.a}`
+      : null
+    : initial && initial.home_goals != null
+      ? `${initial.home_goals}–${initial.away_goals}`
+      : null;
 
   return (
     <motion.div layout className="glass rounded-2xl p-4">
@@ -107,6 +123,14 @@ export default function MatchCard({ leagueId, match, homePlayers, awayPlayers, i
               ? `${match.homeGoalsActual ?? 0} – ${match.awayGoalsActual ?? 0}`
               : "vs"}
           </span>
+        ) : isGroup ? (
+          // Group: the scoreline comes from the bracket — shown read-only here.
+          <span className="flex flex-col items-center">
+            <span className="net rounded-xl bg-gold/10 px-4 py-2 font-display text-xl text-gold">
+              {bracketScore ? `${bracketScore.h}–${bracketScore.a}` : "—"}
+            </span>
+            <span className="mt-1 text-[10px] uppercase tracking-wider text-chalk-dim">from bracket</span>
+          </span>
         ) : (
           <div className="flex items-center gap-2">
             <Stepper value={home} onDec={() => step(setHome, -1)} onInc={() => step(setHome, 1)} />
@@ -124,10 +148,13 @@ export default function MatchCard({ leagueId, match, homePlayers, awayPlayers, i
       {locked ? (
         <div className="mt-3 flex flex-col items-center gap-1.5 text-center text-xs text-chalk-dim">
           <span>
-            {initial ? (
+            {pickScore || (initial?.scorer_ids.length ?? 0) > 0 ? (
               <>
-                Your pick: <span className="text-chalk">{initial.home_goals}–{initial.away_goals}</span>
-                {initial.scorer_ids.length > 0 && <> · {initial.scorer_ids.map(playerName).join(", ")}</>}
+                Your pick:{" "}
+                {pickScore && <span className="text-chalk">{pickScore}</span>}
+                {(initial?.scorer_ids.length ?? 0) > 0 && (
+                  <> {pickScore ? "· " : ""}{initial!.scorer_ids.map(playerName).join(", ")}</>
+                )}
               </>
             ) : (
               <span>🔒 Locked — no prediction made</span>
@@ -142,7 +169,12 @@ export default function MatchCard({ leagueId, match, homePlayers, awayPlayers, i
         </div>
       ) : (
         <>
-          {allPlayers.length > 0 && (
+          {isGroup && (
+            <p className="mt-3 text-center text-xs text-chalk-dim">
+              Scoreline comes from your bracket — pick who scores below.
+            </p>
+          )}
+          {allPlayers.length > 0 ? (
             <div className="mt-4">
               <p className="mb-1.5 text-xs font-medium text-chalk-dim">⚽ Goal scorers</p>
               <div className="flex flex-wrap gap-1.5">
@@ -163,6 +195,10 @@ export default function MatchCard({ leagueId, match, homePlayers, awayPlayers, i
                 ))}
               </div>
             </div>
+          ) : (
+            <p className="mt-4 text-xs text-chalk-dim">
+              ⚽ Goal-scorer list loads once squads are synced.
+            </p>
           )}
           <div className="mt-4 flex items-center gap-3">
             <motion.button

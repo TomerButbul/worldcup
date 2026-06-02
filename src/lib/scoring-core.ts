@@ -18,7 +18,7 @@ export interface ActualOutcomes {
   groupStandings: Record<string, number[]>;
   advancers: Record<string, Set<number>>;
   champion: number | null;
-  results: Map<number, { home: number; away: number; scorers: Set<number> }>;
+  results: Map<number, { home: number; away: number; scorers: Set<number>; stage: MatchStage }>;
 }
 
 export interface BracketPick {
@@ -29,8 +29,8 @@ export interface BracketPick {
 
 export interface MatchPick {
   match_id: number;
-  home_goals: number;
-  away_goals: number;
+  home_goals: number | null; // null for group matches (live game scores scorers only there)
+  away_goals: number | null;
   scorer_ids: number[];
 }
 
@@ -192,7 +192,7 @@ export function computeActuals(
 ): ActualOutcomes {
   const advancers: Record<string, Set<number>> = {};
   let champion: number | null = null;
-  const results = new Map<number, { home: number; away: number; scorers: Set<number> }>();
+  const results = new Map<number, { home: number; away: number; scorers: Set<number>; stage: MatchStage }>();
 
   for (const m of matches) {
     if (m.stage !== "group") {
@@ -205,6 +205,7 @@ export function computeActuals(
         home: m.home_goals,
         away: m.away_goals,
         scorers: new Set(goalsByMatch.get(m.id) ?? []),
+        stage: m.stage,
       });
       if (m.stage === "final") {
         champion = m.home_goals > m.away_goals ? m.home_team_id : m.away_team_id;
@@ -282,12 +283,16 @@ export function scoreLive(
   for (const p of preds) {
     const r = actual.results.get(p.match_id);
     if (!r) continue;
-    if (p.home_goals === r.home && p.away_goals === r.away) {
-      pts += cfg.live.exact_score;
-    } else {
-      const predSign = Math.sign(p.home_goals - p.away_goals);
-      const actualSign = Math.sign(r.home - r.away);
-      if (predSign === actualSign) pts += cfg.live.correct_result;
+    // Scoreline points apply to knockout matches only — group scorelines are
+    // scored by the upfront bracket, so the live game scores scorers there.
+    if (r.stage !== "group" && p.home_goals != null && p.away_goals != null) {
+      if (p.home_goals === r.home && p.away_goals === r.away) {
+        pts += cfg.live.exact_score;
+      } else {
+        const predSign = Math.sign(p.home_goals - p.away_goals);
+        const actualSign = Math.sign(r.home - r.away);
+        if (predSign === actualSign) pts += cfg.live.correct_result;
+      }
     }
     for (const scorerId of p.scorer_ids) {
       if (r.scorers.has(scorerId)) pts += cfg.live.goal_scorer;
