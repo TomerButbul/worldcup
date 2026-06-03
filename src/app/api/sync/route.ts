@@ -146,6 +146,8 @@ export async function GET(request: NextRequest) {
     // 2b) Squads (on demand only — 1 API call per team, so guard behind ?squads=1)
     if (request.nextUrl.searchParams.get("squads") === "1") {
       const { data: allTeams } = await supabase.from("teams").select("id");
+      // Reset, then re-flag only current squad members → cuts drop out of "WC players".
+      await supabase.from("players").update({ in_squad: false }).gt("id", 0);
       let players = 0;
       for (const t of allTeams ?? []) {
         const squads = await fetchSquad(t.id);
@@ -160,6 +162,7 @@ export async function GET(request: NextRequest) {
               age: p.age ?? null,
               number: p.number ?? null,
               photo_url: p.photo ?? null,
+              in_squad: true,
             })),
           );
           players += list.length;
