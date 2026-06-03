@@ -2,6 +2,7 @@ import Link from "next/link";
 import { signup } from "@/app/auth/actions";
 import GameButton from "@/components/GameButton";
 import Reveal from "@/components/Reveal";
+import Ball from "@/components/art/Ball";
 
 export default async function SignupPage({
   searchParams,
@@ -18,7 +19,7 @@ export default async function SignupPage({
       <Reveal className="w-full max-w-sm">
         <div className="glass-strong rounded-3xl p-6 space-y-6 sm:p-8">
           <div className="text-center">
-            <div className="mb-2 text-4xl">⚽</div>
+            <div className="mb-2 flex justify-center"><Ball size={44} /></div>
             <h1 className="font-display text-3xl text-chalk">Join the game</h1>
             <p className="text-sm text-chalk-dim">Create your World Cup account</p>
           </div>

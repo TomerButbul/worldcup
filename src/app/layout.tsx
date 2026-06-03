@@ -30,7 +30,14 @@ export const metadata: Metadata = {
   description: "Predict the 2026 World Cup bracket and match results. Compete with friends.",
   applicationName: "World Cup",
   manifest: "/manifest.webmanifest",
-  icons: { icon: "/icon.svg", apple: "/icon.svg" },
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/icon-192.png", type: "image/png", sizes: "192x192" },
+    ],
+    // iOS ignores SVG apple-touch-icons — must be a PNG, or it falls back to a cached/old icon.
+    apple: "/apple-icon.png",
+  },
   appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "World Cup" },
   openGraph: {
     title: "World Cup 2026 — Bracket & Prediction Game",

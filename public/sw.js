@@ -1,16 +1,16 @@
-/* WorldCuP service worker — web-push notifications. */
+/* World Cup service worker — web-push notifications. */
 self.addEventListener("push", (event) => {
   let data = {};
   try {
     data = event.data ? event.data.json() : {};
   } catch {
-    data = { title: "WorldCuP", body: event.data ? event.data.text() : "" };
+    data = { title: "World Cup", body: event.data ? event.data.text() : "" };
   }
-  const title = data.title || "WorldCuP";
+  const title = data.title || "World Cup";
   const options = {
     body: data.body || "",
-    icon: "/icon.svg",
-    badge: "/icon.svg",
+    icon: "/icon-192.png",
+    badge: "/icon-192.png",
     tag: data.tag,
     renotify: !!data.tag,
     data: { url: data.url || "/dashboard" },

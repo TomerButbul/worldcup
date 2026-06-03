@@ -6,6 +6,7 @@ import { createLeague, joinLeague } from "./actions";
 import GameButton from "@/components/GameButton";
 import Reveal from "@/components/Reveal";
 import Flag from "@/components/Flag";
+import Trophy from "@/components/art/Trophy";
 import Avatar from "@/components/Avatar";
 import ProfileEditor from "@/components/ProfileEditor";
 import FavoriteTeamPicker from "@/components/FavoriteTeamPicker";
@@ -203,7 +204,7 @@ export default async function DashboardPage({
                   className="group flex items-center justify-between rounded-2xl glass p-4 transition hover:border-grass/50 hover:bg-night/5"
                 >
                   <span className="flex items-center gap-3">
-                    <span className="text-2xl">🏆</span>
+                    <Trophy size={26} />
                     <span className="font-semibold text-chalk">{l.name}</span>
                   </span>
                   <span className="rounded-lg bg-night/5 px-2 py-1 font-mono text-xs text-gold">

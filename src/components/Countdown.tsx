@@ -5,6 +5,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { KICKOFF_MS, countdownParts, type CountdownParts } from "@/lib/clock";
 import { celebrate } from "@/lib/confetti";
 import { goalCelebration } from "@/lib/goal";
+import Ball from "@/components/art/Ball";
 
 export default function Countdown({
   target = KICKOFF_MS,
@@ -58,7 +59,7 @@ export default function Countdown({
   return (
     <div className={`flex flex-col items-center gap-3 ${className}`}>
       <p className="flex items-center gap-2 font-display text-sm tracking-widest text-chalk-dim sm:text-base">
-        <span className="text-lg">⚽</span> Kickoff in
+        <Ball size={18} /> Kickoff in
       </p>
       <div className="flex items-stretch gap-2 sm:gap-3">
         {units.map((u) => (
@@ -124,7 +125,7 @@ function LiveBadge({ className, reduce }: { className: string; reduce: boolean }
           animate={reduce ? undefined : { rotate: [0, 14, -14, 0] }}
           transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
         >
-          ⚽
+          <Ball size={36} className="h-8 w-8 sm:h-9 sm:w-9" />
         </motion.span>
         <span className="font-display text-xl text-gradient-fifa sm:text-3xl">
           The World Cup is LIVE

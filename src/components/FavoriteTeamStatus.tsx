@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { motion } from "motion/react";
 import type { FavTeamStatus } from "@/lib/favoriteStatus";
 import Flag from "@/components/Flag";
+import Trophy from "@/components/art/Trophy";
 import { playCheer, playWomp } from "@/lib/sound";
 import { celebrate } from "@/lib/confetti";
 
@@ -51,7 +52,7 @@ export default function FavoriteTeamStatus({ status }: { status: FavTeamStatus }
           transition={{ duration: good ? 1.6 : 0.6, repeat: Infinity, repeatDelay: good ? 0.4 : 2 }}
           className="shrink-0 text-4xl"
         >
-          {status.champion ? "🏆" : <Flag teamId={status.team.id} logoUrl={status.team.logo_url} code={status.team.code} name={status.team.name} size={44} />}
+          {status.champion ? <Trophy size={44} /> : <Flag teamId={status.team.id} logoUrl={status.team.logo_url} code={status.team.code} name={status.team.name} size={44} />}
         </motion.div>
 
         <div className="min-w-0 flex-1">

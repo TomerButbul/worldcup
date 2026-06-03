@@ -12,6 +12,8 @@ import {
 } from "./draftTypes";
 import { btnClass, GOLD_GRADIENT } from "@/components/buttonStyles";
 import Reveal from "@/components/Reveal";
+import Ball from "@/components/art/Ball";
+import Trophy from "@/components/art/Trophy";
 import AutoRefresh from "@/components/AutoRefresh";
 import { nowMs, KICKOFF_MS } from "@/lib/clock";
 import { computeActuals, type MatchRow } from "@/lib/scoring-core";
@@ -173,7 +175,7 @@ export default async function LeaguePage({
             </div>
             <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:shrink-0">
               <Link href={`/leagues/${id}/matches`} className={`${btnClass("ghost")} flex-1 text-center sm:flex-none`}>
-                ⚽ Matches
+                <span className="inline-flex items-center justify-center gap-1.5"><Ball size={15} /> Matches</span>
               </Link>
               <Link href={`/leagues/${id}/awards`} className={`${btnClass("ghost")} flex-1 text-center sm:flex-none`}>
                 🥇 Awards
@@ -186,7 +188,7 @@ export default async function LeaguePage({
                 className={`${btnClass("gold")} w-full text-center sm:w-auto`}
                 style={{ background: GOLD_GRADIENT, boxShadow: "var(--shadow-glow-gold)" }}
               >
-                {locked ? "View bracket" : "🏆 Make picks"}
+                {locked ? "View bracket" : <span className="inline-flex items-center justify-center gap-1.5"><Trophy size={15} /> Make picks</span>}
               </Link>
             </div>
           </div>

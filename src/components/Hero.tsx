@@ -2,6 +2,7 @@
 
 import { motion } from "motion/react";
 import Countdown from "@/components/Countdown";
+import Trophy from "@/components/art/Trophy";
 
 export default function Hero() {
   return (
@@ -17,7 +18,7 @@ export default function Hero() {
           animate={{ y: [0, -12, 0] }}
           transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
         >
-          🏆
+          <Trophy size={112} className="h-[72px] w-[72px] sm:h-28 sm:w-28" />
         </motion.span>
       </motion.div>
 
@@ -27,8 +28,8 @@ export default function Hero() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.2 }}
       >
-        <span className="text-gradient-fifa">World</span>
-        <span className="text-gradient-gold">CuP</span>{" "}
+        <span className="text-gradient-fifa">World</span>{" "}
+        <span className="text-gradient-gold">Cup</span>{" "}
         <span className="text-grass">2026</span>
       </motion.h1>
 
