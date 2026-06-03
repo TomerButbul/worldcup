@@ -4,9 +4,9 @@ import { useEffect, useState, type ReactNode } from "react";
 
 // Visual, low-reading install guide. Each step shows a little mock of the actual
 // screen with the EXACT button to press highlighted (gold ring + pulse), plus a
-// short bold label. Auto-picks the visitor's platform but lets anyone switch, so
-// it works when shared. Real device screenshots would go stale per OS version;
-// these illustrations track the button names, not pixels.
+// short bold label. Auto-picks the visitor's platform but lets anyone switch.
+// iOS mirrors the modern flow (••• → Share → Add to Home Screen → Add); icons
+// are drawn to match the real iOS/Android glyphs.
 
 type Platform = "ios" | "android" | "desktop";
 
@@ -28,9 +28,34 @@ const STYLE = `
 function ShareIcon({ size = 22 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d="M12 3v11" />
-      <path d="M8 6.5 12 3l4 3.5" />
-      <path d="M7 11H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-1" />
+      <path d="M12 4v9.5" />
+      <path d="M8.5 7.5 12 4l3.5 3.5" />
+      <path d="M7.5 10.5h-1A1.9 1.9 0 0 0 4.6 12.4v6.2A1.9 1.9 0 0 0 6.5 20.5h11a1.9 1.9 0 0 0 1.9-1.9v-6.2a1.9 1.9 0 0 0-1.9-1.9h-1" />
+    </svg>
+  );
+}
+function MoreIcon({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} aria-hidden>
+      <circle cx="12" cy="12" r="9" />
+      <circle cx="8" cy="12" r="1.15" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none" />
+      <circle cx="16" cy="12" r="1.15" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+function BookmarkIcon({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M7 4h10a1 1 0 0 1 1 1v15l-6-4-6 4V5a1 1 0 0 1 1-1z" />
+    </svg>
+  );
+}
+function BookIcon({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M12 6c-1.6-1.2-3.7-2-6-2v13c2.3 0 4.4.8 6 2 1.6-1.2 3.7-2 6-2V4c-2.3 0-4.4.8-6 2z" />
+      <path d="M12 6v13" />
     </svg>
   );
 }
@@ -65,29 +90,51 @@ function DownloadIcon({ size = 22 }: { size?: number }) {
 const tileBox = "rounded-xl border border-night/10 bg-white p-2.5 shadow-sm";
 const barIcon = "flex h-8 w-8 items-center justify-center rounded-lg text-chalk-dim";
 
-function IosShareBar() {
+// iOS: the modern compact Safari bottom bar — Share lives behind the ••• button.
+function IosCompactBar() {
   return (
-    <div className={`${tileBox} flex items-center justify-between`}>
+    <div className={`${tileBox} flex items-center gap-1.5`}>
       <span className={barIcon}>‹</span>
-      <span className={barIcon}>›</span>
-      <span className={`${barIcon} ig-target bg-gold/10 text-night`}>
-        <ShareIcon />
+      <span className="flex h-7 items-center rounded-md px-1 text-xs font-semibold text-chalk-dim">aA</span>
+      <span className="flex-1 truncate rounded-full bg-night/5 px-3 py-1.5 text-center text-[11px] text-chalk-dim">
+        worldcup…vercel.app
       </span>
-      <span className={barIcon}>▢</span>
-      <span className={barIcon}>⧉</span>
+      <span className={`${barIcon} ig-target bg-gold/10 text-night`}>
+        <MoreIcon />
+      </span>
     </div>
   );
 }
+// iOS: the menu that ••• opens — Share is the first row.
+function IosShareMenu() {
+  return (
+    <div className={`${tileBox} space-y-1`}>
+      <div className="ig-target flex items-center justify-between bg-gold/10 px-2.5 py-2 text-night">
+        <span className="text-sm font-semibold">Share</span>
+        <ShareIcon size={20} />
+      </div>
+      <div className="flex items-center justify-between px-2.5 py-2 text-chalk-dim">
+        <span className="text-sm">Add to Bookmarks</span>
+        <BookmarkIcon size={20} />
+      </div>
+      <div className="flex items-center justify-between px-2.5 py-2 text-chalk-dim">
+        <span className="text-sm">Add Bookmark to…</span>
+        <BookIcon size={20} />
+      </div>
+    </div>
+  );
+}
+// iOS: the Share sheet's lower list — "Add to Home Screen".
 function IosSheetRows() {
   return (
-    <div className={`${tileBox} space-y-1.5`}>
-      <div className="flex items-center justify-between rounded-lg px-2 py-1.5 text-chalk-dim">
+    <div className={`${tileBox} space-y-1`}>
+      <div className="flex items-center justify-between px-2.5 py-2 text-chalk-dim">
         <span className="text-sm">Add Bookmark</span>
-        <span>📑</span>
+        <BookmarkIcon size={20} />
       </div>
-      <div className="ig-target flex items-center justify-between bg-gold/10 px-2 py-1.5 text-night">
+      <div className="ig-target flex items-center justify-between bg-gold/10 px-2.5 py-2 text-night">
         <span className="text-sm font-semibold">Add to Home Screen</span>
-        <PlusSquareIcon />
+        <PlusSquareIcon size={20} />
       </div>
     </div>
   );
@@ -156,8 +203,9 @@ type Step = { title: string; sub?: string; tile: ReactNode };
 
 const STEPS: Record<Platform, Step[]> = {
   ios: [
-    { title: "Tap the Share button", sub: "The box-with-an-arrow at the bottom of Safari.", tile: <IosShareBar /> },
-    { title: "Tap “Add to Home Screen”", sub: "Scroll down the menu if you don't see it.", tile: <IosSheetRows /> },
+    { title: "Tap the ••• button", sub: "Bottom-right of Safari. (See a Share ⬆ box instead? Tap that and skip to step 3.)", tile: <IosCompactBar /> },
+    { title: "Tap “Share”", sub: "The box-with-an-arrow — opens the share sheet.", tile: <IosShareMenu /> },
+    { title: "Tap “Add to Home Screen”", sub: "Scroll down the sheet if you don't see it.", tile: <IosSheetRows /> },
     { title: "Tap “Add”", sub: "Top-right corner. Done!", tile: <IosAddBar /> },
   ],
   android: [
