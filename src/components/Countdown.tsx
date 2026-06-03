@@ -125,7 +125,7 @@ function LiveBadge({ className, reduce }: { className: string; reduce: boolean }
           animate={reduce ? undefined : { rotate: [0, 14, -14, 0] }}
           transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
         >
-          <Ball size={36} className="h-8 w-8 sm:h-9 sm:w-9" />
+          <Ball size={34} />
         </motion.span>
         <span className="font-display text-xl text-gradient-fifa sm:text-3xl">
           The World Cup is LIVE

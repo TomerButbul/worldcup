@@ -1,8 +1,14 @@
-// The World Cup trophy icon used across the app — the SAME real (CC0) trophy as
-// the app/home-screen icon, so in-app icons match. Rendered as an <img> because
-// the authentic trophy shape is hard to draw cleanly as a tiny inline SVG.
-// `size` sets the HEIGHT; width scales to the trophy's natural (tall) aspect, so
-// it never squishes. Override via className (e.g. responsive `h-* w-auto`).
+// The World Cup trophy icon — the same real (CC0) trophy as the app icon, so
+// in-app icons match. Rendered as an <img>. `size` is the HEIGHT; width follows
+// the asset's real aspect (trophy.png is 201×500) so it never squishes.
+//
+// Sizing is set via inline `style` (NOT the height attribute): Tailwind's
+// Preflight resets `img { height: auto }`, which would override an HTML height
+// attribute and let this tall image balloon to its intrinsic size. Inline style
+// beats that stylesheet rule. className is for positioning only — don't pass
+// h-*/w-* utilities (they'd be ignored next to the inline style anyway).
+const RATIO = 201 / 500;
+
 export default function Trophy({
   size = 24,
   className = "",
@@ -10,8 +16,16 @@ export default function Trophy({
   size?: number;
   className?: string;
 }) {
+  const w = Math.round(size * RATIO);
   return (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src="/trophy.png" alt="" height={size} className={`inline-block w-auto shrink-0 ${className}`} />
+    <img
+      src="/trophy.png"
+      alt=""
+      width={w}
+      height={size}
+      style={{ width: w, height: size }}
+      className={`inline-block shrink-0 ${className}`}
+    />
   );
 }
