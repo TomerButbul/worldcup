@@ -164,6 +164,24 @@ export default async function ManagerProfilePage({
         </div>
       ) : (
         <>
+          {/* Predicted knockout bracket — the headline of their picks. */}
+          <section className="glass-strong rounded-3xl p-5">
+            <h2 className="mb-1 flex items-center gap-1.5 font-display text-xl text-chalk">
+              <Trophy size={20} />Knockout bracket
+            </h2>
+            <p className="mb-3 text-xs text-chalk-dim">
+              {favoriteTeamId != null
+                ? `Step through the rounds, or hit Full bracket — gold traces ${name}'s favourite.`
+                : "Step through the rounds, or hit Full bracket to see the whole tree."}
+            </p>
+            <KnockoutBracket
+              rounds={bracketRounds}
+              teamsById={bracketTeams}
+              highlightIds={favoriteTeamId != null ? [favoriteTeamId] : []}
+              championNo={104}
+            />
+          </section>
+
           {/* Champion */}
           <section className="glass rounded-2xl p-5">
             <h2 className="mb-2 flex items-center gap-1.5 font-display text-lg text-chalk"><Trophy size={18} />Champion</h2>
@@ -237,23 +255,6 @@ export default async function ManagerProfilePage({
             )}
           </section>
 
-          {/* Predicted knockout bracket — same paged view as the editor. */}
-          <section className="glass rounded-2xl p-5">
-            <h2 className="mb-1 flex items-center gap-1.5 font-display text-lg text-chalk">
-              <Trophy size={16} />Knockout bracket
-            </h2>
-            <p className="mb-3 text-xs text-chalk-dim">
-              {favoriteTeamId != null
-                ? `Tap through the rounds — gold traces ${name}'s favourite.`
-                : "Tap through the rounds to see who they sent through."}
-            </p>
-            <KnockoutBracket
-              rounds={bracketRounds}
-              teamsById={bracketTeams}
-              highlightIds={favoriteTeamId != null ? [favoriteTeamId] : []}
-              championNo={104}
-            />
-          </section>
         </>
       )}
     </main>

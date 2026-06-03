@@ -176,6 +176,26 @@ export default async function MyPredictionsPage({
         </div>
       </div>
 
+      {/* Predicted knockout bracket — the headline of your picks. */}
+      {prediction && (
+        <section className="glass-strong rounded-3xl p-5">
+          <h2 className="mb-1 flex items-center gap-1.5 font-display text-xl text-chalk">
+            <Trophy size={20} />Your knockout bracket
+          </h2>
+          <p className="mb-3 text-xs text-chalk-dim">
+            {favoriteTeamId != null
+              ? "Step through the rounds, or hit Full bracket — gold traces your favorite's path."
+              : "Step through the rounds, or hit Full bracket to see the whole tree."}
+          </p>
+          <KnockoutBracket
+            rounds={bracketRounds}
+            teamsById={bracketTeams}
+            highlightIds={favoriteTeamId != null ? [favoriteTeamId] : []}
+            championNo={104}
+          />
+        </section>
+      )}
+
       {/* Completeness */}
       <section className="glass rounded-2xl p-5">
         <p className="text-sm text-chalk-dim">
@@ -262,26 +282,6 @@ export default async function MyPredictionsPage({
           </div>
         )}
       </section>
-
-      {/* Predicted knockout bracket — same paged view as the editor. */}
-      {prediction && (
-        <section className="glass rounded-2xl p-5">
-          <h2 className="mb-1 flex items-center gap-1.5 font-display text-lg text-chalk">
-            <Trophy size={16} />Knockout bracket
-          </h2>
-          <p className="mb-3 text-xs text-chalk-dim">
-            {favoriteTeamId != null
-              ? "Tap through the rounds — gold traces your favorite's path."
-              : "Tap through the rounds to see who you sent through."}
-          </p>
-          <KnockoutBracket
-            rounds={bracketRounds}
-            teamsById={bracketTeams}
-            highlightIds={favoriteTeamId != null ? [favoriteTeamId] : []}
-            championNo={104}
-          />
-        </section>
-      )}
 
       {/* Knockout match picks — usually empty pre-tournament (fixtures TBD). */}
       {knockoutPicks.length > 0 && (

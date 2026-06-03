@@ -5,6 +5,7 @@ import Leaderboard from "./Leaderboard";
 import LeagueNameEditor from "./LeagueNameEditor";
 import DraftRoom from "./DraftRoom";
 import type { FixtureDay } from "./DraftFixtures";
+import type { GroupStageGroup } from "./DraftGroupStage";
 import {
   type DraftStateRow,
   type PickRow,
@@ -20,6 +21,7 @@ import LeagueIntro from "@/components/LeagueIntro";
 import { nowMs, KICKOFF_MS } from "@/lib/clock";
 import { computeActuals, computeGroupTables, type MatchRow } from "@/lib/scoring-core";
 import { teamAt } from "@/lib/draft";
+import { getCachedTeams } from "@/lib/tournamentData";
 import { draftTeamIds, teamProgressPoints, draftScores } from "@/lib/draft-scoring";
 import {
   KNOCKOUT_TEMPLATE,
@@ -168,12 +170,14 @@ export default async function LeaguePage({
 
     // Draft standings: each drafted team's tournament progress → 3 independent
     // pot competitions + a bragging-rights total. Fills in as matches play.
-    const [matchesRes, teamsRes, lineupsRes] = await Promise.all([
+    const [matchesRes, teamsRes, lineupsRes, fullTeams] = await Promise.all([
       supabase
         .from("matches")
         .select("id, stage, group_label, status, home_team_id, away_team_id, home_goals, away_goals, winner_team_id, kickoff_at"),
       supabase.from("teams").select("id, name"),
       supabase.from("team_lineups").select("team_id, formation, xi"),
+      // Full 48-team list (crests + group + FIFA rank) for the group-stage cards.
+      getCachedTeams(),
     ]);
     const actual = computeActuals((matchesRes.data ?? []) as MatchRow[], new Map());
     const idByDraftName = draftTeamIds(teamsRes.data ?? []);
@@ -246,6 +250,48 @@ export default async function LeaguePage({
       })
       .filter((id): id is number => id != null);
 
+    // Group-stage board: all 12 groups, each in finishing order. Live tables come
+    // from real results (computeGroupTables resolves a group only once all its
+    // matches are finished); pre-tournament / incomplete groups fall back to FIFA
+    // rank (best first, nulls last), then name. Fully resolved here — no Maps cross
+    // to the client; pts/played are null until a group's table is live.
+    const groupTables = computeGroupTables((matchesRes.data ?? []) as MatchRow[]);
+    const teamsByGroup = new Map<string, (typeof fullTeams)[number][]>();
+    for (const t of fullTeams) {
+      if (!t.group_label) continue;
+      let list = teamsByGroup.get(t.group_label);
+      if (!list) teamsByGroup.set(t.group_label, (list = []));
+      list.push(t);
+    }
+    const groupStage: GroupStageGroup[] = [...teamsByGroup.keys()]
+      .sort()
+      .map((label) => {
+        const teams = teamsByGroup.get(label)!;
+        const byId = new Map(teams.map((t) => [t.id, t]));
+        const table = groupTables[label];
+        // Live order if this group's table has resolved for all 4 teams; else
+        // FIFA rank ascending (nulls last), then name.
+        const live = table && table.order.length === teams.length;
+        const ordered = live
+          ? table.order.map((tid) => byId.get(tid)).filter((t): t is (typeof teams)[number] => t != null)
+          : [...teams].sort(
+              (a, b) =>
+                (a.fifa_rank ?? Number.MAX_SAFE_INTEGER) - (b.fifa_rank ?? Number.MAX_SAFE_INTEGER) ||
+                a.name.localeCompare(b.name),
+            );
+        return {
+          group: label,
+          teams: ordered.map((t) => ({
+            id: t.id,
+            name: t.name,
+            code: t.code,
+            logo_url: t.logo_url,
+            pts: live ? (table.stats.get(t.id)?.pts ?? 0) : null,
+            played: live ? 3 : null,
+          })),
+        };
+      });
+
     return (
       <DraftRoom
         leagueId={id}
@@ -261,6 +307,7 @@ export default async function LeaguePage({
         koRounds={koRounds}
         bracketTeams={bracketTeams}
         meTeamIds={meTeamIds}
+        groupStage={groupStage}
         tournamentStarted={nowMs() >= KICKOFF_MS}
       />
     );

@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useState, type JSX } from "react";
+import { useState, type JSX } from "react";
 import Flag from "@/components/Flag";
 
 // A single team as it appears in the bracket. Mirrors the shape the consumer
@@ -36,6 +36,24 @@ const SHORT_LABEL: Record<string, string> = {
   final: "Final",
 };
 
+// Two-sided ("classic") bracket — which canonical match numbers sit in each
+// column, top→bottom, for the left and right halves. The 16 R32 ties split 8/8
+// and the halves converge on the centre Final (match 104) — this halves the
+// height vs a single column and uses the landscape width. Orders come straight
+// from KNOCKOUT_TEMPLATE/BRACKET_TREE so each tie's two feeders are adjacent.
+const BRACKET_LEFT: { label: string; nos: number[] }[] = [
+  { label: "R32", nos: [74, 77, 73, 75, 83, 84, 81, 82] },
+  { label: "R16", nos: [89, 90, 93, 94] },
+  { label: "QF", nos: [97, 98] },
+  { label: "SF", nos: [101] },
+];
+const BRACKET_RIGHT: { label: string; nos: number[] }[] = [
+  { label: "SF", nos: [102] },
+  { label: "QF", nos: [99, 100] },
+  { label: "R16", nos: [91, 92, 95, 96] },
+  { label: "R32", nos: [76, 78, 79, 80, 86, 88, 85, 87] },
+];
+
 export default function KnockoutBracket({
   rounds,
   teamsById,
@@ -43,6 +61,7 @@ export default function KnockoutBracket({
   onPick,
   locked,
   championNo,
+  treeOnly,
 }: {
   rounds: BracketRound[]; // in tournament order: R32 … Final
   teamsById: Record<number, BracketTeam>; // lookup for ids in the matches
@@ -50,6 +69,7 @@ export default function KnockoutBracket({
   onPick?: (matchNo: number, teamId: number) => void; // if given AND !locked → interactive
   locked?: boolean;
   championNo?: number; // canonical no of the final (104) — its winner is crowned
+  treeOnly?: boolean; // force the connected-tree view + hide the toggle (read-only displays)
 }): JSX.Element {
   const highlight = new Set(highlightIds ?? []);
   const interactive = typeof onPick === "function" && !locked;
@@ -57,7 +77,7 @@ export default function KnockoutBracket({
   // Two ways to read the same bracket:
   //  • "rounds" — paged, one phase at a time (best for picking on mobile)
   //  • "tree"   — a compact connected bracket from R16 → Final (the big picture)
-  const [view, setView] = useState<"rounds" | "tree">("rounds");
+  const [view, setView] = useState<"rounds" | "tree">(treeOnly ? "tree" : "rounds");
 
   // Round-by-round paging — one phase at a time, no horizontal scroll.
   const [active, setActive] = useState(0);
@@ -175,12 +195,14 @@ export default function KnockoutBracket({
     return (
       <div className={`flex items-center gap-1 ${tone}`}>
         {t ? (
-          <Flag teamId={t.id} logoUrl={t.logo_url} code={t.code} name={t.name} size={14} />
+          <span className="shrink-0">
+            <Flag teamId={t.id} logoUrl={t.logo_url} code={t.code} name={t.name} size={14} />
+          </span>
         ) : (
-          <span className="inline-block h-3.5 w-3.5 rounded-full bg-night/10" />
+          <span className="inline-block h-3.5 w-3.5 shrink-0 rounded-full bg-night/10" />
         )}
-        <span className="w-8 truncate">{codeOf(teamId)}</span>
-        {isWinner && <span className="text-[8px] leading-none">✓</span>}
+        <span className="whitespace-nowrap">{codeOf(teamId)}</span>
+        {isWinner && <span className="shrink-0 text-[8px] leading-none">✓</span>}
       </div>
     );
   };
@@ -205,12 +227,55 @@ export default function KnockoutBracket({
   const prevRound = rounds[safeActive - 1];
   const nextRound = rounds[safeActive + 1];
 
+  // --- Two-sided tree pieces ----------------------------------------------
+  const matchByNo = new Map<number, BracketMatch>();
+  for (const r of rounds) for (const m of r.matches) matchByNo.set(m.no, m);
+  const mget = (no: number): BracketMatch => matchByNo.get(no) ?? { no, home: null, away: null, winner: null };
+
+  // One round column (label + its match cards spread by justify-around).
+  const treeCol = (nos: number[], label: string) => (
+    <div className="flex w-[72px] flex-col px-0.5">
+      <div className="mb-1 text-center font-display text-[9px] uppercase tracking-wide text-chalk-dim">{label}</div>
+      <div className="flex flex-1 flex-col justify-around">{nos.map((no) => treeCard(mget(no)))}</div>
+    </div>
+  );
+  // A connector column of ⊐ / ⊏ elbows (border side toward the centre); each
+  // elbow occupies the middle 50% of its slot so it lands on both feeders.
+  const treeConn = (count: number, side: "r" | "l") => (
+    <div className="flex w-3 flex-col">
+      <div className="mb-1 text-[9px]" aria-hidden>
+        &nbsp;
+      </div>
+      <div className="flex flex-1 flex-col">
+        {Array.from({ length: count }).map((_, k) => (
+          <div key={k} className="flex flex-1 flex-col">
+            <div className="flex-1" />
+            <div
+              className={`flex-[2] border-y border-night/30 ${side === "r" ? "rounded-r-sm border-r" : "rounded-l-sm border-l"}`}
+            />
+            <div className="flex-1" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+  const treeLine = () => (
+    <div className="flex w-2.5 flex-col">
+      <div className="mb-1 text-[9px]" aria-hidden>
+        &nbsp;
+      </div>
+      <div className="flex flex-1 items-center">
+        <div className="h-px w-full bg-night/30" />
+      </div>
+    </div>
+  );
+
   if (!round) return <div className="glass rounded-2xl p-6 text-center text-sm text-chalk-dim">No bracket yet.</div>;
 
   return (
     <div className="space-y-3">
       {/* View toggle: paged picker ⟷ full connected bracket. */}
-      {treeRounds.length >= 2 && (
+      {!treeOnly && treeRounds.length >= 2 && (
         <div className="flex justify-center">
           <div className="inline-flex rounded-xl bg-night/5 p-0.5 text-xs font-semibold">
             <button
@@ -232,77 +297,49 @@ export default function KnockoutBracket({
       )}
 
       {view === "tree" ? (
-        /* ----------------------- FULL BRACKET (R16 → Final) ----------------------- */
+        /* -------------------- FULL BRACKET — two-sided (R32 → Final) -------------------- */
         <div className="space-y-1.5">
           <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-0.5 text-[10px] text-chalk-dim">
-            <span className="font-semibold text-chalk">Round of 16 → Final</span>
+            <span className="font-semibold text-chalk">Full bracket · R32 → Final</span>
             {highlight.size > 0 && <span className="text-gold">★ = your path</span>}
+            <span className="text-chalk-dim/70">turn sideways for the full view</span>
           </div>
           <div className="overflow-x-auto pb-1">
-            {/* mx-auto centres the tree when the screen is wide (landscape); it
-                scrolls when narrow. Fixed height keeps justify-around spacing
-                uniform so the connector elbows land dead-on the feeder cards. */}
-            <div className="mx-auto flex h-[348px] w-max items-stretch text-[10px] leading-none">
-              {treeRounds.map((r, ri) => (
-                <Fragment key={r.stage}>
-                  {/* round column */}
-                  <div className="flex w-[62px] flex-col px-0.5">
-                    <div className="mb-1 text-center font-display text-[9px] uppercase tracking-wide text-chalk-dim">
-                      {SHORT_LABEL[r.stage] ?? r.label}
-                    </div>
-                    <div className="flex flex-1 flex-col justify-around">
-                      {r.matches.map((m) => treeCard(m))}
-                    </div>
-                  </div>
-                  {/* connector: one ⊐ elbow per next-round tie, middle 50% of its slot */}
-                  {ri < treeRounds.length - 1 && (
-                    <div className="flex w-3 flex-col">
-                      <div className="mb-1 text-[9px]" aria-hidden>
-                        &nbsp;
-                      </div>
-                      <div className="flex flex-1 flex-col">
-                        {treeRounds[ri + 1].matches.map((_, k) => (
-                          <div key={k} className="flex flex-1 flex-col">
-                            <div className="flex-1" />
-                            <div className="flex-[2] rounded-r-sm border-y border-r border-night/30" />
-                            <div className="flex-1" />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </Fragment>
-              ))}
+            {/* mx-auto centres the bracket when wide (landscape) and scrolls when
+                narrow. Fixed height keeps justify-around spacing uniform so the
+                connector elbows land dead-on their feeder cards. */}
+            <div className="mx-auto flex h-[330px] w-max items-stretch text-[10px] leading-none">
+              {/* LEFT half — flows rightward toward the centre */}
+              {treeCol(BRACKET_LEFT[0].nos, BRACKET_LEFT[0].label)}
+              {treeConn(BRACKET_LEFT[1].nos.length, "r")}
+              {treeCol(BRACKET_LEFT[1].nos, BRACKET_LEFT[1].label)}
+              {treeConn(BRACKET_LEFT[2].nos.length, "r")}
+              {treeCol(BRACKET_LEFT[2].nos, BRACKET_LEFT[2].label)}
+              {treeConn(BRACKET_LEFT[3].nos.length, "r")}
+              {treeCol(BRACKET_LEFT[3].nos, BRACKET_LEFT[3].label)}
+              {treeLine()}
 
-              {/* Final → champion connector (straight line) */}
-              <div className="flex w-3 flex-col">
-                <div className="mb-1 text-[9px]" aria-hidden>
-                  &nbsp;
-                </div>
-                <div className="flex flex-1 items-center">
-                  <div className="h-px w-full bg-night/30" />
+              {/* CENTRE — the Final + crowned champion */}
+              <div className="flex w-[86px] flex-col px-0.5">
+                <div className="mb-1 text-center font-display text-[9px] uppercase tracking-wide text-gold">Final</div>
+                <div className="flex flex-1 flex-col items-center justify-center gap-1">
+                  {championTeamId != null && <span className="text-sm leading-none">👑</span>}
+                  <div className="w-full rounded-md ring-1 ring-gold">{treeCard(mget(104))}</div>
+                  <span className="font-display text-[10px] leading-none text-gold">
+                    {championTeamId != null ? codeOf(championTeamId) : "Champion"}
+                  </span>
                 </div>
               </div>
 
-              {/* champion */}
-              <div className="flex w-[64px] flex-col px-0.5">
-                <div className="mb-1 text-center font-display text-[9px] uppercase tracking-wide text-gold">
-                  Champ
-                </div>
-                <div className="flex flex-1 flex-col justify-center">
-                  {champTeam ? (
-                    <div className="flex flex-col items-center gap-0.5 rounded-md border border-gold bg-gold/15 px-1 py-2 text-center text-gold glow-gold">
-                      <span className="text-sm leading-none">👑</span>
-                      <Flag teamId={champTeam.id} logoUrl={champTeam.logo_url} code={champTeam.code} name={champTeam.name} size={20} />
-                      <span className="font-display text-[10px] leading-none">{codeOf(championTeamId)}</span>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center gap-1 rounded-md border border-dashed border-gold/40 px-1 py-3 text-center text-chalk-dim">
-                      <span className="text-base leading-none opacity-60">🏆</span>
-                    </div>
-                  )}
-                </div>
-              </div>
+              {/* RIGHT half — mirrored, flows leftward toward the centre */}
+              {treeLine()}
+              {treeCol(BRACKET_RIGHT[0].nos, BRACKET_RIGHT[0].label)}
+              {treeConn(BRACKET_RIGHT[0].nos.length, "l")}
+              {treeCol(BRACKET_RIGHT[1].nos, BRACKET_RIGHT[1].label)}
+              {treeConn(BRACKET_RIGHT[1].nos.length, "l")}
+              {treeCol(BRACKET_RIGHT[2].nos, BRACKET_RIGHT[2].label)}
+              {treeConn(BRACKET_RIGHT[2].nos.length, "l")}
+              {treeCol(BRACKET_RIGHT[3].nos, BRACKET_RIGHT[3].label)}
             </div>
           </div>
         </div>

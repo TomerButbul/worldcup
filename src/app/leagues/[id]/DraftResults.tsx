@@ -8,6 +8,7 @@ import Trophy from "@/components/art/Trophy";
 import TeamFormation, { type TeamLineup } from "./TeamFormation";
 import { DRAFT_POTS, POT_LABELS, teamAt, type Pot } from "@/lib/draft";
 import DraftFixtures, { type FixtureDay } from "./DraftFixtures";
+import DraftGroupStage, { type GroupStageGroup } from "./DraftGroupStage";
 import KnockoutBracket, { type BracketRound, type BracketTeam } from "@/components/KnockoutBracket";
 import type { StandingRow } from "@/lib/draft-scoring";
 import type { DraftMember, PickRow } from "./draftTypes";
@@ -23,6 +24,7 @@ export default function DraftResults({
   koRounds,
   bracketTeams,
   meTeamIds,
+  groupStage,
   tournamentStarted,
 }: {
   picks: PickRow[];
@@ -33,6 +35,7 @@ export default function DraftResults({
   koRounds: BracketRound[];
   bracketTeams: Record<number, BracketTeam>;
   meTeamIds: number[];
+  groupStage: GroupStageGroup[];
   tournamentStarted: boolean;
 }) {
   const memberById = new Map(members.map((m) => [m.userId, m]));
@@ -123,6 +126,9 @@ export default function DraftResults({
         </div>
       )}
 
+      {/* Group stage: all 12 groups, with this manager's drafted nations starred. */}
+      <DraftGroupStage groups={groupStage} meTeamIds={meTeamIds} />
+
       {/* Read-only tournament bracket with this manager's nations traced in gold. */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
@@ -139,6 +145,7 @@ export default function DraftResults({
           teamsById={bracketTeams}
           highlightIds={meTeamIds}
           championNo={104}
+          treeOnly
         />
       </motion.div>
 

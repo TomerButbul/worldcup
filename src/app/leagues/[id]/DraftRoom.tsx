@@ -12,6 +12,7 @@ import ReactionShower from "@/components/ReactionShower";
 import DraftResults from "./DraftResults";
 import type { StandingRow } from "@/lib/draft-scoring";
 import type { FixtureDay } from "./DraftFixtures";
+import type { GroupStageGroup } from "./DraftGroupStage";
 import type { BracketRound, BracketTeam } from "@/components/KnockoutBracket";
 import {
   type DraftStateRow,
@@ -36,6 +37,7 @@ export default function DraftRoom({
   koRounds,
   bracketTeams,
   meTeamIds,
+  groupStage,
   tournamentStarted,
 }: {
   leagueId: string;
@@ -51,6 +53,7 @@ export default function DraftRoom({
   koRounds: BracketRound[];
   bracketTeams: Record<number, BracketTeam>;
   meTeamIds: number[];
+  groupStage: GroupStageGroup[];
   tournamentStarted: boolean;
 }) {
   const supabase = useMemo(() => createClient(), []);
@@ -325,6 +328,7 @@ export default function DraftRoom({
           koRounds={koRounds}
           bracketTeams={bracketTeams}
           meTeamIds={meTeamIds}
+          groupStage={groupStage}
           tournamentStarted={tournamentStarted}
         />
       )}
