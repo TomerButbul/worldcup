@@ -87,6 +87,12 @@ export function fetchLiveFixtures() {
   return apiGet<AfFixture>("/fixtures", { league: LEAGUE(), season: SEASON(), live: "all" }, 20);
 }
 
+// A team's most recent fixture in ANY competition — for its "latest lineup".
+// Cache 6h (lineups change roughly weekly).
+export function fetchTeamLastFixture(teamId: number) {
+  return apiGet<AfFixture>("/fixtures", { team: teamId, last: 1 }, 21600);
+}
+
 // Goal/card/sub events for a fixture. Long cache for finished matches; pass a
 // short revalidate (e.g. 20s) for live ones so the pitch stays current.
 export function fetchFixtureEvents(fixtureId: number, revalidateSeconds = 3600) {

@@ -10,6 +10,7 @@ import {
   fetchLiveFixtures,
   fetchFixtureEvents,
   fetchLineups,
+  fetchTeamLastFixture,
   fetchSquad,
   fetchPlayersByTeam,
   mapStage,
@@ -200,6 +201,35 @@ export async function GET(request: NextRequest) {
         } while (page <= total);
       }
       summary.profiles = enriched;
+    }
+
+    // 2d) Most-recent lineup per team (on demand — ~2 calls/team).
+    if (request.nextUrl.searchParams.get("teamlineups") === "1") {
+      const { data: allTeams } = await supabase.from("teams").select("id");
+      let done = 0;
+      for (const t of allTeams ?? []) {
+        const fx = await fetchTeamLastFixture(t.id);
+        const fid = fx[0]?.fixture.id;
+        if (!fid) continue;
+        const lus = await fetchLineups(fid);
+        const l = lus.find((x) => x.team.id === t.id);
+        if (!l) continue;
+        await supabase.from("team_lineups").upsert({
+          team_id: t.id,
+          formation: l.formation ?? null,
+          xi: l.startXI.map((x) => ({
+            player_id: x.player.id,
+            name: x.player.name,
+            number: x.player.number,
+            pos: x.player.pos,
+            grid: x.player.grid,
+          })),
+          fixture_id: fid,
+          updated_at: new Date().toISOString(),
+        });
+        done += 1;
+      }
+      summary.team_lineups = done;
     }
 
     // 3) Fixtures -> matches

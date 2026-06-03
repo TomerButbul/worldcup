@@ -69,14 +69,24 @@ export default async function LeaguePage({
 
     // Draft standings: each drafted team's tournament progress → 3 independent
     // pot competitions + a bragging-rights total. Fills in as matches play.
-    const [matchesRes, teamsRes] = await Promise.all([
+    const [matchesRes, teamsRes, lineupsRes] = await Promise.all([
       supabase
         .from("matches")
         .select("id, stage, group_label, status, home_team_id, away_team_id, home_goals, away_goals"),
       supabase.from("teams").select("id, name"),
+      supabase.from("team_lineups").select("team_id, formation, xi"),
     ]);
     const actual = computeActuals((matchesRes.data ?? []) as MatchRow[], new Map());
     const idByDraftName = draftTeamIds(teamsRes.data ?? []);
+    // Map each draft-pool team name → its most-recent lineup (for the tap view).
+    const lineupById = new Map(
+      (lineupsRes.data ?? []).map((l) => [l.team_id, { formation: l.formation, xi: l.xi }]),
+    );
+    const teamLineups: Record<string, { formation: string | null; xi: unknown[] }> = {};
+    for (const [name, tid] of idByDraftName) {
+      const lu = lineupById.get(tid);
+      if (lu) teamLineups[name] = lu as { formation: string | null; xi: unknown[] };
+    }
     const standings = draftScores(initialPicks, (pot, slot) => {
       const team = teamAt(pot, slot);
       const teamId = team ? (idByDraftName.get(team.name) ?? null) : null;
@@ -93,6 +103,7 @@ export default async function LeaguePage({
         initialPicks={initialPicks}
         initialMembers={initialMembers}
         standings={standings}
+        teamLineups={teamLineups}
         tournamentStarted={nowMs() >= KICKOFF_MS}
       />
     );

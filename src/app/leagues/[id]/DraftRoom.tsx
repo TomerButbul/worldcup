@@ -29,6 +29,7 @@ export default function DraftRoom({
   initialPicks,
   initialMembers,
   standings,
+  teamLineups,
   tournamentStarted,
 }: {
   leagueId: string;
@@ -39,6 +40,7 @@ export default function DraftRoom({
   initialPicks: PickRow[];
   initialMembers: DraftMember[];
   standings: { perPot: Record<number, StandingRow[]>; totals: StandingRow[] };
+  teamLineups: Record<string, { formation: string | null; xi: unknown[] }>;
   tournamentStarted: boolean;
 }) {
   const supabase = useMemo(() => createClient(), []);
@@ -308,6 +310,7 @@ export default function DraftRoom({
           picks={picks}
           members={members}
           standings={standings}
+          teamLineups={teamLineups}
           tournamentStarted={tournamentStarted}
         />
       )}

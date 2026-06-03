@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "motion/react";
 import Avatar from "@/components/Avatar";
 import AutoRefresh from "@/components/AutoRefresh";
+import TeamFormation, { type TeamLineup } from "./TeamFormation";
 import { DRAFT_POTS, POT_LABELS, teamAt, type Pot } from "@/lib/draft";
 import type { StandingRow } from "@/lib/draft-scoring";
 import type { DraftMember, PickRow } from "./draftTypes";
@@ -13,14 +15,17 @@ export default function DraftResults({
   picks,
   members,
   standings,
+  teamLineups,
   tournamentStarted,
 }: {
   picks: PickRow[];
   members: DraftMember[];
   standings: { perPot: Record<number, StandingRow[]>; totals: StandingRow[] };
+  teamLineups: Record<string, { formation: string | null; xi: unknown[] }>;
   tournamentStarted: boolean;
 }) {
   const memberById = new Map(members.map((m) => [m.userId, m]));
+  const [open, setOpen] = useState<string | null>(null);
   // Pivot the flat pick list into per-manager, per-pot squads.
   const byUser = new Map<string, Map<number, PickRow>>();
   for (const p of picks) {
@@ -130,17 +135,35 @@ export default function DraftResults({
                 {POTS.map((pot) => {
                   const pick = squad?.get(pot);
                   const team = pick ? teamAt(pot, pick.slot) : undefined;
+                  const key = `${m.userId}-${pot}`;
+                  const isOpen = open === key;
+                  const lineup = team ? (teamLineups[team.name] ?? null) : null;
                   return (
-                    <li key={pot} className="flex items-center gap-2.5 rounded-xl bg-night/5 px-3 py-2">
-                      <span className="text-xl">{team?.flag ?? "—"}</span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-semibold text-chalk">
-                          {team?.name ?? "No pick"}
+                    <li key={pot}>
+                      <button
+                        type="button"
+                        onClick={() => team && setOpen(isOpen ? null : key)}
+                        disabled={!team}
+                        className="flex w-full items-center gap-2.5 rounded-xl bg-night/5 px-3 py-2 text-left transition hover:bg-night/10 disabled:cursor-default"
+                      >
+                        <span className="text-xl">{team?.flag ?? "—"}</span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-semibold text-chalk">
+                            {team?.name ?? "No pick"}
+                          </span>
+                          <span className="block truncate text-[11px] uppercase tracking-wider text-chalk-dim">
+                            {POT_LABELS[pot]}
+                          </span>
                         </span>
-                        <span className="block truncate text-[11px] uppercase tracking-wider text-chalk-dim">
-                          {POT_LABELS[pot]}
-                        </span>
-                      </span>
+                        {team && (
+                          <span className={`shrink-0 text-xs text-chalk-dim transition ${isOpen ? "rotate-180" : ""}`}>▾</span>
+                        )}
+                      </button>
+                      {isOpen && team && (
+                        <div className="mt-1.5 rounded-xl bg-night/5 p-2">
+                          <TeamFormation lineup={lineup as TeamLineup | null} teamName={team.name} />
+                        </div>
+                      )}
                     </li>
                   );
                 })}
