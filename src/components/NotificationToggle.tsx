@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 function urlB64ToUint8Array(base64: string) {
   const padding = "=".repeat((4 - (base64.length % 4)) % 4);
@@ -142,6 +143,12 @@ export default function NotificationToggle({ placement = "top" }: { placement?: 
           </>
         )}
       </div>
+      <Link
+        href="/install"
+        className="mt-2 inline-block text-xs font-semibold text-gold underline-offset-2 hover:underline"
+      >
+        📖 Step-by-step install guide (with pictures) →
+      </Link>
     </div>
   );
 }

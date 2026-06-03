@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 type Device = "ios" | "android" | "desktop";
 
@@ -94,6 +95,12 @@ export default function InstallPrompt() {
           </span>
         )}
       </div>
+      <Link
+        href="/install"
+        className="mt-2 inline-block text-xs font-semibold text-gold underline-offset-2 hover:underline"
+      >
+        Show me how — with pictures →
+      </Link>
     </div>
   );
 }
