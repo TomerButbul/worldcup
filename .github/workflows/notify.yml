@@ -1,0 +1,23 @@
+name: Reminders
+
+# Fires lock + match reminders to subscribed players. Each reminder is sent once
+# (deduped server-side in notif_sent), so running often is safe and cheap.
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: reminders
+  cancel-in-progress: false
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger /api/notify
+        run: |
+          curl -fsS --max-time 60 \
+            -H "Authorization: Bearer ${{ secrets.SYNC_SECRET }}" \
+            "https://worldcup-liart.vercel.app/api/notify" -o resp.json || true
+          echo "Notify: $(cat resp.json 2>/dev/null)"

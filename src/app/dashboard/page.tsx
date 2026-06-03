@@ -11,6 +11,7 @@ import ProfileEditor from "@/components/ProfileEditor";
 import FavoriteTeamPicker from "@/components/FavoriteTeamPicker";
 import FavoriteTeamStatus from "@/components/FavoriteTeamStatus";
 import Countdown from "@/components/Countdown";
+import NotificationToggle from "@/components/NotificationToggle";
 import NextMatchCard, { type NextMatchData, type LeaguePrediction } from "@/components/NextMatchCard";
 import { computeFavStatus } from "@/lib/favoriteStatus";
 import AutoRefresh from "@/components/AutoRefresh";
@@ -166,6 +167,10 @@ export default async function DashboardPage({
         <div className="glass-strong rounded-3xl p-5 sm:p-6">
           <Countdown />
         </div>
+      </Reveal>
+
+      <Reveal>
+        <NotificationToggle />
       </Reveal>
 
       {nextMatchData && (
