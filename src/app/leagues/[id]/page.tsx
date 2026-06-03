@@ -119,12 +119,23 @@ function buildKnockoutRounds(matches: MatchRow[]): BracketRound[] {
   }));
 }
 
+// Tabs for the completed-draft view. A separate bottom nav links to these via
+// ?tab=…; we just gate which section renders. "board" is the default/fallback.
+const DRAFT_TABS = ["board", "groups", "bracket", "fixtures"] as const;
+type DraftTab = (typeof DRAFT_TABS)[number];
+
 export default async function LeaguePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ tab?: string }>;
 }) {
   const { id } = await params;
+  const tabParam = (await searchParams).tab;
+  const tab: DraftTab = DRAFT_TABS.includes(tabParam as DraftTab)
+    ? (tabParam as DraftTab)
+    : "board";
   const supabase = await createClient();
   const {
     data: { user },
@@ -294,6 +305,7 @@ export default async function LeaguePage({
 
     return (
       <DraftRoom
+        tab={tab}
         leagueId={id}
         leagueName={league.name}
         meId={user.id}

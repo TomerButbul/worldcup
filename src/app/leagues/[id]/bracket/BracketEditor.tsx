@@ -624,8 +624,8 @@ export default function BracketEditor({
 
       {/* Sticky save bar */}
       {!locked && (
-        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-night/10 bg-white/85 backdrop-blur">
-          <div className="mx-auto flex max-w-4xl flex-wrap items-center gap-x-3 gap-y-1.5 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pr-16 sm:px-6 sm:pr-20">
+        <div className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+3.4rem)] z-20 border-t border-b border-night/10 bg-white/85 backdrop-blur">
+          <div className="mx-auto flex max-w-4xl flex-wrap items-center gap-x-3 gap-y-1.5 px-4 py-2.5 pr-16 sm:px-6 sm:pr-20">
             <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${saveBadge.cls}`}>
               {saveBadge.text}
             </span>

@@ -60,17 +60,16 @@ function MatchRow({ m }: { m: FixtureRow }) {
 
 export default function DraftFixtures({ days }: { days: FixtureDay[] }) {
   if (!days.length) return null;
+  // Renders in full as its own tab (the bottom nav gates visibility), so it's a
+  // plain section rather than a collapsible — every fixture is shown at once.
   return (
-    <details className="group glass rounded-2xl p-4">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
-        <span className="font-display text-chalk">Fixtures &amp; managers</span>
-        <span className="transition text-chalk-dim group-open:rotate-180">▾</span>
-      </summary>
-      <p className="mb-2 mt-3 text-[11px] text-chalk-dim">
+    <section className="glass rounded-2xl p-4">
+      <h2 className="font-display text-chalk">Fixtures &amp; managers</h2>
+      <p className="mb-2 mt-1 text-[11px] text-chalk-dim">
         Every game is a manager-vs-manager matchup — the gold name under each nation is who drafted
         it.
       </p>
-      <div className="max-h-[60vh] space-y-3 overflow-y-auto pr-1">
+      <div className="max-h-[70vh] space-y-3 overflow-y-auto pr-1">
         {days.map((d) => (
           <div key={d.day}>
             <p className="sticky top-0 z-10 bg-white/85 py-1 text-xs font-semibold uppercase tracking-wider text-chalk-dim backdrop-blur-sm">
@@ -84,6 +83,6 @@ export default function DraftFixtures({ days }: { days: FixtureDay[] }) {
           </div>
         ))}
       </div>
-    </details>
+    </section>
   );
 }

@@ -24,6 +24,7 @@ import {
 } from "./draftTypes";
 
 export default function DraftRoom({
+  tab,
   leagueId,
   leagueName,
   meId,
@@ -40,6 +41,7 @@ export default function DraftRoom({
   groupStage,
   tournamentStarted,
 }: {
+  tab: string;
   leagueId: string;
   leagueName: string;
   meId: string;
@@ -320,6 +322,7 @@ export default function DraftRoom({
 
       {state.status === "complete" && (
         <DraftResults
+          tab={tab}
           picks={picks}
           members={members}
           standings={standings}

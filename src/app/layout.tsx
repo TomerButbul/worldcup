@@ -4,7 +4,9 @@ import "./globals.css";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import FlagGarland from "@/components/FlagGarland";
 import { PlayerCardHost } from "@/components/PlayerCard";
+import { GlobalNav } from "@/components/BottomNav";
 import { getCachedMatchdayFlags } from "@/lib/tournamentData";
+import { createClient } from "@/lib/supabase/server";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -59,7 +61,11 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const matchdayFlags = await getCachedMatchdayFlags();
+  const supabase = await createClient();
+  const [matchdayFlags, { data: { user } }] = await Promise.all([
+    getCachedMatchdayFlags(),
+    supabase.auth.getUser(),
+  ]);
   return (
     <html
       lang="en"
@@ -70,9 +76,16 @@ export default async function RootLayout({
         <div className="fixed inset-x-0 top-[env(safe-area-inset-top)] z-30">
           <FlagGarland flags={matchdayFlags} />
         </div>
-        <div className="relative z-10 flex min-h-screen flex-col pt-[calc(env(safe-area-inset-top)+2.25rem)]">
+        <div
+          className={`relative z-10 flex min-h-screen flex-col pt-[calc(env(safe-area-inset-top)+2.25rem)] ${
+            user ? "pb-[calc(env(safe-area-inset-bottom)+3.75rem)]" : ""
+          }`}
+        >
           {children}
         </div>
+        {/* GlobalNav self-hides on auth/landing/league routes; LeagueNav (in the
+            league layout) takes over inside a league. */}
+        {user && <GlobalNav />}
         <PlayerCardHost />
       </body>
     </html>

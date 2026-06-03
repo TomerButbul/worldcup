@@ -16,6 +16,7 @@ import type { DraftMember, PickRow } from "./draftTypes";
 const POTS: Pot[] = [1, 2, 3];
 
 export default function DraftResults({
+  tab,
   picks,
   members,
   standings,
@@ -27,6 +28,7 @@ export default function DraftResults({
   groupStage,
   tournamentStarted,
 }: {
+  tab: string;
   picks: PickRow[];
   members: DraftMember[];
   standings: { perPot: Record<number, StandingRow[]>; totals: StandingRow[] };
@@ -53,11 +55,13 @@ export default function DraftResults({
     .filter((m) => m.seat != null)
     .sort((a, b) => (a.seat ?? 0) - (b.seat ?? 0));
 
+  // One section at a time, chosen by the active tab (a separate bottom nav
+  // supplies the links). "board" pairs the standings scoreboard with the
+  // managers' drafted squads — together the managers/standings view.
   return (
     <div className="space-y-6">
-      {/* Scoreboard — pot standings (live once the tournament starts) + the
-          combined bragging-rights total. Always visible: pre-tournament every
-          manager simply sits on 0. */}
+      {tab === "board" && (
+      <>
       <section className="glass-strong rounded-3xl p-4 sm:p-5">
         {/* Re-fetches periodically so points tick up live during the tournament. */}
         <AutoRefresh enabled />
@@ -117,40 +121,15 @@ export default function DraftResults({
         </div>
       </section>
 
-      {/* Group stage: all 12 groups, with this manager's drafted nations starred. */}
-      <DraftGroupStage groups={groupStage} meTeamIds={meTeamIds} />
-
-      {/* Read-only tournament bracket with this manager's nations traced in gold. */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="glass rounded-2xl p-4 sm:p-5"
-      >
-        <h3 className="font-display text-lg text-chalk">Your nations&apos; road to the final</h3>
-        <p className="mb-3 text-xs text-chalk-dim">
-          Fills in as the tournament plays — your drafted nations light up gold along their path.
-          Mostly TBD until the knockouts begin.
-        </p>
-        <KnockoutBracket
-          rounds={koRounds}
-          teamsById={bracketTeams}
-          highlightIds={meTeamIds}
-          championNo={104}
-          treeOnly
-        />
-      </motion.div>
-
-      <DraftFixtures days={fixtures} />
-
-      {/* Squads — collapsed by default so the page leads with the scoreboard. */}
-      <details className="group glass rounded-2xl p-4">
-        <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
-          <span className="font-display text-chalk">Squads</span>
-          <span className="flex items-center gap-2 text-xs text-chalk-dim">
+      {/* Squads — the managers' drafted teams; shares the "board" tab with the
+          scoreboard. Tap a nation to peek its formation. */}
+      <section className="glass rounded-2xl p-4">
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="font-display text-chalk">Squads</h2>
+          <span className="text-xs text-chalk-dim">
             {roster.length} managers · {DRAFT_POTS[1].length * POTS.length} teams
-            <span className="transition group-open:rotate-180">▾</span>
           </span>
-        </summary>
+        </div>
 
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
         {roster.map((m, i) => {
@@ -212,7 +191,37 @@ export default function DraftResults({
           );
         })}
         </div>
-      </details>
+      </section>
+      </>
+      )}
+
+      {/* Group stage: all 12 groups, with this manager's drafted nations starred. */}
+      {tab === "groups" && <DraftGroupStage groups={groupStage} meTeamIds={meTeamIds} />}
+
+      {/* Read-only tournament bracket with this manager's nations traced in gold. */}
+      {tab === "bracket" && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="glass rounded-2xl p-4 sm:p-5"
+        >
+          <h3 className="font-display text-lg text-chalk">Your nations&apos; road to the final</h3>
+          <p className="mb-3 text-xs text-chalk-dim">
+            Fills in as the tournament plays — your drafted nations light up gold along their path.
+            Mostly TBD until the knockouts begin.
+          </p>
+          <KnockoutBracket
+            rounds={koRounds}
+            teamsById={bracketTeams}
+            highlightIds={meTeamIds}
+            championNo={104}
+            treeOnly
+          />
+        </motion.div>
+      )}
+
+      {/* Fixtures: every match grouped by day, with who drafted each nation. */}
+      {tab === "fixtures" && <DraftFixtures days={fixtures} />}
     </div>
   );
 }
