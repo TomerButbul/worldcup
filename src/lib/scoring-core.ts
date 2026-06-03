@@ -1,4 +1,5 @@
 import type { ScoringConfig, MatchStage, MatchScore } from "@/lib/types";
+import { DEFAULT_SCORING } from "@/lib/types";
 import { buildBracket, predictedAdvancers } from "@/lib/bracket-core";
 
 // Pure scoring logic — no Supabase, fully unit-testable.
@@ -291,6 +292,23 @@ export function scoreUpfront(
     }
   }
 
+  // Group-order points: per finishing position the user called correctly, plus a
+  // bonus for nailing all four. Scored only when both the actual table (keys of
+  // groupStandings are already complete-only) and the user's predicted table are
+  // full 4-team orders.
+  const groupPosition = cfg.upfront.group_position ?? DEFAULT_SCORING.upfront.group_position;
+  const groupOrderBonus = cfg.upfront.group_order_bonus ?? DEFAULT_SCORING.upfront.group_order_bonus;
+  for (const [label, actualOrder] of Object.entries(actual.groupStandings)) {
+    const predictedOrder = tables[label]?.order;
+    if (!predictedOrder || predictedOrder.length !== 4 || actualOrder.length !== 4) continue;
+    let matched = 0;
+    for (let i = 0; i < 4; i++) {
+      if (predictedOrder[i] === actualOrder[i]) matched++;
+    }
+    pts += matched * groupPosition;
+    if (matched === 4) pts += groupOrderBonus;
+  }
+
   // Survival/advancement: per stage, award for each predicted team that the real
   // tournament also pushed into that stage.
   for (const [stage, key] of Object.entries(ADVANCE_KEYS)) {
@@ -300,6 +318,33 @@ export function scoreUpfront(
     for (const teamId of predicted) {
       if (reached.has(teamId)) pts += cfg.upfront[key];
     }
+  }
+
+  // Stage-sweep bonuses: all-or-nothing per round. If the set of teams the user
+  // predicted to reach a stage is exactly the set that actually reached it
+  // (same size, same members), award that round's bonus. Reuses the advancer
+  // sets built above. Only the four pre-final knockout rounds qualify.
+  const SWEEP_KEYS: Record<string, keyof ScoringConfig["upfront"]> = {
+    round_of_32: "sweep_round_of_32",
+    round_of_16: "sweep_round_of_16",
+    quarter: "sweep_quarter",
+    semi: "sweep_semi",
+  };
+  for (const [stage, key] of Object.entries(SWEEP_KEYS)) {
+    const reached = actual.advancers[stage];
+    const predicted = adv.byStage[stage];
+    // Require the round to have actually happened (non-empty) and a prediction to
+    // exist; two empty sets must not count as a sweep.
+    if (!reached || reached.size === 0 || !predicted) continue;
+    if (predicted.size !== reached.size) continue;
+    let identical = true;
+    for (const teamId of reached) {
+      if (!predicted.has(teamId)) {
+        identical = false;
+        break;
+      }
+    }
+    if (identical) pts += cfg.upfront[key] ?? DEFAULT_SCORING.upfront[key];
   }
 
   // Champion: the winner the user picked in the final (match 104).

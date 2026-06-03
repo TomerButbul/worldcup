@@ -103,3 +103,66 @@ export async function savePrediction(
   if (error) return { ok: false, error: error.message };
   return { ok: true };
 }
+
+// Set a group match's predicted scoreline straight from the match card — it
+// lives in the upfront bracket (group_scores), so this writes there. Lets you
+// open a scorer slot without bouncing to the bracket page. Locks at bracket lock.
+export async function saveGroupScore(leagueId: string, matchId: number, h: number, a: number) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  if (!Number.isInteger(h) || !Number.isInteger(a) || h < 0 || a < 0 || h > 20 || a > 20) {
+    return { ok: false, error: "Invalid score" };
+  }
+
+  const { data: match } = await supabase.from("matches").select("stage").eq("id", matchId).maybeSingle();
+  if (!match) return { ok: false, error: "Match not found" };
+  if (match.stage !== "group") return { ok: false, error: "Not a group match" };
+
+  const { data: league } = await supabase
+    .from("leagues")
+    .select("bracket_lock_at")
+    .eq("id", leagueId)
+    .maybeSingle();
+  if (!league) return { ok: false, error: "League not found" };
+  if (new Date(league.bracket_lock_at).getTime() <= Date.now()) {
+    return { ok: false, error: "Bracket is locked" };
+  }
+
+  const { data: bp } = await supabase
+    .from("bracket_predictions")
+    .select("group_scores")
+    .eq("league_id", leagueId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  const gs = { ...((bp?.group_scores as Record<string, { h: number; a: number }> | null) ?? {}) };
+  gs[String(matchId)] = { h, a };
+  const now = new Date().toISOString();
+
+  // Update only group_scores (preserve knockout/champion/awards); insert with
+  // empty defaults if this is the user's first-ever pick in the league.
+  if (bp) {
+    const { error } = await supabase
+      .from("bracket_predictions")
+      .update({ group_scores: gs, updated_at: now })
+      .eq("league_id", leagueId)
+      .eq("user_id", user.id);
+    if (error) return { ok: false, error: error.message };
+  } else {
+    const { error } = await supabase.from("bracket_predictions").insert({
+      league_id: leagueId,
+      user_id: user.id,
+      group_scores: gs,
+      knockout: {},
+      champion_team_id: null,
+      awards: {},
+      submitted_at: now,
+      updated_at: now,
+    });
+    if (error) return { ok: false, error: error.message };
+  }
+  return { ok: true };
+}

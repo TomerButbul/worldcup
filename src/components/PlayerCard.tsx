@@ -48,7 +48,12 @@ function fmtDob(d: string) {
 // Per-button local state let several cards open at once AND nested the modal
 // inside transformed pitch chips (so `position: fixed` was trapped, tiny). A
 // single shared request + a portaled host fixes both.
-type CardReq = { playerId: number; name?: string; detailPos?: string };
+type CardReq = {
+  playerId: number;
+  name?: string;
+  detailPos?: string;
+  action?: { label: string; run: () => void };
+};
 let current: CardReq | null = null;
 const listeners = new Set<() => void>();
 function emit() {
@@ -77,12 +82,14 @@ export function PlayerCardButton({
   playerId,
   name,
   detailPos,
+  action,
   className,
   children,
 }: {
   playerId: number;
   name?: string;
   detailPos?: string;
+  action?: { label: string; run: () => void };
   className?: string;
   children: ReactNode;
 }) {
@@ -93,7 +100,7 @@ export function PlayerCardButton({
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
-        openPlayerCard({ playerId, name, detailPos });
+        openPlayerCard({ playerId, name, detailPos, action });
       }}
     >
       {children}
@@ -263,6 +270,18 @@ function PlayerCardModal({ req, onClose }: { req: CardReq; onClose: () => void }
               <p className="text-center text-xs text-chalk-dim">No tournament stats yet — kicks off Jun 11.</p>
             )}
           </div>
+        )}
+        {req.action && (
+          <button
+            type="button"
+            onClick={() => {
+              req.action?.run();
+              onClose();
+            }}
+            className="mt-5 w-full rounded-xl bg-gold py-3 text-sm font-semibold text-night transition hover:brightness-110"
+          >
+            {req.action.label}
+          </button>
         )}
       </motion.div>
     </motion.div>

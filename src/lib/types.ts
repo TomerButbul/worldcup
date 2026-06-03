@@ -48,6 +48,8 @@ export interface ScoringConfig {
     group_exact_score: number;   // nailed the exact group scoreline
     group_correct_result: number; // got W/D/L right
     group_winner: number;         // predicted the group winner correctly
+    group_position: number;       // per finishing position (1st..4th) called right
+    group_order_bonus: number;    // bonus when ALL four positions in a group match
     advance_round_of_32: number;
     advance_round_of_16: number;
     advance_quarter: number;
@@ -58,6 +60,10 @@ export interface ScoringConfig {
     golden_ball: number;
     golden_glove: number;
     young_player: number;
+    sweep_round_of_32: number;    // exact-match bonus: every R32 team called right
+    sweep_round_of_16: number;
+    sweep_quarter: number;
+    sweep_semi: number;
   };
   live: {
     exact_score: number;
@@ -108,6 +114,8 @@ export const DEFAULT_SCORING: ScoringConfig = {
     group_exact_score: 3,
     group_correct_result: 1,
     group_winner: 3,
+    group_position: 1,
+    group_order_bonus: 3,
     advance_round_of_32: 1,
     advance_round_of_16: 2,
     advance_quarter: 4,
@@ -118,6 +126,10 @@ export const DEFAULT_SCORING: ScoringConfig = {
     golden_ball: 10,
     golden_glove: 8,
     young_player: 8,
+    sweep_round_of_32: 5,
+    sweep_round_of_16: 8,
+    sweep_quarter: 12,
+    sweep_semi: 15,
   },
   live: {
     exact_score: 5,

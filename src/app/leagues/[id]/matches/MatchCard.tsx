@@ -4,7 +4,7 @@ import { useState, useCallback } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
 import type { Player } from "@/lib/types";
-import { savePrediction } from "./actions";
+import { savePrediction, saveGroupScore } from "./actions";
 import { useAutosave } from "@/lib/useAutosave";
 import SaveStatus from "@/components/SaveStatus";
 import Flag from "@/components/Flag";
@@ -40,6 +40,8 @@ interface Props {
   initial: { home_goals: number | null; away_goals: number | null; scorer_goals: Record<string, number>; pen_winner_team_id: number | null } | null;
   // The user's upfront bracket scoreline for this match (group stage only).
   bracketScore: { h: number; a: number } | null;
+  // When the bracket (and thus group scorelines) locks — Jun 11.
+  bracketLockAt: string;
   // Official lineups once posted (~40 min pre-kickoff); null → full squad.
   homeLineup?: Lineup | null;
   awayLineup?: Lineup | null;
@@ -52,6 +54,7 @@ export default function MatchCard({
   awayPlayers,
   initial,
   bracketScore,
+  bracketLockAt,
   homeLineup,
   awayLineup,
 }: Props) {
@@ -60,8 +63,11 @@ export default function MatchCard({
   const isGroup = match.stage === "group";
 
   const [locked, setLocked] = useState(() => new Date(match.kickoff_at).getTime() <= nowMs());
-  const [home, setHome] = useState(initial?.home_goals ?? 0);
-  const [away, setAway] = useState(initial?.away_goals ?? 0);
+  // Group scorelines live in the bracket and lock at bracket lock (Jun 11), even
+  // for group games that kick off later; scorers stay editable until kickoff.
+  const bracketLocked = new Date(bracketLockAt).getTime() <= nowMs();
+  const [home, setHome] = useState(isGroup ? (bracketScore?.h ?? 0) : (initial?.home_goals ?? 0));
+  const [away, setAway] = useState(isGroup ? (bracketScore?.a ?? 0) : (initial?.away_goals ?? 0));
   // player_id (string) -> predicted goals for that player.
   const [scorerGoals, setScorerGoals] = useState<Record<string, number>>(() => ({ ...(initial?.scorer_goals ?? {}) }));
   const [penWinner, setPenWinner] = useState<number | null>(initial?.pen_winner_team_id ?? null);
@@ -78,9 +84,12 @@ export default function MatchCard({
   const allPlayers = [...homePlayers, ...awayPlayers];
   const playerName = (id: number) => allPlayers.find((p) => p.id === id)?.name ?? `#${id}`;
 
-  // Per-team goal caps: group → your bracket scoreline; knockout → the steppers.
-  const homeCap = isGroup ? (bracketScore?.h ?? 0) : home;
-  const awayCap = isGroup ? (bracketScore?.a ?? 0) : away;
+  // Group scores now live in `home`/`away` too (seeded from the bracket), so the
+  // cap is just the current scoreline for both stages. The group score is
+  // editable until bracket lock; the knockout score until kickoff.
+  const scoreEditable = !locked && (isGroup ? !bracketLocked : true);
+  const homeCap = home;
+  const awayCap = away;
   const sumFor = (players: Player[]) => players.reduce((s, p) => s + (scorerGoals[String(p.id)] ?? 0), 0);
 
   function adjust(playerId: number, delta: number, players: Player[], cap: number) {
@@ -100,20 +109,21 @@ export default function MatchCard({
     setter((n) => Math.max(0, n + delta));
   }
 
-  const saveFn = useCallback(
-    () =>
-      savePrediction(
-        leagueId,
-        match.id,
-        isGroup ? null : home,
-        isGroup ? null : away,
-        scorerGoals,
-        !isGroup && home === away ? penWinner : null,
-      ),
-    [leagueId, match.id, isGroup, home, away, scorerGoals, penWinner],
-  );
-  // Auto-save the prediction ~0.8s after the last tap — no Save button.
-  const signature = `${isGroup ? "g" : `${home}-${away}-${penWinner ?? ""}`}|${JSON.stringify(scorerGoals)}`;
+  const saveFn = useCallback(async () => {
+    if (isGroup) {
+      // Group scoreline → bracket (only while editable); scorers → match_predictions.
+      // Sequential: savePrediction reads the group cap from the bracket, so the
+      // updated score must land first.
+      if (scoreEditable) {
+        const gs = await saveGroupScore(leagueId, match.id, home, away);
+        if (!gs.ok) return gs;
+      }
+      return savePrediction(leagueId, match.id, null, null, scorerGoals, null);
+    }
+    return savePrediction(leagueId, match.id, home, away, scorerGoals, home === away ? penWinner : null);
+  }, [leagueId, match.id, isGroup, scoreEditable, home, away, scorerGoals, penWinner]);
+  // Auto-save ~0.8s after the last tap — no Save button.
+  const signature = `${home}-${away}-${penWinner ?? ""}|${JSON.stringify(scorerGoals)}`;
   const { state: saveState, error: saveErr } = useAutosave(signature, saveFn, { enabled: !locked });
 
   const pickScore = isGroup
@@ -164,19 +174,22 @@ export default function MatchCard({
               ? `${match.homeGoalsActual ?? 0} – ${match.awayGoalsActual ?? 0}`
               : "vs"}
           </span>
-        ) : isGroup ? (
+        ) : scoreEditable ? (
           <span className="flex flex-col items-center">
-            <span className="net rounded-xl bg-gold/10 px-4 py-2 font-display text-xl text-gold">
-              {bracketScore ? `${bracketScore.h}–${bracketScore.a}` : "—"}
-            </span>
-            <span className="mt-1 text-[10px] uppercase tracking-wider text-chalk-dim">from bracket</span>
+            <div className="flex items-center gap-2">
+              <Stepper value={home} onDec={() => step(setHome, -1)} onInc={() => step(setHome, 1)} />
+              <span className="text-chalk-dim">–</span>
+              <Stepper value={away} onDec={() => step(setAway, -1)} onInc={() => step(setAway, 1)} />
+            </div>
+            {isGroup && (
+              <span className="mt-1 text-[10px] uppercase tracking-wider text-chalk-dim">saved to your bracket</span>
+            )}
           </span>
         ) : (
-          <div className="flex items-center gap-2">
-            <Stepper value={home} onDec={() => step(setHome, -1)} onInc={() => step(setHome, 1)} />
-            <span className="text-chalk-dim">–</span>
-            <Stepper value={away} onDec={() => step(setAway, -1)} onInc={() => step(setAway, 1)} />
-          </div>
+          <span className="flex flex-col items-center">
+            <span className="net rounded-xl bg-gold/10 px-4 py-2 font-display text-xl text-gold">{`${home}–${away}`}</span>
+            <span className="mt-1 text-[10px] uppercase tracking-wider text-chalk-dim">from bracket · locked</span>
+          </span>
         )}
 
         <span className="flex min-w-0 flex-1 items-center justify-start gap-1.5 text-sm font-semibold text-chalk sm:gap-2 sm:text-base">
@@ -237,11 +250,6 @@ export default function MatchCard({
               </div>
             </div>
           )}
-          {isGroup && !bracketScore && (
-            <p className="mt-3 rounded-xl bg-gold/10 px-3 py-2 text-center text-xs text-chalk-dim">
-              Set your <Link href={`/leagues/${leagueId}/bracket`} className="font-semibold text-gold">bracket score</Link> for this match to pick its scorers.
-            </p>
-          )}
           {allPlayers.length === 0 ? (
             <p className="mt-4 text-xs text-chalk-dim">⚽ Goal-scorer list loads once squads are synced.</p>
           ) : (
@@ -280,7 +288,7 @@ function posShort(pos: string | null | undefined): string {
   if (!pos) return "";
   return POS_SHORT[pos] ?? pos.slice(0, 3).toUpperCase();
 }
-const POS_ORDER: Record<string, number> = { Goalkeeper: 0, Defender: 1, Midfielder: 2, Attacker: 3 };
+const POS_ORDER: Record<string, number> = { Attacker: 0, Midfielder: 1, Defender: 2, Goalkeeper: 3 };
 function posOrder(pos: string | null | undefined): number {
   return pos ? (POS_ORDER[pos] ?? 4) : 5;
 }
@@ -313,8 +321,8 @@ function TeamScorers({
   const byPos = (a: Player, b: Player) =>
     posOrder(a.position) - posOrder(b.position) || a.name.localeCompare(b.name);
   // With a lineup (official XI or the team's last XI), show that XI up front,
-  // ordered like a team sheet (GK → DEF → MID → FWD), and tuck the rest of the
-  // squad into a collapsed "Full squad" section.
+  // forwards first (likeliest scorers) down to the keeper, and tuck the rest of
+  // the squad into a collapsed "Full squad" section.
   const list = hasLineup
     ? players.filter((p) => inMain(p.id)).sort((a, b) => rank(a.id) - rank(b.id) || byPos(a, b))
     : [...players].sort(byPos);
@@ -330,32 +338,34 @@ function TeamScorers({
       </span>
     ) : null;
     if (count === 0) {
+      // Tap the whole chip → player card (info) with a "Pick as scorer" button,
+      // so you decide with their stats up. No instant add — that's deliberate.
       return (
-        <span
+        <PlayerCardButton
           key={p.id}
-          className="flex items-center rounded-full border border-night/10 text-xs text-chalk transition hover:bg-night/5"
+          playerId={p.id}
+          name={p.name}
+          action={atCap ? undefined : { label: `➕ Pick ${p.name} as scorer`, run: () => onAdjust(p.id, 1) }}
+          className={`flex items-center gap-1 rounded-full border border-night/10 py-1 pl-0.5 pr-2.5 text-xs text-chalk transition hover:bg-night/5 ${atCap ? "opacity-40" : ""}`}
         >
-          <PlayerCardButton playerId={p.id} name={p.name} className="shrink-0 rounded-full py-1 pl-0.5">
-            <PlayerAvatar playerId={p.id} name={p.name} size={20} />
-          </PlayerCardButton>
-          <button
-            onClick={() => onAdjust(p.id, 1)}
-            disabled={atCap}
-            className="flex items-center gap-1 py-1 pl-1.5 pr-2.5 disabled:opacity-40"
-          >
-            {p.name}
-            {badgeEl}
-          </button>
-        </span>
+          <PlayerAvatar playerId={p.id} name={p.name} size={20} />
+          {p.name}
+          {badgeEl}
+        </PlayerCardButton>
       );
     }
     return (
       <span key={p.id} className="flex items-center gap-1 rounded-full border border-grass bg-grass/15 py-0.5 pl-0.5 pr-1 text-xs text-chalk">
-        <PlayerCardButton playerId={p.id} name={p.name} className="shrink-0 rounded-full">
+        <PlayerCardButton
+          playerId={p.id}
+          name={p.name}
+          action={atCap ? undefined : { label: `➕ Another goal for ${p.name}`, run: () => onAdjust(p.id, 1) }}
+          className="flex items-center gap-1 rounded-full"
+        >
           <PlayerAvatar playerId={p.id} name={p.name} size={20} />
+          <span className="font-semibold">{p.name}</span>
+          {badgeEl}
         </PlayerCardButton>
-        <span className="font-semibold">{p.name}</span>
-        {badgeEl}
         <span className="font-display text-grass">×{count}</span>
         <button
           onClick={() => onAdjust(p.id, -1)}

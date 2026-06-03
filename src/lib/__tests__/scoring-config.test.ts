@@ -20,4 +20,16 @@ describe("DEFAULT_SCORING", () => {
     expect(DEFAULT_SCORING.upfront.advance_final).toBe(8);
     expect(DEFAULT_SCORING.upfront.champion).toBe(15);
   });
+
+  it("defines group-order point defaults", () => {
+    expect(DEFAULT_SCORING.upfront.group_position).toBe(1);
+    expect(DEFAULT_SCORING.upfront.group_order_bonus).toBe(3);
+  });
+
+  it("defines stage-sweep bonus defaults", () => {
+    expect(DEFAULT_SCORING.upfront.sweep_round_of_32).toBe(5);
+    expect(DEFAULT_SCORING.upfront.sweep_round_of_16).toBe(8);
+    expect(DEFAULT_SCORING.upfront.sweep_quarter).toBe(12);
+    expect(DEFAULT_SCORING.upfront.sweep_semi).toBe(15);
+  });
 });

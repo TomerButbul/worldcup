@@ -7,6 +7,7 @@ import {
   type MatchRow,
 } from "@/lib/scoring-core";
 import { DEFAULT_SCORING } from "@/lib/types";
+import type { ScoringConfig } from "@/lib/types";
 
 const cfg = DEFAULT_SCORING;
 
@@ -199,7 +200,15 @@ describe("scoreUpfront", () => {
       { group_scores, knockout: {}, champion_team_id: null },
       ctx(groupA),
     );
-    expect(pts).toBe(6 * cfg.upfront.group_exact_score + cfg.upfront.group_winner);
+    // Predicting every match exactly also yields the exact finishing order, so on
+    // top of the 6 exact scorelines + group-winner bonus this earns all four
+    // group-position points and the perfect-order bonus.
+    expect(pts).toBe(
+      6 * cfg.upfront.group_exact_score +
+        cfg.upfront.group_winner +
+        4 * cfg.upfront.group_position +
+        cfg.upfront.group_order_bonus,
+    );
   });
 
   it("awards advancement points for a knockout pick that reaches its stage", () => {
@@ -355,5 +364,160 @@ describe("scoreLive — knockout shootouts", () => {
     expect(
       scoreLive(cfg, penActual, [{ match_id: 80, home_goals: 2, away_goals: 1, scorer_goals: {}, pen_winner_team_id: 4 }]),
     ).toBe(0);
+  });
+});
+
+describe("scoreUpfront — group-order points", () => {
+  const ctx = (groupFixtures: MatchRow[] = []) => ({
+    groupFixtures,
+    fifaRank: new Map<number, number>(),
+  });
+
+  // Actual Group A finishing order is [1, 3, 4, 2].
+  it("awards group_position per correct finishing slot, no bonus when not all four match", () => {
+    const actual = computeActuals(groupA, new Map());
+    // Predict 5 matches exactly but flip match 4 (2 v 4) to a 2-0 team-2 win.
+    // That lifts team 2 above team 4 → predicted order [1, 3, 2, 4]: slots 0 and
+    // 1 (teams 1, 3) match actual; slots 2, 3 are swapped. So 2 positions right.
+    const group_scores: Record<string, { h: number; a: number }> = {
+      "1": { h: 2, a: 0 }, // exact
+      "2": { h: 2, a: 1 }, // exact
+      "3": { h: 1, a: 0 }, // exact
+      "4": { h: 2, a: 0 }, // actual 1-1 (draw) → predicted home win → wrong sign
+      "5": { h: 3, a: 1 }, // exact
+      "6": { h: 0, a: 1 }, // exact
+    };
+    const pts = scoreUpfront(
+      cfg,
+      actual,
+      { group_scores, knockout: {}, champion_team_id: null },
+      ctx(groupA),
+    );
+    expect(pts).toBe(
+      5 * cfg.upfront.group_exact_score + // matches 1,2,3,5,6 exact
+        cfg.upfront.group_winner + // predicted winner team 1 == actual
+        2 * cfg.upfront.group_position, // slots 0 and 1 correct, no perfect-order bonus
+    );
+  });
+
+  it("adds the perfect-order bonus when all four finishing slots match", () => {
+    const actual = computeActuals(groupA, new Map());
+    // Predict every match exactly → predicted order == actual [1, 3, 4, 2].
+    const group_scores: Record<string, { h: number; a: number }> = {
+      "1": { h: 2, a: 0 },
+      "2": { h: 2, a: 1 },
+      "3": { h: 1, a: 0 },
+      "4": { h: 1, a: 1 },
+      "5": { h: 3, a: 1 },
+      "6": { h: 0, a: 1 },
+    };
+    const pts = scoreUpfront(
+      cfg,
+      actual,
+      { group_scores, knockout: {}, champion_team_id: null },
+      ctx(groupA),
+    );
+    expect(pts).toBe(
+      6 * cfg.upfront.group_exact_score +
+        cfg.upfront.group_winner +
+        4 * cfg.upfront.group_position +
+        cfg.upfront.group_order_bonus,
+    );
+  });
+});
+
+describe("scoreUpfront — stage-sweep bonuses", () => {
+  const ctx = () => ({ groupFixtures: [] as MatchRow[], fifaRank: new Map<number, number>() });
+
+  it("awards the round_of_16 sweep when the predicted set equals the actual set", () => {
+    // Actual: teams 1 and 2 reached the Round of 16 (match 89).
+    const actual = computeActuals([ko(89, "round_of_16", 1, 2)], new Map());
+    // Predict R32 winners 73→1 and 74→2 → predicted R16 reachers {1, 2} == actual.
+    const pts = scoreUpfront(
+      cfg,
+      actual,
+      { group_scores: {}, knockout: { "73": 1, "74": 2 }, champion_team_id: null },
+      ctx(),
+    );
+    // Both predicted teams actually advanced (advancement points) + the sweep bonus.
+    expect(pts).toBe(2 * cfg.upfront.advance_round_of_16 + cfg.upfront.sweep_round_of_16);
+  });
+
+  it("awards no sweep when one team in the round is wrong", () => {
+    const actual = computeActuals([ko(89, "round_of_16", 1, 2)], new Map());
+    // Predict 73→1 (correct) and 74→3 → predicted R16 reachers {1, 3} != {1, 2}.
+    const pts = scoreUpfront(
+      cfg,
+      actual,
+      { group_scores: {}, knockout: { "73": 1, "74": 3 }, champion_team_id: null },
+      ctx(),
+    );
+    // Only team 1 advanced → one advancement award; no sweep bonus.
+    expect(pts).toBe(cfg.upfront.advance_round_of_16);
+  });
+});
+
+describe("scoreUpfront — legacy config falls back to defaults (no NaN)", () => {
+  const ctx = (groupFixtures: MatchRow[] = []) => ({
+    groupFixtures,
+    fifaRank: new Map<number, number>(),
+  });
+
+  // A league saved before these fields existed: clone DEFAULT_SCORING and strip
+  // the new upfront keys. Reading them must fall back to defaults, never NaN.
+  function legacyCfg(): ScoringConfig {
+    const clone: ScoringConfig = JSON.parse(JSON.stringify(DEFAULT_SCORING));
+    const up = clone.upfront as Record<string, number>;
+    for (const k of [
+      "group_position",
+      "group_order_bonus",
+      "sweep_round_of_32",
+      "sweep_round_of_16",
+      "sweep_quarter",
+      "sweep_semi",
+    ]) {
+      delete up[k];
+    }
+    return clone;
+  }
+
+  it("group-order points fall back to defaults when the fields are missing", () => {
+    const actual = computeActuals(groupA, new Map());
+    const group_scores: Record<string, { h: number; a: number }> = {
+      "1": { h: 2, a: 0 },
+      "2": { h: 2, a: 1 },
+      "3": { h: 1, a: 0 },
+      "4": { h: 1, a: 1 },
+      "5": { h: 3, a: 1 },
+      "6": { h: 0, a: 1 },
+    };
+    const pts = scoreUpfront(
+      legacyCfg(),
+      actual,
+      { group_scores, knockout: {}, champion_team_id: null },
+      ctx(groupA),
+    );
+    expect(Number.isNaN(pts)).toBe(false);
+    // Perfect order → 4 × default group_position (1) + default group_order_bonus (3).
+    expect(pts).toBe(
+      6 * cfg.upfront.group_exact_score +
+        cfg.upfront.group_winner +
+        4 * DEFAULT_SCORING.upfront.group_position +
+        DEFAULT_SCORING.upfront.group_order_bonus,
+    );
+  });
+
+  it("stage-sweep bonus falls back to the default when the field is missing", () => {
+    const actual = computeActuals([ko(89, "round_of_16", 1, 2)], new Map());
+    const pts = scoreUpfront(
+      legacyCfg(),
+      actual,
+      { group_scores: {}, knockout: { "73": 1, "74": 2 }, champion_team_id: null },
+      ctx(),
+    );
+    expect(Number.isNaN(pts)).toBe(false);
+    expect(pts).toBe(
+      2 * cfg.upfront.advance_round_of_16 + DEFAULT_SCORING.upfront.sweep_round_of_16,
+    );
   });
 });

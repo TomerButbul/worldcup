@@ -22,10 +22,11 @@ export default async function MatchesPage({
 
   const { data: league } = await supabase
     .from("leagues")
-    .select("id, name")
+    .select("id, name, bracket_lock_at")
     .eq("id", id)
     .maybeSingle();
   if (!league) redirect("/dashboard");
+  const bracketLockAt = league.bracket_lock_at as string;
 
   const [{ data: matches }, teams, players, { data: preds }, { data: bracket }] =
     await Promise.all([
@@ -147,6 +148,7 @@ export default async function MatchesPage({
         awayPlayers={m.away_team_id ? (playersByTeam.get(m.away_team_id) ?? []) : []}
         initial={predByMatch.get(m.id) ?? null}
         bracketScore={groupScores[String(m.id)] ?? null}
+        bracketLockAt={bracketLockAt}
         homeLineup={m.home_team_id ? (lineupByMatch.get(m.id)?.[m.home_team_id] ?? lastXIByTeam.get(m.home_team_id) ?? null) : null}
         awayLineup={m.away_team_id ? (lineupByMatch.get(m.id)?.[m.away_team_id] ?? lastXIByTeam.get(m.away_team_id) ?? null) : null}
       />
