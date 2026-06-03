@@ -175,9 +175,9 @@ export default function KnockoutBracket({
     return (
       <div className={`flex items-center gap-1 ${tone}`}>
         {t ? (
-          <Flag teamId={t.id} logoUrl={t.logo_url} code={t.code} name={t.name} size={12} />
+          <Flag teamId={t.id} logoUrl={t.logo_url} code={t.code} name={t.name} size={14} />
         ) : (
-          <span className="inline-block h-3 w-3 rounded-full bg-night/10" />
+          <span className="inline-block h-3.5 w-3.5 rounded-full bg-night/10" />
         )}
         <span className="w-8 truncate">{codeOf(teamId)}</span>
         {isWinner && <span className="text-[8px] leading-none">✓</span>}
@@ -191,7 +191,7 @@ export default function KnockoutBracket({
     return (
       <div
         key={m.no}
-        className={`rounded border bg-pitch/40 px-1 py-0.5 ${onTrail ? "border-gold ring-1 ring-gold/40" : "border-night/15"}`}
+        className={`rounded-md border bg-white/85 px-1.5 py-0.5 shadow-sm ${onTrail ? "border-gold ring-1 ring-gold/40" : "border-night/10"}`}
       >
         {treeTeam(m.home, m.winner != null && m.winner === m.home)}
         <div className="my-0.5 h-px bg-night/10" />
@@ -235,53 +235,70 @@ export default function KnockoutBracket({
         /* ----------------------- FULL BRACKET (R16 → Final) ----------------------- */
         <div className="space-y-1.5">
           <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-0.5 text-[10px] text-chalk-dim">
-            <span>Round of 16 → Final</span>
-            {highlight.size > 0 && <span className="text-gold">★ gold = your path</span>}
-            <span className="text-chalk-dim/70">swipe across →</span>
+            <span className="font-semibold text-chalk">Round of 16 → Final</span>
+            {highlight.size > 0 && <span className="text-gold">★ = your path</span>}
           </div>
           <div className="overflow-x-auto pb-1">
-            <div className="flex min-w-max items-stretch text-[10px] leading-none">
+            {/* mx-auto centres the tree when the screen is wide (landscape); it
+                scrolls when narrow. Fixed height keeps justify-around spacing
+                uniform so the connector elbows land dead-on the feeder cards. */}
+            <div className="mx-auto flex h-[348px] w-max items-stretch text-[10px] leading-none">
               {treeRounds.map((r, ri) => (
                 <Fragment key={r.stage}>
-                  <div className="flex min-w-[60px] flex-col px-0.5">
+                  {/* round column */}
+                  <div className="flex w-[62px] flex-col px-0.5">
                     <div className="mb-1 text-center font-display text-[9px] uppercase tracking-wide text-chalk-dim">
                       {SHORT_LABEL[r.stage] ?? r.label}
                     </div>
-                    <div className="flex flex-1 flex-col justify-around gap-1.5">
+                    <div className="flex flex-1 flex-col justify-around">
                       {r.matches.map((m) => treeCard(m))}
                     </div>
                   </div>
+                  {/* connector: one ⊐ elbow per next-round tie, middle 50% of its slot */}
                   {ri < treeRounds.length - 1 && (
-                    <div className="flex flex-col pt-4">
-                      {treeRounds[ri + 1].matches.map((_, k) => (
-                        <div
-                          key={k}
-                          className="my-0.5 w-2.5 flex-1 rounded-r border-y border-r border-night/20"
-                        />
-                      ))}
+                    <div className="flex w-3 flex-col">
+                      <div className="mb-1 text-[9px]" aria-hidden>
+                        &nbsp;
+                      </div>
+                      <div className="flex flex-1 flex-col">
+                        {treeRounds[ri + 1].matches.map((_, k) => (
+                          <div key={k} className="flex flex-1 flex-col">
+                            <div className="flex-1" />
+                            <div className="flex-[2] rounded-r-sm border-y border-r border-night/30" />
+                            <div className="flex-1" />
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </Fragment>
               ))}
 
-              {/* Final → champion */}
-              <div className="flex flex-col justify-center pt-4">
-                <div className="w-2.5 border-t border-night/20" />
+              {/* Final → champion connector (straight line) */}
+              <div className="flex w-3 flex-col">
+                <div className="mb-1 text-[9px]" aria-hidden>
+                  &nbsp;
+                </div>
+                <div className="flex flex-1 items-center">
+                  <div className="h-px w-full bg-night/30" />
+                </div>
               </div>
-              <div className="flex min-w-[60px] flex-col px-0.5">
+
+              {/* champion */}
+              <div className="flex w-[64px] flex-col px-0.5">
                 <div className="mb-1 text-center font-display text-[9px] uppercase tracking-wide text-gold">
                   Champ
                 </div>
                 <div className="flex flex-1 flex-col justify-center">
                   {champTeam ? (
-                    <div className="flex flex-col items-center gap-0.5 rounded-md border border-gold bg-gold/15 px-1 py-1.5 text-center text-gold glow-gold">
+                    <div className="flex flex-col items-center gap-0.5 rounded-md border border-gold bg-gold/15 px-1 py-2 text-center text-gold glow-gold">
                       <span className="text-sm leading-none">👑</span>
-                      <Flag teamId={champTeam.id} logoUrl={champTeam.logo_url} code={champTeam.code} name={champTeam.name} size={18} />
+                      <Flag teamId={champTeam.id} logoUrl={champTeam.logo_url} code={champTeam.code} name={champTeam.name} size={20} />
                       <span className="font-display text-[10px] leading-none">{codeOf(championTeamId)}</span>
                     </div>
                   ) : (
-                    <div className="flex flex-col items-center gap-0.5 rounded-md border border-dashed border-gold/40 px-1 py-2 text-center">
-                      <span className="text-sm leading-none opacity-60">🏆</span>
+                    <div className="flex flex-col items-center gap-1 rounded-md border border-dashed border-gold/40 px-1 py-3 text-center text-chalk-dim">
+                      <span className="text-base leading-none opacity-60">🏆</span>
                     </div>
                   )}
                 </div>
