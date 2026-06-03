@@ -8,7 +8,6 @@ import { KNOCKOUT_TEMPLATE, buildBracket, stageOf, type SlotRef } from "@/lib/br
 import { saveBracket } from "./actions";
 import { celebrate } from "@/lib/confetti";
 import { goalCelebration } from "@/lib/goal";
-import GameButton from "@/components/GameButton";
 import Flag from "@/components/Flag";
 
 export type EditorTeam = { id: number; name: string; code: string | null; logo_url: string | null };
@@ -630,13 +629,6 @@ export default function BracketEditor({
       {!locked && (
         <div className="fixed inset-x-0 bottom-0 z-20 border-t border-night/10 bg-white/85 backdrop-blur">
           <div className="mx-auto flex max-w-4xl flex-wrap items-center gap-x-3 gap-y-1.5 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pr-16 sm:px-6 sm:pr-20">
-            <GameButton
-              onClick={() => void saveNow(buildPayload())}
-              disabled={saveState === "saving"}
-              variant="gold"
-            >
-              {saveState === "saving" ? "Saving…" : "💾 Save"}
-            </GameButton>
             <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${saveBadge.cls}`}>
               {saveBadge.text}
             </span>

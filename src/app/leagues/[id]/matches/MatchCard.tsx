@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useCallback } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
 import type { Player } from "@/lib/types";
 import { savePrediction } from "./actions";
-import { burst } from "@/lib/confetti";
-import { goalCelebration } from "@/lib/goal";
+import { useAutosave } from "@/lib/useAutosave";
+import SaveStatus from "@/components/SaveStatus";
 import Flag from "@/components/Flag";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import { PlayerCardButton } from "@/components/PlayerCard";
@@ -65,8 +65,6 @@ export default function MatchCard({
   // player_id (string) -> predicted goals for that player.
   const [scorerGoals, setScorerGoals] = useState<Record<string, number>>(() => ({ ...(initial?.scorer_goals ?? {}) }));
   const [penWinner, setPenWinner] = useState<number | null>(initial?.pen_winner_team_id ?? null);
-  const [pending, startTransition] = useTransition();
-  const [msg, setMsg] = useState<string | null>(null);
 
   const kickoff = new Date(match.kickoff_at).toLocaleString(undefined, {
     weekday: "short",
@@ -102,26 +100,21 @@ export default function MatchCard({
     setter((n) => Math.max(0, n + delta));
   }
 
-  function save() {
-    setMsg(null);
-    startTransition(async () => {
-      const res = await savePrediction(
+  const saveFn = useCallback(
+    () =>
+      savePrediction(
         leagueId,
         match.id,
         isGroup ? null : home,
         isGroup ? null : away,
         scorerGoals,
         !isGroup && home === away ? penWinner : null,
-      );
-      if (res.ok) {
-        burst();
-        goalCelebration("GOAL!");
-        setMsg("Saved! 🎉");
-      } else {
-        setMsg(res.error ?? "Error");
-      }
-    });
-  }
+      ),
+    [leagueId, match.id, isGroup, home, away, scorerGoals, penWinner],
+  );
+  // Auto-save the prediction ~0.8s after the last tap — no Save button.
+  const signature = `${isGroup ? "g" : `${home}-${away}-${penWinner ?? ""}`}|${JSON.stringify(scorerGoals)}`;
+  const { state: saveState, error: saveErr } = useAutosave(signature, saveFn, { enabled: !locked });
 
   const pickScore = isGroup
     ? bracketScore
@@ -273,17 +266,8 @@ export default function MatchCard({
               />
             </div>
           )}
-          <div className="mt-4 flex items-center gap-3">
-            <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.96 }}
-              onClick={save}
-              disabled={pending}
-              className="rounded-xl bg-grass px-4 py-1.5 text-sm font-semibold text-night glow-grass transition hover:brightness-110 disabled:opacity-50"
-            >
-              {pending ? "Saving…" : "Save"}
-            </motion.button>
-            {msg && <span className="text-xs text-chalk-dim">{msg}</span>}
+          <div className="mt-4 flex items-center justify-end">
+            <SaveStatus state={saveState} error={saveErr} />
           </div>
         </>
       )}

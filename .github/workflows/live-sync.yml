@@ -1,13 +1,14 @@
 name: Live pitch sync
 
 # Pulls currently-live fixtures + their lineups/events for the live pitch.
-# NOTE: GitHub throttles high-frequency schedules to ~5 min in practice, so this
-# is a best-effort baseline. For a true ~60s cadence, point a free external
-# pinger (e.g. cron-job.org) at the same URL every minute. The endpoint is cheap
-# when nothing is live (one cached API call returns an empty set).
+# GitHub throttles a bare */1 schedule to ~5 min in practice, so instead we fire
+# every 5 min and loop INTERNALLY at ~60s for the run's duration — giving a true
+# ~60s cadence with no external pinger. The endpoint is cheap when nothing is
+# live (one cached API call returns an empty set). A cron-job.org ping at the
+# same URL is still an option for guaranteed-precise timing, but isn't required.
 on:
   schedule:
-    - cron: "*/1 * * * *" # best-effort every minute
+    - cron: "*/5 * * * *"
   workflow_dispatch: {}
 
 concurrency:
@@ -18,10 +19,12 @@ jobs:
   live:
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger /api/sync?mode=live
+      - name: Trigger /api/sync?mode=live every ~60s for ~5 min
         run: |
-          curl -fsS --max-time 60 \
-            -H "Authorization: Bearer ${{ secrets.SYNC_SECRET }}" \
-            "https://worldcup-liart.vercel.app/api/sync?mode=live" -o response.json
-          echo "Live sync response:"
-          cat response.json
+          for i in 1 2 3 4 5; do
+            curl -fsS --max-time 50 \
+              -H "Authorization: Bearer ${{ secrets.SYNC_SECRET }}" \
+              "https://worldcup-liart.vercel.app/api/sync?mode=live" -o resp.json || true
+            echo "tick $i: $(cat resp.json 2>/dev/null)"
+            if [ "$i" != "5" ]; then sleep 60; fi
+          done

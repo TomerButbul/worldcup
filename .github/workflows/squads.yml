@@ -1,0 +1,32 @@
+name: Squad sync
+
+# FIFA squads finalize ~1 week before kickoff (the 26-man lock). The main sync
+# (sync.yml) deliberately skips squads — they sit behind ?squads=1 — so this
+# daily job auto-captures roster changes, including the FINAL 26-man lists, with
+# zero manual intervention. It then rebuilds each team's most-recent XI
+# (?teamlineups=1), which is filtered to in_squad players.
+on:
+  schedule:
+    - cron: "17 6 * * *" # once a day at 06:17 UTC (off the hour to avoid contention)
+  workflow_dispatch: {}
+
+concurrency:
+  group: squad-sync
+  cancel-in-progress: false
+
+jobs:
+  squads:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sync squads (?squads=1)
+        run: |
+          curl -fsS --max-time 90 \
+            -H "Authorization: Bearer ${{ secrets.SYNC_SECRET }}" \
+            "https://worldcup-liart.vercel.app/api/sync?squads=1" -o squads.json
+          echo "Squads:"; cat squads.json
+      - name: Rebuild team lineups (?teamlineups=1, squad-filtered)
+        run: |
+          curl -fsS --max-time 90 \
+            -H "Authorization: Bearer ${{ secrets.SYNC_SECRET }}" \
+            "https://worldcup-liart.vercel.app/api/sync?teamlineups=1" -o lineups.json
+          echo "Lineups:"; cat lineups.json

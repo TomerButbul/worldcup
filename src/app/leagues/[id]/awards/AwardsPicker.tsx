@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useCallback } from "react";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import { saveAwards } from "./actions";
+import { useAutosave } from "@/lib/useAutosave";
+import SaveStatus from "@/components/SaveStatus";
 
 export interface AwardPlayer {
   id: number;
@@ -81,17 +83,13 @@ export default function AwardsPicker({
   const [picks, setPicks] = useState<Record<string, number>>(() => ({ ...initial }));
   const [query, setQuery] = useState<Record<string, string>>({});
   const [expanded, setExpanded] = useState<string | null>(null);
-  const [pending, start] = useTransition();
-  const [msg, setMsg] = useState<string | null>(null);
   const byId = new Map(players.map((p) => [p.id, p]));
 
-  function save() {
-    setMsg(null);
-    start(async () => {
-      const res = await saveAwards(leagueId, picks);
-      setMsg(res.ok ? "Saved! 🎉" : res.error ?? "Error");
-    });
-  }
+  const saveFn = useCallback(() => saveAwards(leagueId, picks), [leagueId, picks]);
+  // Auto-save award picks ~0.8s after a change — no Save button.
+  const { state: saveState, error: saveErr } = useAutosave(JSON.stringify(picks), saveFn, {
+    enabled: !locked,
+  });
 
   // Inline = country · position (shorthand). Name shows above it.
   const sub = (p: AwardPlayer) => [p.team, posShort(p.position)].filter(Boolean).join(" · ");
@@ -202,15 +200,8 @@ export default function AwardsPicker({
       })}
 
       {!locked && (
-        <div className="flex items-center gap-3">
-          <button
-            onClick={save}
-            disabled={pending}
-            className="rounded-xl bg-grass px-4 py-2 text-sm font-semibold text-night glow-grass transition hover:brightness-110 disabled:opacity-50"
-          >
-            {pending ? "Saving…" : "Save awards"}
-          </button>
-          {msg && <span className="text-xs text-chalk-dim">{msg}</span>}
+        <div className="flex items-center justify-end">
+          <SaveStatus state={saveState} error={saveErr} />
         </div>
       )}
     </div>
