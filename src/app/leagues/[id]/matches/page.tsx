@@ -24,10 +24,11 @@ export default async function MatchesPage({
 
   const { data: league } = await supabase
     .from("leagues")
-    .select("id, name, bracket_lock_at")
+    .select("id, name, bracket_lock_at, kind")
     .eq("id", id)
     .maybeSingle();
   if (!league) redirect("/dashboard");
+  if (league.kind === "draft") redirect(`/leagues/${id}`); // draft leagues don't predict
   const bracketLockAt = league.bracket_lock_at as string;
 
   const [{ data: matches }, teams, players, { data: preds }, { data: bracket }] =

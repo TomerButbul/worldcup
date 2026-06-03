@@ -15,10 +15,11 @@ export default async function AwardsPage({ params }: { params: Promise<{ id: str
 
   const { data: league } = await supabase
     .from("leagues")
-    .select("id, name, bracket_lock_at")
+    .select("id, name, bracket_lock_at, kind")
     .eq("id", id)
     .maybeSingle();
   if (!league) redirect("/dashboard");
+  if (league.kind === "draft") redirect(`/leagues/${id}`); // draft leagues don't predict
   const locked = new Date(league.bracket_lock_at).getTime() <= nowMs();
 
   // Paginate the squad — PostgREST caps responses at 1000 rows and there are

@@ -11,6 +11,7 @@ import DraftBoard from "./DraftBoard";
 import ReactionShower from "@/components/ReactionShower";
 import DraftResults from "./DraftResults";
 import type { StandingRow } from "@/lib/draft-scoring";
+import type { FixtureDay } from "./DraftFixtures";
 import {
   type DraftStateRow,
   type PickRow,
@@ -30,6 +31,7 @@ export default function DraftRoom({
   initialMembers,
   standings,
   teamLineups,
+  fixtures,
   tournamentStarted,
 }: {
   leagueId: string;
@@ -41,6 +43,7 @@ export default function DraftRoom({
   initialMembers: DraftMember[];
   standings: { perPot: Record<number, StandingRow[]>; totals: StandingRow[] };
   teamLineups: Record<string, { formation: string | null; xi: unknown[] }>;
+  fixtures: FixtureDay[];
   tournamentStarted: boolean;
 }) {
   const supabase = useMemo(() => createClient(), []);
@@ -311,6 +314,7 @@ export default function DraftRoom({
           members={members}
           standings={standings}
           teamLineups={teamLineups}
+          fixtures={fixtures}
           tournamentStarted={tournamentStarted}
         />
       )}

@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import Leaderboard from "./Leaderboard";
 import LeagueNameEditor from "./LeagueNameEditor";
 import DraftRoom from "./DraftRoom";
+import type { FixtureDay } from "./DraftFixtures";
 import {
   type DraftStateRow,
   type PickRow,
@@ -75,7 +76,7 @@ export default async function LeaguePage({
     const [matchesRes, teamsRes, lineupsRes] = await Promise.all([
       supabase
         .from("matches")
-        .select("id, stage, group_label, status, home_team_id, away_team_id, home_goals, away_goals"),
+        .select("id, stage, group_label, status, home_team_id, away_team_id, home_goals, away_goals, kickoff_at"),
       supabase.from("teams").select("id, name"),
       supabase.from("team_lineups").select("team_id, formation, xi"),
     ]);
@@ -96,6 +97,44 @@ export default async function LeaguePage({
       return teamProgressPoints(teamId, actual.advancers, actual.champion);
     });
 
+    // Matchday "managers" view: who drafted each nation, mapped onto the fixture
+    // list grouped by day. Resolved fully here so no Maps cross to the client.
+    const memberById = new Map(initialMembers.map((m) => [m.userId, m]));
+    const teamNameById = new Map((teamsRes.data ?? []).map((t) => [t.id, t.name as string]));
+    const managerByTeamId = new Map<number, string>();
+    for (const p of initialPicks) {
+      const team = teamAt(p.pot, p.slot);
+      const tid = team ? idByDraftName.get(team.name) : undefined;
+      const mgr = memberById.get(p.user_id);
+      if (tid != null && mgr) managerByTeamId.set(tid, mgr.name);
+    }
+    const fxDayLabel = (iso: string) =>
+      new Date(iso).toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
+    const fixtures: FixtureDay[] = [];
+    const sortedFixtures = [...(matchesRes.data ?? [])].sort(
+      (a, b) => new Date(a.kickoff_at ?? 0).getTime() - new Date(b.kickoff_at ?? 0).getTime(),
+    );
+    for (const m of sortedFixtures) {
+      if (!m.kickoff_at) continue;
+      const day = fxDayLabel(m.kickoff_at);
+      const row = {
+        id: m.id,
+        homeTeamId: m.home_team_id,
+        awayTeamId: m.away_team_id,
+        homeName: m.home_team_id ? (teamNameById.get(m.home_team_id) ?? "TBD") : "TBD",
+        awayName: m.away_team_id ? (teamNameById.get(m.away_team_id) ?? "TBD") : "TBD",
+        homeMgr: m.home_team_id ? (managerByTeamId.get(m.home_team_id) ?? null) : null,
+        awayMgr: m.away_team_id ? (managerByTeamId.get(m.away_team_id) ?? null) : null,
+        kickoff: m.kickoff_at,
+        status: m.status,
+        homeGoals: m.home_goals,
+        awayGoals: m.away_goals,
+      };
+      const last = fixtures[fixtures.length - 1];
+      if (last && last.day === day) last.matches.push(row);
+      else fixtures.push({ day, matches: [row] });
+    }
+
     return (
       <DraftRoom
         leagueId={id}
@@ -107,6 +146,7 @@ export default async function LeaguePage({
         initialMembers={initialMembers}
         standings={standings}
         teamLineups={teamLineups}
+        fixtures={fixtures}
         tournamentStarted={nowMs() >= KICKOFF_MS}
       />
     );

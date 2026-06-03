@@ -44,7 +44,7 @@ export default async function DashboardPage({
 
   const { data: memberships } = await supabase
     .from("league_members")
-    .select("role, leagues ( id, name, join_code )")
+    .select("role, leagues ( id, name, join_code, kind )")
     .eq("user_id", user.id);
 
   const teams = (await getCachedTeams()) as Team[];
@@ -61,8 +61,10 @@ export default async function DashboardPage({
   const favTeam = teams.find((t) => t.id === favId) ?? null;
 
   const leagues = (memberships ?? [])
-    .map((m) => ({ role: m.role, ...(m.leagues as unknown as { id: string; name: string; join_code: string }) }))
+    .map((m) => ({ role: m.role, ...(m.leagues as unknown as { id: string; name: string; join_code: string; kind: string }) }))
     .filter((l) => l.id);
+  // Draft leagues are a separate game — never prompt them for score predictions.
+  const predictionLeagues = leagues.filter((l) => l.kind !== "draft");
 
   // Soonest match still open for prediction (kickoff in the future), tournament-wide.
   const { data: nextMatchRows } = await supabase
@@ -96,7 +98,7 @@ export default async function DashboardPage({
       awayLogoUrl: away?.logo_url ?? null,
     };
 
-    if (leagues.length > 0) {
+    if (predictionLeagues.length > 0) {
       if (nextMatch.stage === "group") {
         // Group: the predicted scoreline lives in each league's bracket.
         const { data: myBrackets } = await supabase
@@ -109,7 +111,7 @@ export default async function DashboardPage({
             (b.group_scores ?? {}) as Record<string, { h: number; a: number }>,
           ]),
         );
-        nextPredictions = leagues.map((l) => {
+        nextPredictions = predictionLeagues.map((l) => {
           const gs = gsByLeague.get(l.id)?.[String(nextMatch.id)];
           return {
             leagueId: l.id,
@@ -124,7 +126,7 @@ export default async function DashboardPage({
           .eq("user_id", user.id)
           .eq("match_id", nextMatch.id);
         const predByLeague = new Map((myPreds ?? []).map((p) => [p.league_id, p]));
-        nextPredictions = leagues.map((l) => {
+        nextPredictions = predictionLeagues.map((l) => {
           const p = predByLeague.get(l.id);
           return {
             leagueId: l.id,

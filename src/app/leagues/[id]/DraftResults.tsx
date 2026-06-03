@@ -7,6 +7,7 @@ import AutoRefresh from "@/components/AutoRefresh";
 import Trophy from "@/components/art/Trophy";
 import TeamFormation, { type TeamLineup } from "./TeamFormation";
 import { DRAFT_POTS, POT_LABELS, teamAt, type Pot } from "@/lib/draft";
+import DraftFixtures, { type FixtureDay } from "./DraftFixtures";
 import type { StandingRow } from "@/lib/draft-scoring";
 import type { DraftMember, PickRow } from "./draftTypes";
 
@@ -17,12 +18,14 @@ export default function DraftResults({
   members,
   standings,
   teamLineups,
+  fixtures,
   tournamentStarted,
 }: {
   picks: PickRow[];
   members: DraftMember[];
   standings: { perPot: Record<number, StandingRow[]>; totals: StandingRow[] };
   teamLineups: Record<string, { formation: string | null; xi: unknown[] }>;
+  fixtures: FixtureDay[];
   tournamentStarted: boolean;
 }) {
   const memberById = new Map(members.map((m) => [m.userId, m]));
@@ -112,6 +115,8 @@ export default function DraftResults({
           </div>
         </div>
       )}
+
+      <DraftFixtures days={fixtures} />
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {roster.map((m, i) => {
