@@ -432,7 +432,9 @@ export default async function MatchSummaryPage({
         </h2>
         {!locked ? (
           <p className="glass rounded-2xl p-6 text-center text-sm text-chalk-dim">
-            🔒 Predictions are revealed once the match kicks off.
+            🔒 <span className="font-semibold text-chalk">{predRows.length}</span>{" "}
+            {predRows.length === 1 ? "manager has" : "managers have"} locked in a pick — everyone&apos;s
+            predictions are revealed the moment this match kicks off.
           </p>
         ) : (
           <ul className="space-y-2">
