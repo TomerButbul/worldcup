@@ -60,10 +60,14 @@ export default async function MatchesPage({
   const groupScores = (bracket?.group_scores ?? {}) as Record<string, { h: number; a: number }>;
 
   const now = nowMs();
+  const live: typeof matches = [];
   const upcoming: typeof matches = [];
   const past: typeof matches = [];
   for (const m of matches ?? []) {
-    (new Date(m.kickoff_at).getTime() > now ? upcoming : past).push(m);
+    // A kicked-off-but-not-finished match must not fall under "Played".
+    if (m.status === "live") live.push(m);
+    else if (new Date(m.kickoff_at).getTime() > now) upcoming.push(m);
+    else past.push(m);
   }
   past.reverse(); // most recent first
 
@@ -157,6 +161,16 @@ export default async function MatchesPage({
         </p>
       ) : (
         <>
+          {live.length > 0 && (
+            <section className="space-y-3">
+              <h2 className="flex items-center gap-2 font-display text-xl text-red-600">
+                <span className="inline-block h-2.5 w-2.5 animate-pulse rounded-full bg-red-600" />
+                Live now
+              </h2>
+              {live.map(renderCard)}
+            </section>
+          )}
+
           {upcoming.length === 0 ? (
             <section className="space-y-3">
               <h2 className="font-display text-xl text-chalk">Upcoming</h2>

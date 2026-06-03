@@ -47,8 +47,8 @@ export default async function AwardsPage({ params }: { params: Promise<{ id: str
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 p-4 sm:p-6">
       <div className="glass-strong rounded-3xl p-5 sm:p-6">
-        <Link href={`/leagues/${id}/bracket`} className="text-sm text-chalk-dim hover:text-chalk">
-          &larr; Bracket
+        <Link href={`/leagues/${id}`} className="text-sm text-chalk-dim hover:text-chalk">
+          &larr; Back to league
         </Link>
         <h1 className="mt-1 font-display text-3xl text-gradient-gold">Individual awards</h1>
         <p className="text-sm text-chalk-dim">

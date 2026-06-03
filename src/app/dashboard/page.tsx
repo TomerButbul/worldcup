@@ -68,6 +68,10 @@ export default async function DashboardPage({
     .from("matches")
     .select("id, stage, kickoff_at, home_team_id, away_team_id")
     .gt("kickoff_at", new Date(nowMs()).toISOString())
+    // Skip knockout fixtures whose teams aren't set yet, so "Up next" never
+    // shows a dead "TBD vs TBD" card with a Predict link that goes nowhere.
+    .not("home_team_id", "is", null)
+    .not("away_team_id", "is", null)
     .order("kickoff_at")
     .limit(1);
   const nextMatch = nextMatchRows?.[0] ?? null;
