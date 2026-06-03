@@ -564,7 +564,7 @@ export default function BracketEditor({
             </h2>
             <p className="text-sm text-chalk-dim">
               {bracketReady
-                ? "Tap the team you think wins each tie — winners flow into the next round. Move through the phases R32 → Final."
+                ? "Tap the team you think wins each tie — winners flow into the next round. Step through the phases, or hit Full bracket to see the whole tree from the R16."
                 : "Choose your eight best third-placed teams first to reveal the full bracket."}
             </p>
           </div>
