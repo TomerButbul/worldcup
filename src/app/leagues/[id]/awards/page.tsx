@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { nowMs } from "@/lib/clock";
 import AwardsPicker, { type AwardPlayer } from "./AwardsPicker";
+import Ball from "@/components/art/Ball";
 
 export default async function AwardsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -92,7 +93,7 @@ export default async function AwardsPage({ params }: { params: Promise<{ id: str
 
       {awardPlayers.length === 0 ? (
         <p className="glass rounded-2xl p-8 text-center text-sm text-chalk-dim">
-          ⚽ Player list loads once squads are synced.
+          <Ball size={14} className="mr-1 inline-block align-[-2px]" />Player list loads once squads are synced.
         </p>
       ) : (
         <AwardsPicker leagueId={id} players={awardPlayers} initial={initial} locked={locked} />

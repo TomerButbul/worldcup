@@ -18,7 +18,7 @@ export default function Hero() {
           animate={{ y: [0, -12, 0] }}
           transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
         >
-          <Trophy size={112} className="h-[72px] w-[72px] sm:h-28 sm:w-28" />
+          <Trophy size={104} className="h-[72px] w-auto sm:h-28" />
         </motion.span>
       </motion.div>
 

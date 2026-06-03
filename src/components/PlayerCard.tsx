@@ -233,7 +233,7 @@ function PlayerCardModal({ req, onClose }: { req: CardReq; onClose: () => void }
             </p>
             <div className="grid grid-cols-3 gap-3">
               <Stat label="Apps" value={String(p.stats.apps)} />
-              <Stat label="Goals" value={`⚽ ${p.stats.goals}`} />
+              <Stat label="Goals" value={String(p.stats.goals)} />
               <Stat label="Assists" value={`🅰️ ${p.stats.assists}`} />
             </div>
             <div className="grid grid-cols-3 gap-3">

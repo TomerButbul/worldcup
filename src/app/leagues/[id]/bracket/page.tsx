@@ -5,6 +5,7 @@ import { getCachedTeams } from "@/lib/tournamentData";
 import type { MatchScore, Team } from "@/lib/types";
 import BracketEditor, { type GroupMatch } from "./BracketEditor";
 import { nowMs } from "@/lib/clock";
+import Ball from "@/components/art/Ball";
 
 export default async function BracketPage({
   params,
@@ -88,7 +89,7 @@ export default async function BracketPage({
 
       {groupMatches.length === 0 ? (
         <p className="glass rounded-2xl p-8 text-center text-sm text-chalk-dim">
-          ⚽ Tournament fixtures haven&apos;t been loaded yet. Run the sync to import the 2026
+          <Ball size={14} className="mr-1 inline-block align-[-2px]" />Tournament fixtures haven&apos;t been loaded yet. Run the sync to import the 2026
           groups, then come back to make your picks.
         </p>
       ) : (

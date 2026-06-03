@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Ball from "@/components/art/Ball";
 
 export default function Avatar({
   url,
@@ -27,7 +28,7 @@ export default function Avatar({
         className={`inline-flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-grass/40 to-gold/40 font-display text-night ${className}`}
         style={{ width: size, height: size, fontSize: size * 0.4 }}
       >
-        {initials || "⚽"}
+        {initials || <Ball size={Math.round(size * 0.55)} />}
       </span>
     );
   }

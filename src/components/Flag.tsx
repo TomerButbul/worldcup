@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Ball from "@/components/art/Ball";
 
 // National-team flag from API-Football's media CDN (by team id), or a stored logo_url.
 export default function Flag({
@@ -30,7 +31,7 @@ export default function Flag({
         style={{ width: size, height: size }}
         title={name}
       >
-        {code ?? "⚽"}
+        {code ?? <Ball size={14} />}
       </span>
     );
   }

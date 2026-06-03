@@ -6,6 +6,7 @@ import type { Player } from "@/lib/types";
 import MatchCard, { type MatchCardData } from "./MatchCard";
 import AutoRefresh from "@/components/AutoRefresh";
 import MatchClock from "@/components/art/MatchClock";
+import Ball from "@/components/art/Ball";
 import { fetchLineups } from "@/lib/apiFootball";
 import { nowMs, KICKOFF_MS } from "@/lib/clock";
 
@@ -171,7 +172,7 @@ export default async function MatchesPage({
 
       {(matches ?? []).length === 0 ? (
         <p className="glass rounded-2xl p-8 text-center text-sm text-chalk-dim">
-          ⚽ No fixtures loaded yet. Run the sync to import the schedule.
+          <Ball size={14} className="mr-1 inline-block align-[-2px]" />No fixtures loaded yet. Run the sync to import the schedule.
         </p>
       ) : (
         <>

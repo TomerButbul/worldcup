@@ -10,6 +10,7 @@ import SaveStatus from "@/components/SaveStatus";
 import Flag from "@/components/Flag";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import { PlayerCardButton } from "@/components/PlayerCard";
+import Ball from "@/components/art/Ball";
 import MatchCountdown from "@/components/MatchCountdown";
 import { nowMs } from "@/lib/clock";
 import { stageLabel } from "@/lib/stages";
@@ -206,7 +207,7 @@ export default function MatchCard({
                 Your pick:{" "}
                 {pickScore && <span className="text-chalk">{pickScore}</span>}
                 {penName && <> {pickScore ? "· " : ""}🥅 {penName}</>}
-                {lockedScorers && <> {pickScore || penName ? "· " : ""}⚽ {lockedScorers}</>}
+                {lockedScorers && <> {pickScore || penName ? "· " : ""}<Ball size={13} className="mr-1 inline-block align-[-2px]" />{lockedScorers}</>}
               </>
             ) : (
               <span>🔒 Locked — no prediction made</span>
@@ -251,7 +252,7 @@ export default function MatchCard({
             </div>
           )}
           {allPlayers.length === 0 ? (
-            <p className="mt-4 text-xs text-chalk-dim">⚽ Goal-scorer list loads once squads are synced.</p>
+            <p className="mt-4 text-xs text-chalk-dim"><Ball size={14} className="mr-1 inline-block align-[-2px]" />Goal-scorer list loads once squads are synced.</p>
           ) : (
             <div className="mt-4 space-y-3">
               <TeamScorers
@@ -397,7 +398,7 @@ function TeamScorers({
     <>
       <span className="flex min-w-0 items-center gap-1 truncate">
         {collapsible && <span className="text-[10px] text-chalk-dim">{collapsed ? "▸" : "▾"}</span>}
-        ⚽ {label}
+        <Ball size={14} /> {label}
         {hasLineup && (
           <span className="rounded bg-grass/15 px-1 text-[9px] font-bold uppercase text-grass">lineup</span>
         )}

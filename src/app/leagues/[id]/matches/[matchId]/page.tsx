@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import Flag from "@/components/Flag";
 import Avatar from "@/components/Avatar";
+import Ball from "@/components/art/Ball";
 import Pitch, { type EventRow, type LineupRow } from "./Pitch";
 import { stageLabel } from "@/lib/stages";
 import AutoRefresh from "@/components/AutoRefresh";
@@ -257,12 +258,12 @@ export default async function MatchSummaryPage({
           <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
             <div className="text-right text-chalk-dim">
               {homeScorers.map((x) => (
-                <div key={x.player.id}>⚽ {x.player.name}{x.n > 1 ? ` ×${x.n}` : ""}</div>
+                <div key={x.player.id}><Ball size={13} className="mr-1 inline-block align-[-2px]" />{x.player.name}{x.n > 1 ? ` ×${x.n}` : ""}</div>
               ))}
             </div>
             <div className="text-left text-chalk-dim">
               {awayScorers.map((x) => (
-                <div key={x.player.id}>{x.player.name}{x.n > 1 ? ` ×${x.n}` : ""} ⚽</div>
+                <div key={x.player.id}>{x.player.name}{x.n > 1 ? ` ×${x.n}` : ""}<Ball size={13} className="ml-1 inline-block align-[-2px]" /></div>
               ))}
             </div>
           </div>
@@ -324,7 +325,7 @@ export default async function MatchSummaryPage({
                     {r.name} {r.isMe && <span className="text-xs text-grass">(you)</span>}
                   </p>
                   {r.scorerNames.length > 0 && (
-                    <p className="truncate text-xs text-chalk-dim">⚽ {r.scorerNames.join(", ")}</p>
+                    <p className="truncate text-xs text-chalk-dim"><Ball size={13} className="mr-1 inline-block align-[-2px]" />{r.scorerNames.join(", ")}</p>
                   )}
                 </div>
                 {r.score && (

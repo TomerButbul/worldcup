@@ -5,6 +5,7 @@ import { motion } from "motion/react";
 import type { FavTeamStatus } from "@/lib/favoriteStatus";
 import Flag from "@/components/Flag";
 import Trophy from "@/components/art/Trophy";
+import Ball from "@/components/art/Ball";
 import { playCheer, playWomp } from "@/lib/sound";
 import { celebrate } from "@/lib/confetti";
 
@@ -56,7 +57,16 @@ export default function FavoriteTeamStatus({ status }: { status: FavTeamStatus }
         </motion.div>
 
         <div className="min-w-0 flex-1">
-          <p className="text-xs uppercase tracking-wider text-chalk-dim">Your team {status.emoji}</p>
+          <p className="flex items-center gap-1 text-xs uppercase tracking-wider text-chalk-dim">
+            Your team{" "}
+            {status.emoji === "⚽" ? (
+              <Ball size={13} />
+            ) : status.emoji === "🏆" ? (
+              <Trophy size={13} />
+            ) : (
+              status.emoji
+            )}
+          </p>
           <p className={`font-display text-lg ${good ? "text-grass" : bad ? "text-red-600" : "text-chalk"}`}>
             {status.headline}
           </p>

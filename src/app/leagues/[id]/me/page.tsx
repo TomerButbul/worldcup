@@ -299,7 +299,7 @@ export default async function MyPredictionsPage({
                   )}
                   {scorers.length > 0 && (
                     <p className="mt-1 truncate text-[11px] text-chalk-dim">
-                      ⚽ {scorers.join(", ")}
+                      <Ball size={13} className="mr-1 inline-block align-[-2px]" />{scorers.join(", ")}
                     </p>
                   )}
                 </li>

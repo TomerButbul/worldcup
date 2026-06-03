@@ -2,6 +2,7 @@
 
 import { motion } from "motion/react";
 import { PlayerCardButton } from "@/components/PlayerCard";
+import Ball from "@/components/art/Ball";
 import { rowLabels } from "@/lib/positions";
 
 export type LineupPlayer = {
@@ -122,7 +123,7 @@ function Badges({ s }: { s: Stat | undefined }) {
     <span className="pointer-events-none absolute -right-1 -top-1 flex flex-col items-end gap-0.5">
       {s.goals > 0 && (
         <span className="rounded-full bg-white px-1 text-[9px] leading-tight shadow">
-          {"⚽".repeat(Math.min(s.goals, 3))}
+          {Array.from({ length: Math.min(s.goals, 3) }).map((_, i) => <Ball key={i} size={11} />)}
         </span>
       )}
       {s.assists > 0 && <span className="text-[9px] leading-none">🅰️</span>}
@@ -240,7 +241,7 @@ export default function Pitch({
                       <span className="w-4 shrink-0 text-right tabular-nums text-chalk-dim">{p.number ?? ""}</span>
                       <span className="min-w-0 flex-1 truncate">{p.name}</span>
                       {!off && <span className="text-[9px] text-grass">↑</span>}
-                      {s?.goals ? <span>{"⚽".repeat(Math.min(s.goals, 3))}</span> : null}
+                      {s?.goals ? <span>{Array.from({ length: Math.min(s.goals, 3) }).map((_, i) => <Ball key={i} size={11} />)}</span> : null}
                       {s?.red ? <span>🟥</span> : s?.yellow ? <span>🟨</span> : null}
                     </li>
                   );
