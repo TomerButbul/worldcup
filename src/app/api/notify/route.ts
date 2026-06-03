@@ -18,6 +18,17 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
+  // Manual smoke test: broadcast a one-off push now, ignoring schedule + dedup.
+  if (request.nextUrl.searchParams.get("test") === "1") {
+    const n = await broadcast({
+      title: "🔔 WorldCuP test",
+      body: "Reminders are working! ⚽",
+      url: "/dashboard",
+      tag: "test",
+    });
+    return NextResponse.json({ ok: true, test: n });
+  }
+
   const s = createServiceClient();
   const now = Date.now();
   const H = 3_600_000;
