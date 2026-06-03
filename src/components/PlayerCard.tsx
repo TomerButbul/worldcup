@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import Flag from "@/components/Flag";
@@ -26,9 +27,35 @@ const POS_SHORT: Record<string, string> = {
   Attacker: "FW",
 };
 
-// Wrap any chip / name in this to make it tap-to-open the player's profile card.
-// Self-contained: it owns the open state and lazily fetches /api/players/[id],
-// so no rich player data has to be threaded through the surrounding page.
+// --- Single global "one card open at a time" store -------------------------
+// Per-button local state let several cards open at once AND nested the modal
+// inside transformed pitch chips (so `position: fixed` was trapped, tiny). A
+// single shared request + a portaled host fixes both.
+type CardReq = { playerId: number; name?: string; detailPos?: string };
+let current: CardReq | null = null;
+const listeners = new Set<() => void>();
+function emit() {
+  for (const l of listeners) l();
+}
+function subscribe(l: () => void) {
+  listeners.add(l);
+  return () => {
+    listeners.delete(l);
+  };
+}
+function getSnapshot() {
+  return current;
+}
+function openPlayerCard(req: CardReq) {
+  current = req;
+  emit();
+}
+function closePlayerCard() {
+  current = null;
+  emit();
+}
+
+// Wrap any chip / name in this to make it tap-to-open the player's profile.
 export function PlayerCardButton({
   playerId,
   name,
@@ -42,58 +69,51 @@ export function PlayerCardButton({
   className?: string;
   children: ReactNode;
 }) {
-  const [open, setOpen] = useState(false);
   return (
-    <>
-      <button
-        type="button"
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          setOpen(true);
-        }}
-        className={className}
-      >
-        {children}
-      </button>
-      <AnimatePresence>
-        {open && (
-          <PlayerCardModal
-            playerId={playerId}
-            detailPos={detailPos}
-            fallbackName={name}
-            onClose={() => setOpen(false)}
-          />
-        )}
-      </AnimatePresence>
-    </>
+    <button
+      type="button"
+      className={className}
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        openPlayerCard({ playerId, name, detailPos });
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+// Mounted once (root layout). Renders the single modal via a portal to <body>,
+// escaping the transformed pitch containers so it's a true full-screen overlay.
+export function PlayerCardHost() {
+  const req = useSyncExternalStore(subscribe, getSnapshot, () => null);
+  if (typeof document === "undefined") return null; // SSR: portal target absent
+  return createPortal(
+    <AnimatePresence>
+      {req && <PlayerCardModal key={req.playerId} req={req} onClose={closePlayerCard} />}
+    </AnimatePresence>,
+    document.body,
   );
 }
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl bg-night/5 p-2 text-center">
-      <p className="truncate text-sm font-semibold text-chalk">{value}</p>
-      <p className="text-[10px] uppercase tracking-wide text-chalk-dim">{label}</p>
+    <div className="rounded-2xl bg-night/5 p-3 text-center">
+      <p className="truncate font-display text-lg text-chalk">{value}</p>
+      <p className="mt-0.5 text-[11px] uppercase tracking-wide text-chalk-dim">{label}</p>
     </div>
   );
 }
 
-function PlayerCardModal({
-  playerId,
-  detailPos,
-  fallbackName,
-  onClose,
-}: {
-  playerId: number;
-  detailPos?: string;
-  fallbackName?: string;
-  onClose: () => void;
-}) {
+function PlayerCardModal({ req, onClose }: { req: CardReq; onClose: () => void }) {
+  const { playerId, name: fallbackName, detailPos } = req;
   const [p, setP] = useState<Profile | null>(null);
   const [err, setErr] = useState(false);
 
   useEffect(() => {
+    // Re-keyed per playerId in the host, so each player gets a fresh instance —
+    // no need to reset state synchronously here.
     let alive = true;
     fetch(`/api/players/${playerId}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error("fetch"))))
@@ -127,72 +147,69 @@ function PlayerCardModal({
 
   return (
     <motion.div
-      className="fixed inset-0 z-[60] flex items-end justify-center bg-night/70 backdrop-blur-sm sm:items-center sm:p-4"
+      className="fixed inset-0 z-[100] flex items-end justify-center bg-night/80 backdrop-blur-sm sm:items-center sm:p-4"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       onClick={onClose}
     >
       <motion.div
+        role="dialog"
+        aria-modal="true"
         onClick={(e) => e.stopPropagation()}
-        initial={{ y: 48, opacity: 0 }}
+        initial={{ y: 60, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        exit={{ y: 48, opacity: 0 }}
-        transition={{ type: "spring", stiffness: 320, damping: 32 }}
-        className="glass-strong w-full max-w-sm rounded-t-3xl p-5 sm:rounded-3xl"
+        exit={{ y: 60, opacity: 0 }}
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        className="glass-strong max-h-[92vh] w-full max-w-md overflow-y-auto rounded-t-3xl p-6 sm:rounded-3xl sm:p-7"
       >
-        <div className="flex items-center gap-3">
-          <PlayerAvatar playerId={playerId} name={name} size={60} className="border-2 border-white/80 shadow" />
-          <div className="min-w-0 flex-1">
-            <p className="truncate font-display text-xl text-chalk">{name}</p>
-            <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-chalk-dim">
-              {badge && (
-                <span className="rounded bg-gold/20 px-1.5 py-0.5 font-semibold text-gold">{badge}</span>
-              )}
-              {p?.number != null && <span className="tabular-nums">#{p.number}</span>}
-              {p?.team && (
-                <span className="flex min-w-0 items-center gap-1">
-                  <Flag teamId={p.team.id} logoUrl={p.team.logo_url} code={p.team.code} name={p.team.name} size={14} />
-                  <span className="truncate">{p.team.name}</span>
-                </span>
-              )}
-            </div>
-          </div>
+        <div className="-mr-1 -mt-1 mb-1 flex justify-end">
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="shrink-0 rounded-full bg-night/10 px-2 py-1 text-sm text-chalk-dim hover:text-chalk"
+            className="rounded-full bg-night/10 px-3 py-1.5 text-base text-chalk-dim transition hover:text-chalk"
           >
             ✕
           </button>
         </div>
 
+        <div className="flex flex-col items-center text-center">
+          <PlayerAvatar playerId={playerId} name={name} size={96} className="border-4 border-white/80 shadow-lg" />
+          <p className="mt-3 font-display text-2xl text-chalk">{name}</p>
+          <div className="mt-2 flex flex-wrap items-center justify-center gap-2 text-sm text-chalk-dim">
+            {badge && <span className="rounded-lg bg-gold/20 px-2.5 py-1 font-semibold text-gold">{badge}</span>}
+            {p?.number != null && <span className="tabular-nums">#{p.number}</span>}
+            {p?.team && (
+              <span className="flex items-center gap-1.5">
+                <Flag teamId={p.team.id} logoUrl={p.team.logo_url} code={p.team.code} name={p.team.name} size={18} />
+                <span>{p.team.name}</span>
+              </span>
+            )}
+          </div>
+        </div>
+
         {err ? (
-          <p className="mt-5 text-center text-sm text-chalk-dim">Couldn&apos;t load this player.</p>
+          <p className="mb-4 mt-8 text-center text-sm text-chalk-dim">Couldn&apos;t load this player.</p>
         ) : !p ? (
-          <p className="mt-5 text-center text-sm text-chalk-dim">Loading…</p>
+          <p className="mb-4 mt-8 text-center text-sm text-chalk-dim">Loading…</p>
         ) : (
-          <>
-            <div className="mt-4 grid grid-cols-3 gap-2">
+          <div className="mt-6 space-y-3">
+            <div className="grid grid-cols-3 gap-3">
               <Stat label="Age" value={p.age != null ? String(p.age) : "—"} />
               <Stat label="Height" value={p.height_cm != null ? `${p.height_cm}cm` : "—"} />
               <Stat label="Weight" value={p.weight_kg != null ? `${p.weight_kg}kg` : "—"} />
             </div>
-            <div className="mt-2 grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-3">
               <Stat label="Goals" value={`⚽ ${p.stats.goals}`} />
               <Stat label="Yellow" value={`🟨 ${p.stats.yellow}`} />
               <Stat label="Red" value={`🟥 ${p.stats.red}`} />
             </div>
-            {p.nationality && (
-              <p className="mt-3 text-center text-[11px] text-chalk-dim">🌍 {p.nationality}</p>
-            )}
+            {p.nationality && <p className="pt-1 text-center text-sm text-chalk-dim">🌍 {p.nationality}</p>}
             {noStats && (
-              <p className="mt-1 text-center text-[11px] text-chalk-dim">
-                No tournament stats yet — kicks off Jun 11.
-              </p>
+              <p className="text-center text-xs text-chalk-dim">No tournament stats yet — kicks off Jun 11.</p>
             )}
-          </>
+          </div>
         )}
       </motion.div>
     </motion.div>
