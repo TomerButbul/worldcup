@@ -379,6 +379,52 @@ export async function GET(request: NextRequest) {
         cardsImported += cards.length;
       }
 
+      // Participation → match_player_stats (Appearances = rows, Minutes, Assists).
+      // Starters play from minute 0; subs from their on-minute; subbed-off players
+      // stop at their off-minute. FT is 90, or ~120 when the match went to ET.
+      const lineups = await fetchLineups(m.id);
+      const subEvents = events
+        .filter((e) => e.type === "subst")
+        .map((e) => ({ on: e.player?.id ?? null, off: e.assist?.id ?? null, minute: e.time?.elapsed ?? null }))
+        .sort((a, b) => (a.minute ?? 0) - (b.minute ?? 0));
+      const maxMin = events.reduce((mx, e) => Math.max(mx, e.time?.elapsed ?? 0), 0);
+      const ft = maxMin > 90 ? Math.max(maxMin, 120) : 90;
+      const span = new Map<number, { start: number; end: number }>();
+      for (const l of lineups) {
+        for (const x of l.startXI) span.set(x.player.id, { start: 0, end: ft });
+      }
+      for (const s of subEvents) {
+        if (s.on != null) {
+          const cur = span.get(s.on);
+          span.set(s.on, { start: s.minute ?? 0, end: cur?.end ?? ft });
+        }
+        if (s.off != null) {
+          const cur = span.get(s.off) ?? { start: 0, end: ft };
+          span.set(s.off, { start: cur.start, end: s.minute ?? ft });
+        }
+      }
+      const assistCount = new Map<number, number>();
+      for (const g of goals) {
+        const aid = g.assist?.id;
+        if (aid != null) assistCount.set(aid, (assistCount.get(aid) ?? 0) + 1);
+      }
+      const appeared = new Set<number>([
+        ...span.keys(),
+        ...goalCount.keys(),
+        ...assistCount.keys(),
+        ...cards.map((c) => c.player.id!),
+      ]);
+      if (appeared.size) {
+        await supabase.from("match_player_stats").upsert(
+          [...appeared].map((pid) => {
+            const sp = span.get(pid);
+            const minutes = sp ? Math.max(0, Math.min(ft, sp.end) - sp.start) : 0;
+            return { match_id: m.id, player_id: pid, minutes, assists: assistCount.get(pid) ?? 0 };
+          }),
+          { onConflict: "match_id,player_id" },
+        );
+      }
+
       await supabase.from("matches").update({ goals_synced: true }).eq("id", m.id);
     }
     summary.goals = goalsImported;

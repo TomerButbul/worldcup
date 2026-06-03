@@ -16,7 +16,7 @@ export type PlayerProfile = {
   height_cm: number | null;
   weight_kg: number | null;
   team: { id: number; name: string; logo_url: string | null; code: string | null } | null;
-  stats: { goals: number; yellow: number; red: number };
+  stats: { apps: number; minutes: number; goals: number; assists: number; yellow: number; red: number };
 };
 
 const loadPlayer = unstable_cache(
@@ -29,18 +29,23 @@ const loadPlayer = unstable_cache(
       .maybeSingle();
     if (!p) return null;
 
-    const [goalsRes, cardsRes, teamRes] = await Promise.all([
+    const [goalsRes, cardsRes, teamRes, statsRes] = await Promise.all([
       s.from("match_goals").select("goals").eq("player_id", id),
       s.from("match_cards").select("type").eq("player_id", id),
       p.team_id != null
         ? s.from("teams").select("id, name, logo_url, code").eq("id", p.team_id).maybeSingle()
         : Promise.resolve({ data: null as PlayerProfile["team"] }),
+      s.from("match_player_stats").select("minutes, assists").eq("player_id", id),
     ]);
 
     const goals = (goalsRes.data ?? []).reduce((n, r) => n + (r.goals ?? 0), 0);
     const cards = cardsRes.data ?? [];
     const yellow = cards.filter((c) => c.type === "yellow").length;
     const red = cards.filter((c) => c.type === "red").length;
+    const appRows = statsRes.data ?? [];
+    const apps = appRows.length; // one row per match the player appeared in
+    const minutes = appRows.reduce((n, r) => n + (r.minutes ?? 0), 0);
+    const assists = appRows.reduce((n, r) => n + (r.assists ?? 0), 0);
 
     return {
       id: p.id,
@@ -53,7 +58,7 @@ const loadPlayer = unstable_cache(
       height_cm: p.height_cm,
       weight_kg: p.weight_kg,
       team: (teamRes.data as PlayerProfile["team"]) ?? null,
-      stats: { goals, yellow, red },
+      stats: { apps, minutes, goals, assists, yellow, red },
     };
   },
   ["player-profile"],

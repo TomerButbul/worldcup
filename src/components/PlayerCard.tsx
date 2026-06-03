@@ -17,7 +17,7 @@ type Profile = {
   height_cm: number | null;
   weight_kg: number | null;
   team: { id: number; name: string; logo_url: string | null; code: string | null } | null;
-  stats: { goals: number; yellow: number; red: number };
+  stats: { apps: number; minutes: number; goals: number; assists: number; yellow: number; red: number };
 };
 
 const POS_SHORT: Record<string, string> = {
@@ -143,7 +143,8 @@ function PlayerCardModal({ req, onClose }: { req: CardReq; onClose: () => void }
   const name = p?.name ?? fallbackName ?? "Player";
   const broad = p?.position ? (POS_SHORT[p.position] ?? p.position) : null;
   const badge = detailPos || broad;
-  const noStats = !!p && p.stats.goals === 0 && p.stats.yellow === 0 && p.stats.red === 0;
+  const noStats =
+    !!p && p.stats.apps + p.stats.goals + p.stats.assists + p.stats.yellow + p.stats.red === 0;
 
   return (
     <motion.div
@@ -200,8 +201,16 @@ function PlayerCardModal({ req, onClose }: { req: CardReq; onClose: () => void }
               <Stat label="Height" value={p.height_cm != null ? `${p.height_cm}cm` : "—"} />
               <Stat label="Weight" value={p.weight_kg != null ? `${p.weight_kg}kg` : "—"} />
             </div>
+            <p className="pt-1 text-center text-[11px] font-semibold uppercase tracking-wider text-chalk-dim">
+              Tournament
+            </p>
             <div className="grid grid-cols-3 gap-3">
+              <Stat label="Apps" value={String(p.stats.apps)} />
               <Stat label="Goals" value={`⚽ ${p.stats.goals}`} />
+              <Stat label="Assists" value={`🅰️ ${p.stats.assists}`} />
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <Stat label="Minutes" value={`${p.stats.minutes}'`} />
               <Stat label="Yellow" value={`🟨 ${p.stats.yellow}`} />
               <Stat label="Red" value={`🟥 ${p.stats.red}`} />
             </div>
