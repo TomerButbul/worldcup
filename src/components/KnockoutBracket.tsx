@@ -196,10 +196,10 @@ export default function KnockoutBracket({
       <div className={`flex items-center gap-1 ${tone}`}>
         {t ? (
           <span className="shrink-0">
-            <Flag teamId={t.id} logoUrl={t.logo_url} code={t.code} name={t.name} size={14} />
+            <Flag teamId={t.id} logoUrl={t.logo_url} code={t.code} name={t.name} size={12} />
           </span>
         ) : (
-          <span className="inline-block h-3.5 w-3.5 shrink-0 rounded-full bg-night/10" />
+          <span className="inline-block h-3 w-3 shrink-0 rounded-full bg-night/10" />
         )}
         <span className="whitespace-nowrap">{codeOf(teamId)}</span>
         {isWinner && <span className="shrink-0 text-[8px] leading-none">✓</span>}
@@ -213,7 +213,7 @@ export default function KnockoutBracket({
     return (
       <div
         key={m.no}
-        className={`rounded-md border bg-white/85 px-1.5 py-0.5 shadow-sm ${onTrail ? "border-gold ring-1 ring-gold/40" : "border-night/10"}`}
+        className={`rounded-md border bg-white/85 px-1 py-0.5 shadow-sm ${onTrail ? "border-gold ring-1 ring-gold/40" : "border-night/10"}`}
       >
         {treeTeam(m.home, m.winner != null && m.winner === m.home)}
         <div className="my-0.5 h-px bg-night/10" />
@@ -234,7 +234,7 @@ export default function KnockoutBracket({
 
   // One round column (label + its match cards spread by justify-around).
   const treeCol = (nos: number[], label: string) => (
-    <div className="flex w-[72px] flex-col px-0.5">
+    <div className="flex w-[58px] flex-col px-0.5">
       <div className="mb-1 text-center font-display text-[9px] uppercase tracking-wide text-chalk-dim">{label}</div>
       <div className="flex flex-1 flex-col justify-around">{nos.map((no) => treeCard(mget(no)))}</div>
     </div>
@@ -242,7 +242,7 @@ export default function KnockoutBracket({
   // A connector column of ⊐ / ⊏ elbows (border side toward the centre); each
   // elbow occupies the middle 50% of its slot so it lands on both feeders.
   const treeConn = (count: number, side: "r" | "l") => (
-    <div className="flex w-3 flex-col">
+    <div className="flex w-2.5 flex-col">
       <div className="mb-1 text-[9px]" aria-hidden>
         &nbsp;
       </div>
@@ -308,7 +308,7 @@ export default function KnockoutBracket({
             {/* mx-auto centres the bracket when wide (landscape) and scrolls when
                 narrow. Fixed height keeps justify-around spacing uniform so the
                 connector elbows land dead-on their feeder cards. */}
-            <div className="mx-auto flex h-[330px] w-max items-stretch text-[10px] leading-none">
+            <div className="mx-auto flex h-[300px] w-max items-stretch text-[10px] leading-none">
               {/* LEFT half — flows rightward toward the centre */}
               {treeCol(BRACKET_LEFT[0].nos, BRACKET_LEFT[0].label)}
               {treeConn(BRACKET_LEFT[1].nos.length, "r")}
@@ -320,7 +320,7 @@ export default function KnockoutBracket({
               {treeLine()}
 
               {/* CENTRE — the Final + crowned champion */}
-              <div className="flex w-[86px] flex-col px-0.5">
+              <div className="flex w-[70px] flex-col px-0.5">
                 <div className="mb-1 text-center font-display text-[9px] uppercase tracking-wide text-gold">Final</div>
                 <div className="flex flex-1 flex-col items-center justify-center gap-1">
                   {championTeamId != null && <span className="text-sm leading-none">👑</span>}

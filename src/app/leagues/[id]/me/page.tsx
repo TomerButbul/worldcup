@@ -184,14 +184,15 @@ export default async function MyPredictionsPage({
           </h2>
           <p className="mb-3 text-xs text-chalk-dim">
             {favoriteTeamId != null
-              ? "Step through the rounds, or hit Full bracket — gold traces your favorite's path."
-              : "Step through the rounds, or hit Full bracket to see the whole tree."}
+              ? "Your full bracket — gold traces your favorite's path to the final."
+              : "Your full bracket, R32 to the final."}
           </p>
           <KnockoutBracket
             rounds={bracketRounds}
             teamsById={bracketTeams}
             highlightIds={favoriteTeamId != null ? [favoriteTeamId] : []}
             championNo={104}
+            treeOnly
           />
         </section>
       )}

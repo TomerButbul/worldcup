@@ -171,14 +171,15 @@ export default async function ManagerProfilePage({
             </h2>
             <p className="mb-3 text-xs text-chalk-dim">
               {favoriteTeamId != null
-                ? `Step through the rounds, or hit Full bracket — gold traces ${name}'s favourite.`
-                : "Step through the rounds, or hit Full bracket to see the whole tree."}
+                ? `${name}'s full bracket — gold marks their favourite.`
+                : `${name}'s full bracket, R32 to the final.`}
             </p>
             <KnockoutBracket
               rounds={bracketRounds}
               teamsById={bracketTeams}
               highlightIds={favoriteTeamId != null ? [favoriteTeamId] : []}
               championNo={104}
+              treeOnly
             />
           </section>
 

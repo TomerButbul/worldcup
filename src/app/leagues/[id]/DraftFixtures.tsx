@@ -61,9 +61,12 @@ function MatchRow({ m }: { m: FixtureRow }) {
 export default function DraftFixtures({ days }: { days: FixtureDay[] }) {
   if (!days.length) return null;
   return (
-    <div className="glass rounded-2xl p-4">
-      <h3 className="font-display text-chalk">Fixtures &amp; managers</h3>
-      <p className="mb-2 text-[11px] text-chalk-dim">
+    <details className="group glass rounded-2xl p-4">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
+        <span className="font-display text-chalk">Fixtures &amp; managers</span>
+        <span className="transition text-chalk-dim group-open:rotate-180">▾</span>
+      </summary>
+      <p className="mb-2 mt-3 text-[11px] text-chalk-dim">
         Every game is a manager-vs-manager matchup — the gold name under each nation is who drafted
         it.
       </p>
@@ -81,6 +84,6 @@ export default function DraftFixtures({ days }: { days: FixtureDay[] }) {
           </div>
         ))}
       </div>
-    </div>
+    </details>
   );
 }

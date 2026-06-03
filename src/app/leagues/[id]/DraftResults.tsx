@@ -55,45 +55,36 @@ export default function DraftResults({
 
   return (
     <div className="space-y-6">
-      <motion.div
-        initial={{ opacity: 0, y: 12, scale: 0.97 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ type: "spring", stiffness: 260, damping: 22 }}
-        className="glass-strong rounded-3xl p-6 text-center sm:p-8"
-      >
-        <Trophy size={60} className="mx-auto" />
-        <h2 className="mt-2 font-display text-3xl text-gradient-gold sm:text-4xl">Draft complete!</h2>
-        <p className="mx-auto mt-2 max-w-md text-sm text-chalk-dim">
-          Every squad is locked in. Whoever&apos;s team goes furthest in each pot takes the crown —
-          winners &amp; losers are decided once the tournament plays out.
-        </p>
-        {!tournamentStarted && (
-          <p className="mt-3 inline-block rounded-full bg-gold/15 px-3 py-1 text-xs font-semibold text-gold">
-            📊 Pot standings unlock at kickoff
-          </p>
-        )}
-      </motion.div>
+      {/* Scoreboard — pot standings (live once the tournament starts) + the
+          combined bragging-rights total. Always visible: pre-tournament every
+          manager simply sits on 0. */}
+      <section className="glass-strong rounded-3xl p-4 sm:p-5">
+        {/* Re-fetches periodically so points tick up live during the tournament. */}
+        <AutoRefresh enabled />
+        <div className="mb-3 flex items-baseline justify-between gap-3">
+          <h2 className="font-display text-2xl text-gradient-gold">Scoreboard</h2>
+          {!tournamentStarted && (
+            <span className="text-[11px] text-chalk-dim">Live points start at kickoff (Jun 11)</span>
+          )}
+        </div>
 
-      {tournamentStarted && (
-        <div className="space-y-4">
-          {/* Standings fill in live as drafted teams advance. */}
-          <AutoRefresh enabled />
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {POTS.map((pot) => {
             const rows = standings.perPot[pot] ?? [];
             return (
-              <div key={pot} className="glass rounded-2xl p-4">
-                <h3 className="mb-2 font-display text-chalk">{POT_LABELS[pot]} — standings</h3>
+              <div key={pot} className="glass rounded-2xl p-3">
+                <h3 className="mb-2 font-display text-sm text-chalk">{POT_LABELS[pot]}</h3>
                 <ul className="space-y-1.5">
                   {rows.map((r, i) => {
                     const m = memberById.get(r.userId);
                     const isWinner = i === 0 && r.points > 0;
-                    const isSpoon = i === rows.length - 1 && rows.length > 1;
+                    const isSpoon = i === rows.length - 1 && rows.length > 1 && r.points > 0;
                     return (
                       <li key={r.userId} className="flex items-center gap-2 text-sm">
-                        <span className="w-5 shrink-0 text-center text-chalk-dim">{i + 1}</span>
-                        <Avatar url={m?.avatarUrl} name={m?.name ?? "?"} size={22} />
+                        <span className="w-4 shrink-0 text-center text-chalk-dim">{i + 1}</span>
+                        <Avatar url={m?.avatarUrl} name={m?.name ?? "?"} size={20} />
                         <span className="min-w-0 flex-1 truncate text-chalk">{m?.name ?? "?"}</span>
-                        {isWinner && <Trophy size={14} className="inline-block align-[-2px]" />}
+                        {isWinner && <Trophy size={13} className="inline-block align-[-2px]" />}
                         {isSpoon && <span title="Wooden Spoon — worst team in the pot">🥄</span>}
                         <span className="font-display text-gold">{r.points}</span>
                       </li>
@@ -103,28 +94,28 @@ export default function DraftResults({
               </div>
             );
           })}
-
-          <div className="glass rounded-2xl p-4">
-            <h3 className="font-display text-chalk">🍻 Bragging-rights total</h3>
-            <p className="mb-2 text-[11px] text-chalk-dim">
-              All three pots combined — just for fun; doesn&apos;t affect the pot competitions.
-            </p>
-            <ul className="space-y-1.5">
-              {standings.totals.map((r, i) => {
-                const m = memberById.get(r.userId);
-                return (
-                  <li key={r.userId} className="flex items-center gap-2 text-sm">
-                    <span className="w-5 shrink-0 text-center text-chalk-dim">{i + 1}</span>
-                    <Avatar url={m?.avatarUrl} name={m?.name ?? "?"} size={22} />
-                    <span className="min-w-0 flex-1 truncate text-chalk">{m?.name ?? "?"}</span>
-                    <span className="font-display text-gold">{r.points}</span>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
         </div>
-      )}
+
+        <div className="glass mt-3 rounded-2xl p-3">
+          <div className="mb-2 flex items-baseline justify-between gap-3">
+            <h3 className="font-display text-sm text-chalk">🍻 Bragging-rights total</h3>
+            <span className="text-[11px] text-chalk-dim">All three pots combined — just for fun</span>
+          </div>
+          <ul className="grid grid-cols-1 gap-x-4 gap-y-1.5 sm:grid-cols-2">
+            {standings.totals.map((r, i) => {
+              const m = memberById.get(r.userId);
+              return (
+                <li key={r.userId} className="flex items-center gap-2 text-sm">
+                  <span className="w-4 shrink-0 text-center text-chalk-dim">{i + 1}</span>
+                  <Avatar url={m?.avatarUrl} name={m?.name ?? "?"} size={20} />
+                  <span className="min-w-0 flex-1 truncate text-chalk">{m?.name ?? "?"}</span>
+                  <span className="font-display text-gold">{r.points}</span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      </section>
 
       {/* Group stage: all 12 groups, with this manager's drafted nations starred. */}
       <DraftGroupStage groups={groupStage} meTeamIds={meTeamIds} />
@@ -151,7 +142,17 @@ export default function DraftResults({
 
       <DraftFixtures days={fixtures} />
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      {/* Squads — collapsed by default so the page leads with the scoreboard. */}
+      <details className="group glass rounded-2xl p-4">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
+          <span className="font-display text-chalk">Squads</span>
+          <span className="flex items-center gap-2 text-xs text-chalk-dim">
+            {roster.length} managers · {DRAFT_POTS[1].length * POTS.length} teams
+            <span className="transition group-open:rotate-180">▾</span>
+          </span>
+        </summary>
+
+        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
         {roster.map((m, i) => {
           const squad = byUser.get(m.userId);
           return (
@@ -210,11 +211,8 @@ export default function DraftResults({
             </motion.div>
           );
         })}
-      </div>
-
-      <p className="text-center text-xs text-chalk-dim">
-        {roster.length} managers · {DRAFT_POTS[1].length * POTS.length} teams drafted across 3 pots
-      </p>
+        </div>
+      </details>
     </div>
   );
 }
