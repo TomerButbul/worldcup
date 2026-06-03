@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getCachedPlayer } from "@/lib/playerProfile";
+import { getCachedPlayer, getCachedClubStats } from "@/lib/playerProfile";
 
 // Player profile for the tap-to-open card. Auth-gated (app-only), reads cached
 // public tournament data — cheap even when many viewers tap the same star.
@@ -17,5 +17,6 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
   const profile = await getCachedPlayer(pid);
   if (!profile) return NextResponse.json({ error: "not found" }, { status: 404 });
-  return NextResponse.json(profile);
+  const extra = await getCachedClubStats(pid, profile.team?.id ?? null);
+  return NextResponse.json({ ...profile, injured: extra.injured, club: extra.club });
 }

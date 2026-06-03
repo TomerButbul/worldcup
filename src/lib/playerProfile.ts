@@ -1,6 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { createServiceClient } from "@/lib/supabase/server";
 import { TOURNAMENT_TAG } from "@/lib/tournamentData";
+import { fetchPlayerStats } from "@/lib/apiFootball";
 
 // One football player's profile + tournament tallies, for the tap-to-open card.
 // Cached per id (unstable_cache keys include the call arguments) and tagged so
@@ -12,6 +13,7 @@ export type PlayerProfile = {
   number: number | null;
   age: number | null;
   nationality: string | null;
+  birth_date: string | null;
   photo_url: string | null;
   height_cm: number | null;
   weight_kg: number | null;
@@ -24,7 +26,7 @@ const loadPlayer = unstable_cache(
     const s = createServiceClient();
     const { data: p } = await s
       .from("players")
-      .select("id, team_id, name, position, number, age, photo_url, height_cm, weight_kg, nationality")
+      .select("id, team_id, name, position, number, age, photo_url, height_cm, weight_kg, nationality, birth_date")
       .eq("id", id)
       .maybeSingle();
     if (!p) return null;
@@ -54,6 +56,7 @@ const loadPlayer = unstable_cache(
       number: p.number,
       age: p.age,
       nationality: p.nationality,
+      birth_date: p.birth_date,
       photo_url: p.photo_url,
       height_cm: p.height_cm,
       weight_kg: p.weight_kg,
@@ -67,4 +70,63 @@ const loadPlayer = unstable_cache(
 
 export function getCachedPlayer(id: number) {
   return loadPlayer(id);
+}
+
+// Club form for the season — lazy, per player, cached 24h (fires only when a
+// card opens, so near-zero quota cost). National-team entries are excluded so
+// the numbers are club apps/goals/assists + an appearance-weighted rating.
+// Best-effort: returns nulls if the feed has nothing or errors.
+export type ClubForm = {
+  name: string | null;
+  apps: number;
+  goals: number;
+  assists: number;
+  rating: number | null;
+};
+
+const CLUB_SEASON = 2025; // the 2025-26 club season
+
+const loadClub = unstable_cache(
+  async (
+    id: number,
+    nationalTeamId: number | null,
+  ): Promise<{ injured: boolean | null; club: ClubForm | null }> => {
+    try {
+      const resp = (await fetchPlayerStats(id, CLUB_SEASON))[0];
+      if (!resp) return { injured: null, club: null };
+      let apps = 0;
+      let goals = 0;
+      let assists = 0;
+      let ratingSum = 0;
+      let ratingApps = 0;
+      const byClub = new Map<string, number>();
+      for (const st of resp.statistics ?? []) {
+        if (st.team?.id == null || st.team.id === nationalTeamId) continue; // skip country
+        const a = st.games?.appearences ?? 0;
+        apps += a;
+        goals += st.goals?.total ?? 0;
+        assists += st.goals?.assists ?? 0;
+        const r = parseFloat(st.games?.rating ?? "");
+        if (Number.isFinite(r) && a > 0) {
+          ratingSum += r * a;
+          ratingApps += a;
+        }
+        if (st.team.name) byClub.set(st.team.name, (byClub.get(st.team.name) ?? 0) + a);
+      }
+      const name = [...byClub.entries()].sort((x, y) => y[1] - x[1])[0]?.[0] ?? null;
+      const rating = ratingApps > 0 ? Math.round((ratingSum / ratingApps) * 10) / 10 : null;
+      return {
+        injured: resp.player?.injured ?? null,
+        club: apps > 0 ? { name, apps, goals, assists, rating } : null,
+      };
+    } catch {
+      return { injured: null, club: null };
+    }
+  },
+  ["club-form"],
+  { revalidate: 86400 },
+);
+
+export function getCachedClubStats(id: number, nationalTeamId: number | null) {
+  return loadClub(id, nationalTeamId);
 }

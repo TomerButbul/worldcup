@@ -13,11 +13,14 @@ type Profile = {
   number: number | null;
   age: number | null;
   nationality: string | null;
+  birth_date: string | null;
+  injured: boolean | null;
   photo_url: string | null;
   height_cm: number | null;
   weight_kg: number | null;
   team: { id: number; name: string; logo_url: string | null; code: string | null } | null;
   stats: { apps: number; minutes: number; goals: number; assists: number; yellow: number; red: number };
+  club: { name: string | null; apps: number; goals: number; assists: number; rating: number | null } | null;
 };
 
 const POS_SHORT: Record<string, string> = {
@@ -26,6 +29,13 @@ const POS_SHORT: Record<string, string> = {
   Midfielder: "MF",
   Attacker: "FW",
 };
+
+function fmtDob(d: string) {
+  const t = new Date(d);
+  return Number.isNaN(t.getTime())
+    ? d
+    : t.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+}
 
 // --- Single global "one card open at a time" store -------------------------
 // Per-button local state let several cards open at once AND nested the modal
@@ -187,6 +197,9 @@ function PlayerCardModal({ req, onClose }: { req: CardReq; onClose: () => void }
                 <span>{p.team.name}</span>
               </span>
             )}
+            {p?.injured && (
+              <span className="rounded-lg bg-red-500/20 px-2 py-1 font-semibold text-red-600">🚑 Injured</span>
+            )}
           </div>
         </div>
 
@@ -214,7 +227,26 @@ function PlayerCardModal({ req, onClose }: { req: CardReq; onClose: () => void }
               <Stat label="Yellow" value={`🟨 ${p.stats.yellow}`} />
               <Stat label="Red" value={`🟥 ${p.stats.red}`} />
             </div>
-            {p.nationality && <p className="pt-1 text-center text-sm text-chalk-dim">🌍 {p.nationality}</p>}
+            {p.club && (
+              <>
+                <p className="pt-1 text-center text-[11px] font-semibold uppercase tracking-wider text-chalk-dim">
+                  Club · 25/26{p.club.name ? ` · ${p.club.name}` : ""}
+                </p>
+                <div className="grid grid-cols-4 gap-2">
+                  <Stat label="Apps" value={String(p.club.apps)} />
+                  <Stat label="Goals" value={String(p.club.goals)} />
+                  <Stat label="Assists" value={String(p.club.assists)} />
+                  <Stat label="Rating" value={p.club.rating != null ? p.club.rating.toFixed(1) : "—"} />
+                </div>
+              </>
+            )}
+            {(p.nationality || p.birth_date) && (
+              <p className="pt-1 text-center text-sm text-chalk-dim">
+                {p.nationality ? `🌍 ${p.nationality}` : ""}
+                {p.nationality && p.birth_date ? " · " : ""}
+                {p.birth_date ? `🎂 ${fmtDob(p.birth_date)}` : ""}
+              </p>
+            )}
             {noStats && (
               <p className="text-center text-xs text-chalk-dim">No tournament stats yet — kicks off Jun 11.</p>
             )}

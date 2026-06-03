@@ -169,6 +169,21 @@ export function fetchPlayersByTeam(teamId: number, page: number) {
   return apiGetPaged<AfPlayerProfile>("/players", { team: teamId, season: SEASON(), page }, 86400);
 }
 
+// One player's per-competition statistics for a season + injury flag — powers
+// the player card's club form. One entry per competition (club + country).
+export interface AfPlayerStats {
+  player: { id: number; injured: boolean | null };
+  statistics: {
+    team: { id: number; name: string } | null;
+    league: { name: string | null } | null;
+    games: { appearences: number | null; minutes: number | null; rating: string | null } | null;
+    goals: { total: number | null; assists: number | null } | null;
+  }[];
+}
+export function fetchPlayerStats(playerId: number, season: number) {
+  return apiGet<AfPlayerStats>("/players", { id: playerId, season }, 86400);
+}
+
 // Map API-Football round strings to our match_stage enum.
 export function mapStage(round: string): string {
   const r = round.toLowerCase();
