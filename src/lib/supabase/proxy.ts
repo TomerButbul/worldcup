@@ -48,6 +48,7 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith("/preview") ||
     pathname.startsWith("/forgot-password") ||
     pathname.startsWith("/reset-password") ||
+    pathname.startsWith("/how-it-works") ||
     isAuthRoute ||
     isApi;
 
