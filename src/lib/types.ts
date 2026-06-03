@@ -63,6 +63,7 @@ export interface ScoringConfig {
     exact_score: number;
     correct_result: number;
     goal_scorer: number;
+    pen_winner: number; // knockout shootout: called the advancing team
   };
 }
 
@@ -122,6 +123,7 @@ export const DEFAULT_SCORING: ScoringConfig = {
     exact_score: 5,
     correct_result: 2,
     goal_scorer: 2,
+    pen_winner: 2,
   },
 };
 

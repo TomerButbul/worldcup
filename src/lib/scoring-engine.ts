@@ -7,7 +7,7 @@ import { computeActuals, scoreUpfront, scoreLive, type MatchRow } from "@/lib/sc
 export async function recomputeAllScores(supabase: SupabaseClient) {
   const { data: matches } = await supabase
     .from("matches")
-    .select("id, stage, group_label, status, home_team_id, away_team_id, home_goals, away_goals");
+    .select("id, stage, group_label, status, home_team_id, away_team_id, home_goals, away_goals, winner_team_id");
   const { data: goals } = await supabase.from("match_goals").select("match_id, player_id, goals");
   const { data: teams } = await supabase.from("teams").select("id, fifa_rank");
   const { data: awardRows } = await supabase.from("tournament_awards").select("key, player_id");
@@ -41,7 +41,7 @@ export async function recomputeAllScores(supabase: SupabaseClient) {
 
     const { data: matchPreds } = await supabase
       .from("match_predictions")
-      .select("user_id, match_id, home_goals, away_goals, scorer_goals")
+      .select("user_id, match_id, home_goals, away_goals, scorer_goals, pen_winner_team_id")
       .eq("league_id", league.id);
 
     const predsByUser = new Map<string, typeof matchPreds>();

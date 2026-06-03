@@ -138,6 +138,13 @@ export async function GET(request: NextRequest) {
             away_team_id: f.teams.away?.id ?? null,
             home_goals: f.goals.home,
             away_goals: f.goals.away,
+            // Advancer (correct for shootouts) — powers the pen-winner scoring
+            // and fixes a pens-decided final crowning the wrong champion.
+            winner_team_id: f.teams.home?.winner
+              ? (f.teams.home?.id ?? null)
+              : f.teams.away?.winner
+                ? (f.teams.away?.id ?? null)
+                : null,
             updated_at: new Date().toISOString(),
           };
         }),

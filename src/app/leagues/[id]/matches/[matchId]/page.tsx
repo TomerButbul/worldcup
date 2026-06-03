@@ -39,7 +39,7 @@ export default async function MatchSummaryPage({
 
   const { data: match } = await supabase
     .from("matches")
-    .select("id, stage, kickoff_at, status, home_team_id, away_team_id, home_goals, away_goals")
+    .select("id, stage, kickoff_at, status, home_team_id, away_team_id, home_goals, away_goals, winner_team_id")
     .eq("id", matchNum)
     .maybeSingle();
   if (!match) notFound();
@@ -60,7 +60,7 @@ export default async function MatchSummaryPage({
         : Promise.resolve({ data: [] as { id: number; name: string; team_id: number | null }[] }),
       supabase
         .from("match_predictions")
-        .select("user_id, home_goals, away_goals, scorer_goals, profiles ( display_name, team_name, avatar_url )")
+        .select("user_id, home_goals, away_goals, scorer_goals, pen_winner_team_id, profiles ( display_name, team_name, avatar_url )")
         .eq("league_id", id)
         .eq("match_id", matchNum),
       // For group matches the predicted scoreline lives in the bracket, so pull
@@ -110,12 +110,29 @@ export default async function MatchSummaryPage({
   const awayCards = ((cards ?? []) as CardRow[]).filter((c) => c.team_id === match.away_team_id);
 
   const cfg = (league.scoring as ScoringConfig | null) ?? DEFAULT_SCORING;
+  const decisiveWinner =
+    match.home_goals != null && match.away_goals != null
+      ? match.home_goals > match.away_goals
+        ? match.home_team_id
+        : match.home_goals < match.away_goals
+          ? match.away_team_id
+          : null
+      : null;
   const actual: ActualOutcomes = {
     groupStandings: {},
     advancers: {},
     champion: null,
     results: new Map([
-      [matchNum, { home: match.home_goals ?? 0, away: match.away_goals ?? 0, scorers: goalCounts, stage: match.stage as MatchStage }],
+      [
+        matchNum,
+        {
+          home: match.home_goals ?? 0,
+          away: match.away_goals ?? 0,
+          scorers: goalCounts,
+          stage: match.stage as MatchStage,
+          winner: match.winner_team_id ?? decisiveWinner,
+        },
+      ],
     ]),
     awards: {},
   };
@@ -174,11 +191,16 @@ export default async function MatchSummaryPage({
         userId: p.user_id,
         name: nameOf(p.profiles as unknown as PredProfile | null),
         avatarUrl: (p.profiles as unknown as PredProfile | null)?.avatar_url ?? null,
-        score: p.home_goals != null ? `${p.home_goals}–${p.away_goals}` : null,
+        score:
+          p.home_goals != null
+            ? `${p.home_goals}–${p.away_goals}${
+                p.pen_winner_team_id != null ? ` (🥅 ${teamById.get(p.pen_winner_team_id)?.name ?? "?"})` : ""
+              }`
+            : null,
         scorerNames: scorerLabelsOf(sg),
         points: finished
           ? scoreLive(cfg, actual, [
-              { match_id: matchNum, home_goals: p.home_goals, away_goals: p.away_goals, scorer_goals: sg },
+              { match_id: matchNum, home_goals: p.home_goals, away_goals: p.away_goals, scorer_goals: sg, pen_winner_team_id: p.pen_winner_team_id },
             ])
           : null,
         isMe: p.user_id === user.id,

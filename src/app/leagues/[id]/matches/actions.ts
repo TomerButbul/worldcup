@@ -9,6 +9,7 @@ export async function savePrediction(
   homeGoals: number | null,
   awayGoals: number | null,
   scorerGoals: Record<string, number>,
+  penWinnerTeamId: number | null = null,
 ) {
   const supabase = await createClient();
   const {
@@ -19,7 +20,7 @@ export async function savePrediction(
   // Lock at kickoff; stage decides whether a scoreline is part of the live pick.
   const { data: match } = await supabase
     .from("matches")
-    .select("kickoff_at, stage")
+    .select("kickoff_at, stage, home_team_id, away_team_id")
     .eq("id", matchId)
     .maybeSingle();
   if (!match) return { ok: false, error: "Match not found" };
@@ -74,6 +75,16 @@ export async function savePrediction(
     };
   }
 
+  // Penalty winner: only for a knockout predicted level, and only one of the two
+  // teams. Cleared otherwise so a stale value can't linger on a non-draw pick.
+  const penWinner =
+    !isGroup &&
+    home != null &&
+    home === away &&
+    (penWinnerTeamId === match.home_team_id || penWinnerTeamId === match.away_team_id)
+      ? penWinnerTeamId
+      : null;
+
   const { error } = await supabase.from("match_predictions").upsert(
     {
       league_id: leagueId,
@@ -83,6 +94,7 @@ export async function savePrediction(
       away_goals: away,
       scorer_goals: clean,
       scorer_ids: Object.keys(clean).map(Number), // legacy column kept in sync
+      pen_winner_team_id: penWinner,
       submitted_at: new Date().toISOString(),
     },
     { onConflict: "league_id,user_id,match_id" },

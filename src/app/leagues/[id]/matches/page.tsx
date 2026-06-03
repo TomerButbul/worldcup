@@ -36,7 +36,7 @@ export default async function MatchesPage({
       supabase.from("players").select("id, team_id, name"),
       supabase
         .from("match_predictions")
-        .select("match_id, home_goals, away_goals, scorer_goals")
+        .select("match_id, home_goals, away_goals, scorer_goals, pen_winner_team_id")
         .eq("league_id", id)
         .eq("user_id", user.id),
       supabase

@@ -36,7 +36,7 @@ interface Props {
   match: MatchCardData;
   homePlayers: Player[];
   awayPlayers: Player[];
-  initial: { home_goals: number | null; away_goals: number | null; scorer_goals: Record<string, number> } | null;
+  initial: { home_goals: number | null; away_goals: number | null; scorer_goals: Record<string, number>; pen_winner_team_id: number | null } | null;
   // The user's upfront bracket scoreline for this match (group stage only).
   bracketScore: { h: number; a: number } | null;
   // Official lineups once posted (~40 min pre-kickoff); null → full squad.
@@ -63,6 +63,7 @@ export default function MatchCard({
   const [away, setAway] = useState(initial?.away_goals ?? 0);
   // player_id (string) -> predicted goals for that player.
   const [scorerGoals, setScorerGoals] = useState<Record<string, number>>(() => ({ ...(initial?.scorer_goals ?? {}) }));
+  const [penWinner, setPenWinner] = useState<number | null>(initial?.pen_winner_team_id ?? null);
   const [pending, startTransition] = useTransition();
   const [msg, setMsg] = useState<string | null>(null);
 
@@ -103,7 +104,14 @@ export default function MatchCard({
   function save() {
     setMsg(null);
     startTransition(async () => {
-      const res = await savePrediction(leagueId, match.id, isGroup ? null : home, isGroup ? null : away, scorerGoals);
+      const res = await savePrediction(
+        leagueId,
+        match.id,
+        isGroup ? null : home,
+        isGroup ? null : away,
+        scorerGoals,
+        !isGroup && home === away ? penWinner : null,
+      );
       if (res.ok) {
         burst();
         goalCelebration("GOAL!");
@@ -125,6 +133,15 @@ export default function MatchCard({
   const lockedScorers = Object.entries(initial?.scorer_goals ?? {})
     .map(([pid, n]) => `${playerName(Number(pid))}${n > 1 ? ` ×${n}` : ""}`)
     .join(", ");
+
+  const penName =
+    initial?.pen_winner_team_id == null
+      ? null
+      : initial.pen_winner_team_id === match.homeTeamId
+        ? match.homeName
+        : initial.pen_winner_team_id === match.awayTeamId
+          ? match.awayName
+          : null;
 
   return (
     <motion.div layout className="glass rounded-2xl p-4">
@@ -177,11 +194,12 @@ export default function MatchCard({
       {locked ? (
         <div className="mt-3 flex flex-col items-center gap-1.5 text-center text-xs text-chalk-dim">
           <span>
-            {pickScore || lockedScorers ? (
+            {pickScore || lockedScorers || penName ? (
               <>
                 Your pick:{" "}
                 {pickScore && <span className="text-chalk">{pickScore}</span>}
-                {lockedScorers && <> {pickScore ? "· " : ""}⚽ {lockedScorers}</>}
+                {penName && <> {pickScore ? "· " : ""}🥅 {penName}</>}
+                {lockedScorers && <> {pickScore || penName ? "· " : ""}⚽ {lockedScorers}</>}
               </>
             ) : (
               <span>🔒 Locked — no prediction made</span>
@@ -196,6 +214,35 @@ export default function MatchCard({
         </div>
       ) : (
         <>
+          {!isGroup && home === away && (
+            <div className="mt-3 rounded-xl bg-gold/10 p-2.5 text-center">
+              <p className="mb-1.5 text-xs font-semibold text-chalk">🥅 Tied — who wins on penalties?</p>
+              <div className="flex justify-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPenWinner(match.homeTeamId)}
+                  className={`flex-1 rounded-lg border px-2 py-1.5 text-xs font-semibold transition ${
+                    penWinner != null && penWinner === match.homeTeamId
+                      ? "border-grass bg-grass text-night"
+                      : "border-night/10 text-chalk hover:bg-night/5"
+                  }`}
+                >
+                  {match.homeName}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPenWinner(match.awayTeamId)}
+                  className={`flex-1 rounded-lg border px-2 py-1.5 text-xs font-semibold transition ${
+                    penWinner != null && penWinner === match.awayTeamId
+                      ? "border-grass bg-grass text-night"
+                      : "border-night/10 text-chalk hover:bg-night/5"
+                  }`}
+                >
+                  {match.awayName}
+                </button>
+              </div>
+            </div>
+          )}
           {isGroup && !bracketScore && (
             <p className="mt-3 rounded-xl bg-gold/10 px-3 py-2 text-center text-xs text-chalk-dim">
               Set your <Link href={`/leagues/${leagueId}/bracket`} className="font-semibold text-gold">bracket score</Link> for this match to pick its scorers.

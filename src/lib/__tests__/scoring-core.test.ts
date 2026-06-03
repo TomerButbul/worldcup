@@ -39,8 +39,13 @@ function ko(
   hg: number | null = null,
   ag: number | null = null,
   status = "scheduled",
+  winnerTeamId: number | null = null,
 ): MatchRow {
-  return { id, stage, group_label: null, status, home_team_id: home, away_team_id: away, home_goals: hg, away_goals: ag };
+  return {
+    id, stage, group_label: null, status,
+    home_team_id: home, away_team_id: away, home_goals: hg, away_goals: ag,
+    winner_team_id: winnerTeamId,
+  };
 }
 
 // Group A: 1 beats everyone (9pts); 3 beats 2 and 4 (6pts); 2 and 4 lower.
@@ -140,7 +145,15 @@ describe("computeActuals", () => {
   it("records finished results with scorers", () => {
     const goals = new Map<number, Map<number, number>>([[5, new Map([[101, 1], [102, 1]])]]);
     const a = computeActuals([gm(5, "A", 1, 4, 3, 1)], goals);
-    expect(a.results.get(5)).toEqual({ home: 3, away: 1, scorers: new Map([[101, 1], [102, 1]]), stage: "group" });
+    expect(a.results.get(5)).toEqual({ home: 3, away: 1, scorers: new Map([[101, 1], [102, 1]]), stage: "group", winner: 1 });
+  });
+
+  it("champion comes from the shootout winner when the final is level", () => {
+    // 1-1 final; team 2 won on penalties → champion must be 2, not the away
+    // side a naive goal-diff comparison would crown.
+    const a = computeActuals([ko(20, "final", 1, 2, 1, 1, "finished", 2)], new Map());
+    expect(a.champion).toBe(2);
+    expect(a.results.get(20)?.winner).toBe(2);
   });
 });
 
@@ -299,5 +312,48 @@ describe("scoreLive", () => {
   it("ignores predictions for matches with no result yet", () => {
     expect(scoreLive(cfg, koActual, [{ match_id: 777, home_goals: 1, away_goals: 0, scorer_goals: {} }]))
       .toBe(0);
+  });
+});
+
+describe("scoreLive — knockout shootouts", () => {
+  // Semi-final 0-0; team 4 wins the shootout (the actual advancer).
+  const penActual = computeActuals([ko(80, "semi", 1, 4, 0, 0, "finished", 4)], new Map());
+  // Semi-final 2-1; team 1 wins in normal time (no shootout).
+  const decisiveActual = computeActuals([ko(81, "semi", 1, 4, 2, 1, "finished")], new Map());
+
+  it("exact level score + correct shootout pick stacks: 5 + 2 = 7", () => {
+    expect(
+      scoreLive(cfg, penActual, [{ match_id: 80, home_goals: 0, away_goals: 0, scorer_goals: {}, pen_winner_team_id: 4 }]),
+    ).toBe(cfg.live.exact_score + cfg.live.pen_winner);
+  });
+
+  it("level (not exact) score + correct shootout pick: correct_result + pen", () => {
+    expect(
+      scoreLive(cfg, penActual, [{ match_id: 80, home_goals: 1, away_goals: 1, scorer_goals: {}, pen_winner_team_id: 4 }]),
+    ).toBe(cfg.live.correct_result + cfg.live.pen_winner);
+  });
+
+  it("correct exact score but wrong shootout pick: just the 5", () => {
+    expect(
+      scoreLive(cfg, penActual, [{ match_id: 80, home_goals: 0, away_goals: 0, scorer_goals: {}, pen_winner_team_id: 1 }]),
+    ).toBe(cfg.live.exact_score);
+  });
+
+  it("no shootout pick made: just the scoreline points", () => {
+    expect(
+      scoreLive(cfg, penActual, [{ match_id: 80, home_goals: 0, away_goals: 0, scorer_goals: {} }]),
+    ).toBe(cfg.live.exact_score);
+  });
+
+  it("no pen bonus when the match was decisive (no shootout)", () => {
+    expect(
+      scoreLive(cfg, decisiveActual, [{ match_id: 81, home_goals: 0, away_goals: 0, scorer_goals: {}, pen_winner_team_id: 4 }]),
+    ).toBe(0);
+  });
+
+  it("no pen bonus when the user predicted a winner, not a draw", () => {
+    expect(
+      scoreLive(cfg, penActual, [{ match_id: 80, home_goals: 2, away_goals: 1, scorer_goals: {}, pen_winner_team_id: 4 }]),
+    ).toBe(0);
   });
 });

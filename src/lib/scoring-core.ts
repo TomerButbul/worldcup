@@ -12,13 +12,14 @@ export interface MatchRow {
   away_team_id: number | null;
   home_goals: number | null;
   away_goals: number | null;
+  winner_team_id?: number | null; // knockout advancer (incl. shootouts)
 }
 
 export interface ActualOutcomes {
   groupStandings: Record<string, number[]>;
   advancers: Record<string, Set<number>>;
   champion: number | null;
-  results: Map<number, { home: number; away: number; scorers: Map<number, number>; stage: MatchStage }>;
+  results: Map<number, { home: number; away: number; scorers: Map<number, number>; stage: MatchStage; winner: number | null }>;
   // Individual-award winners (award key -> player id). Golden Boot is derived
   // from goal data; the rest are filled from admin-entered results.
   awards: Record<string, number | null>;
@@ -36,6 +37,7 @@ export interface MatchPick {
   home_goals: number | null; // null for group matches (live game scores scorers only there)
   away_goals: number | null;
   scorer_goals: Record<string, number>; // player_id -> predicted goal count
+  pen_winner_team_id?: number | null;   // knockout: predicted shootout winner (when level)
 }
 
 // Individual award keys (also the matching scoring-config keys).
@@ -199,7 +201,7 @@ export function computeActuals(
 ): ActualOutcomes {
   const advancers: Record<string, Set<number>> = {};
   let champion: number | null = null;
-  const results = new Map<number, { home: number; away: number; scorers: Map<number, number>; stage: MatchStage }>();
+  const results = new Map<number, { home: number; away: number; scorers: Map<number, number>; stage: MatchStage; winner: number | null }>();
 
   for (const m of matches) {
     if (m.stage !== "group") {
@@ -208,15 +210,23 @@ export function computeActuals(
       if (m.away_team_id) advancers[m.stage].add(m.away_team_id);
     }
     if (m.status === "finished" && m.home_goals != null && m.away_goals != null) {
+      // Advancer: API-provided winner (correct for shootouts), else the higher
+      // scorer. Null only for a genuine group-stage draw.
+      const decisive =
+        m.home_goals > m.away_goals
+          ? m.home_team_id
+          : m.home_goals < m.away_goals
+            ? m.away_team_id
+            : null;
+      const winner = m.winner_team_id ?? decisive;
       results.set(m.id, {
         home: m.home_goals,
         away: m.away_goals,
         scorers: goalsByMatch.get(m.id) ?? new Map(),
         stage: m.stage,
+        winner,
       });
-      if (m.stage === "final") {
-        champion = m.home_goals > m.away_goals ? m.home_team_id : m.away_team_id;
-      }
+      if (m.stage === "final") champion = winner;
     }
   }
 
@@ -328,6 +338,17 @@ export function scoreLive(
         const predSign = Math.sign(p.home_goals - p.away_goals);
         const actualSign = Math.sign(r.home - r.away);
         if (predSign === actualSign) pts += cfg.live.correct_result;
+      }
+      // Shootout bonus: the tie went to pens (level result), the user predicted
+      // a level score, and called the advancing team correctly. Stacks on top of
+      // the scoreline points above.
+      if (
+        p.home_goals === p.away_goals &&
+        r.home === r.away &&
+        r.winner != null &&
+        p.pen_winner_team_id === r.winner
+      ) {
+        pts += cfg.live.pen_winner;
       }
     }
     // Goal scorers: credit each correctly attributed goal, capped at how many
