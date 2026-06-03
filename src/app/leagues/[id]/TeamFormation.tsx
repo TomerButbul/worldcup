@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
+import PlayerAvatar from "@/components/PlayerAvatar";
 
 type LP = { player_id: number; name: string; number: number | null; pos: string | null; grid: string | null };
 export type TeamLineup = { formation: string | null; xi: LP[] };
@@ -38,7 +39,8 @@ function positioned(xi: LP[]) {
   for (const [r, players] of byRow) {
     const sorted = [...players].sort((a, b) => a.c - b.c);
     const frac = maxRow > 1 ? (r - 1) / (maxRow - 1) : 0; // 0 = keeper, 1 = forwards
-    sorted.forEach((x, i) => out.push({ p: x.p, x: ((i + 0.5) / sorted.length) * 100, y: 92 - frac * 84 }));
+    // Half-pitch: GK near the goal line (bottom), forwards near the halfway line (top).
+    sorted.forEach((x, i) => out.push({ p: x.p, x: ((i + 0.5) / sorted.length) * 100, y: 88 - frac * 74 }));
   }
   return out;
 }
@@ -57,22 +59,21 @@ export default function TeamFormation({ lineup, teamName }: { lineup: TeamLineup
       <p className="text-center text-[11px] uppercase tracking-wider text-chalk-dim">
         Most recent XI{(lineup.formation || deriveFormation(lineup.xi)) ? ` · ${lineup.formation || deriveFormation(lineup.xi)}` : ""}
       </p>
-      <div className="relative mx-auto aspect-[3/4] w-full max-w-[260px] overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-grass/70 to-grass/55">
-        <div className="absolute left-1/2 top-0 h-10 w-24 -translate-x-1/2 border-x border-b border-white/25" />
-        <div className="absolute bottom-0 left-1/2 h-10 w-24 -translate-x-1/2 border-x border-t border-white/25" />
-        <div className="absolute left-1/2 top-1/2 h-16 w-16 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/25" />
+      {/* Half pitch (one team): their goal at the bottom, halfway-line arc at the top. */}
+      <div className="relative mx-auto aspect-[5/6] w-full max-w-[300px] overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-grass/70 to-grass/55">
+        <div className="absolute bottom-0 left-1/2 h-12 w-28 -translate-x-1/2 border-x border-t border-white/25" />
+        <div className="absolute bottom-0 left-1/2 h-5 w-14 -translate-x-1/2 border-x border-t border-white/25" />
+        <div className="absolute -top-9 left-1/2 h-16 w-16 -translate-x-1/2 rounded-full border border-white/25" />
         {pos.map(({ p, x, y }) => (
           <motion.div
             key={p.player_id}
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="absolute flex w-12 -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-0.5"
+            className="absolute flex w-14 -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-0.5"
             style={{ left: `${x}%`, top: `${y}%` }}
           >
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-[10px] font-bold tabular-nums text-night shadow">
-              {p.number ?? "•"}
-            </span>
-            <span className="max-w-[3rem] truncate text-[8px] leading-tight text-chalk">
+            <PlayerAvatar playerId={p.player_id} name={p.name} size={30} className="border-2 border-white/80 shadow" />
+            <span className="max-w-[3.5rem] truncate rounded bg-night/45 px-1 text-[8px] leading-tight text-white">
               {p.name.split(" ").slice(-1)[0] ?? p.name}
             </span>
           </motion.div>
