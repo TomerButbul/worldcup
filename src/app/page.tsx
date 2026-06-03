@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { btnClass } from "@/components/buttonStyles";
 import Hero from "@/components/Hero";
+import InstallPrompt from "@/components/InstallPrompt";
 
 export default async function Home() {
   const supabase = await createClient();
@@ -22,6 +23,8 @@ export default async function Home() {
           Log in
         </Link>
       </div>
+
+      <InstallPrompt />
 
       <Link
         href="/how-it-works"

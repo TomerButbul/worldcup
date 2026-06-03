@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion } from "motion/react";
 import Avatar from "@/components/Avatar";
 import AutoRefresh from "@/components/AutoRefresh";
+import Trophy from "@/components/art/Trophy";
 import TeamFormation, { type TeamLineup } from "./TeamFormation";
 import { DRAFT_POTS, POT_LABELS, teamAt, type Pot } from "@/lib/draft";
 import type { StandingRow } from "@/lib/draft-scoring";
@@ -47,7 +48,7 @@ export default function DraftResults({
         transition={{ type: "spring", stiffness: 260, damping: 22 }}
         className="glass-strong rounded-3xl p-6 text-center sm:p-8"
       >
-        <p className="text-5xl sm:text-6xl">🏆</p>
+        <Trophy size={60} className="mx-auto" />
         <h2 className="mt-2 font-display text-3xl text-gradient-gold sm:text-4xl">Draft complete!</h2>
         <p className="mx-auto mt-2 max-w-md text-sm text-chalk-dim">
           Every squad is locked in. Whoever&apos;s team goes furthest in each pot takes the crown —
@@ -79,7 +80,7 @@ export default function DraftResults({
                         <span className="w-5 shrink-0 text-center text-chalk-dim">{i + 1}</span>
                         <Avatar url={m?.avatarUrl} name={m?.name ?? "?"} size={22} />
                         <span className="min-w-0 flex-1 truncate text-chalk">{m?.name ?? "?"}</span>
-                        {isWinner && <span title="Pot winner">🏆</span>}
+                        {isWinner && <Trophy size={14} className="inline-block align-[-2px]" />}
                         {isSpoon && <span title="Wooden Spoon — worst team in the pot">🥄</span>}
                         <span className="font-display text-gold">{r.points}</span>
                       </li>

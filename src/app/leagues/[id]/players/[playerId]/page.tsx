@@ -5,6 +5,8 @@ import { getCachedTeams } from "@/lib/tournamentData";
 import { nowMs } from "@/lib/clock";
 import Avatar from "@/components/Avatar";
 import Flag from "@/components/Flag";
+import Ball from "@/components/art/Ball";
+import Trophy from "@/components/art/Trophy";
 
 // A "Manager" = a human participant in this league (NOT a football player).
 // Their predictions stay hidden until the bracket locks, so peeking can't
@@ -175,7 +177,7 @@ export default async function ManagerProfilePage({
         <>
           {/* Champion */}
           <section className="glass rounded-2xl p-5">
-            <h2 className="mb-2 font-display text-lg text-chalk">🏆 Champion</h2>
+            <h2 className="mb-2 flex items-center gap-1.5 font-display text-lg text-chalk"><Trophy size={18} />Champion</h2>
             {champTeam ? (
               <p className="flex items-center gap-2 text-chalk">
                 <Flag
@@ -212,7 +214,7 @@ export default async function ManagerProfilePage({
 
           {/* Group predictions */}
           <section className="glass rounded-2xl p-5">
-            <h2 className="mb-3 font-display text-lg text-chalk">⚽ Group predictions</h2>
+            <h2 className="mb-3 flex items-center gap-1.5 font-display text-lg text-chalk"><Ball size={16} />Group predictions</h2>
             {groupBuckets.length === 0 ? (
               <p className="text-sm text-chalk-dim">—</p>
             ) : (

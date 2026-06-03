@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getCachedTeams } from "@/lib/tournamentData";
 import { nowMs } from "@/lib/clock";
 import Flag from "@/components/Flag";
+import Ball from "@/components/art/Ball";
+import Trophy from "@/components/art/Trophy";
 import ShareButton from "./ShareButton";
 
 // The signed-in user's OWN predictions recap for one league. Unlike the manager
@@ -191,7 +193,7 @@ export default async function MyPredictionsPage({
 
       {/* Champion */}
       <section className="glass rounded-2xl p-5">
-        <h2 className="mb-2 font-display text-lg text-chalk">🏆 Champion</h2>
+        <h2 className="mb-2 flex items-center gap-1.5 font-display text-lg text-chalk"><Trophy size={18} />Champion</h2>
         {champTeam ? (
           <p className="flex items-center gap-2 text-chalk">
             <Flag
@@ -228,7 +230,7 @@ export default async function MyPredictionsPage({
 
       {/* Group predictions */}
       <section className="glass rounded-2xl p-5">
-        <h2 className="mb-3 font-display text-lg text-chalk">⚽ Group predictions</h2>
+        <h2 className="mb-3 flex items-center gap-1.5 font-display text-lg text-chalk"><Ball size={16} />Group predictions</h2>
         {groupBuckets.length === 0 ? (
           <p className="text-sm text-chalk-dim">—</p>
         ) : (

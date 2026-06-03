@@ -9,6 +9,8 @@ import { saveBracket } from "./actions";
 import { celebrate } from "@/lib/confetti";
 import { goalCelebration } from "@/lib/goal";
 import Flag from "@/components/Flag";
+import Ball from "@/components/art/Ball";
+import Trophy from "@/components/art/Trophy";
 
 export type EditorTeam = { id: number; name: string; code: string | null; logo_url: string | null };
 export type GroupMatch = { id: number; group: string; home: EditorTeam; away: EditorTeam };
@@ -408,7 +410,8 @@ export default function BracketEditor({
             <span className="text-chalk-dim">/{koTotal} knockout picks</span>
           </span>
           <span className="text-chalk">
-            {champion ? `🏆 ${teamsById.get(champion)?.name ?? ""}` : "🏆 —"}
+            <Trophy size={18} className="mr-1 inline-block align-[-3px]" />
+            {champion ? (teamsById.get(champion)?.name ?? "") : "—"}
           </span>
         </div>
         <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-night/10">
@@ -424,7 +427,7 @@ export default function BracketEditor({
       {/* Group stage */}
       <section className="space-y-3">
         <div>
-          <h2 className="font-display text-xl text-chalk">⚽ Group stage — one group at a time</h2>
+          <h2 className="flex items-center gap-1.5 font-display text-xl text-chalk"><Ball size={18} />Group stage — one group at a time</h2>
           <p className="text-sm text-chalk-dim">
             Tap a quick score or use ±. Top 2 of each group advance, plus the 8 best third-placed
             teams — your knockout bracket builds itself from these results.
@@ -600,7 +603,7 @@ export default function BracketEditor({
 
             {/* Champion */}
             <div className="glass-strong rounded-2xl p-5 text-center">
-              <p className="mb-2 font-display text-lg text-gradient-gold">Your champion 🏆</p>
+              <p className="mb-2 flex items-center justify-center gap-1.5 font-display text-lg text-gradient-gold">Your champion <Trophy size={18} /></p>
               {champion != null ? (
                 <motion.div
                   initial={{ scale: 0.8, opacity: 0 }}
