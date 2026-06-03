@@ -15,6 +15,7 @@ import NextMatchCard, { type NextMatchData, type LeaguePrediction } from "@/comp
 import { computeFavStatus } from "@/lib/favoriteStatus";
 import AutoRefresh from "@/components/AutoRefresh";
 import { nowMs, KICKOFF_MS } from "@/lib/clock";
+import { getCachedTeams } from "@/lib/tournamentData";
 import type { Team, Match } from "@/lib/types";
 
 export default async function DashboardPage({
@@ -42,11 +43,7 @@ export default async function DashboardPage({
     .select("role, leagues ( id, name, join_code )")
     .eq("user_id", user.id);
 
-  const { data: teamsData } = await supabase
-    .from("teams")
-    .select("id, name, code, logo_url, group_label")
-    .order("name");
-  const teams = (teamsData ?? []) as Team[];
+  const teams = (await getCachedTeams()) as Team[];
 
   const favId = profile?.favorite_team_id ?? null;
   let favStatus = null;

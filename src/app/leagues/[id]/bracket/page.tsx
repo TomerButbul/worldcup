@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCachedTeams } from "@/lib/tournamentData";
 import type { MatchScore, Team } from "@/lib/types";
 import BracketEditor, { type GroupMatch } from "./BracketEditor";
 import { nowMs } from "@/lib/clock";
@@ -26,8 +27,8 @@ export default async function BracketPage({
 
   const locked = new Date(league.bracket_lock_at).getTime() <= nowMs();
 
-  const [{ data: teams }, { data: matches }, { data: prediction }] = await Promise.all([
-    supabase.from("teams").select("id, name, code, logo_url, group_label, fifa_rank").order("name"),
+  const [teams, { data: matches }, { data: prediction }] = await Promise.all([
+    getCachedTeams(),
     supabase
       .from("matches")
       .select("id, group_label, home_team_id, away_team_id, kickoff_at")
@@ -42,7 +43,7 @@ export default async function BracketPage({
       .maybeSingle(),
   ]);
 
-  const teamList = (teams ?? []) as (Team & { fifa_rank: number | null })[];
+  const teamList = teams as (Team & { fifa_rank: number | null })[];
   const byId = new Map(teamList.map((t) => [t.id, t]));
 
   // Stitch each fixture to its two team objects; derive the group from the

@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { revalidateTag } from "next/cache";
 import { createServiceClient } from "@/lib/supabase/server";
 import { recomputeAllScores } from "@/lib/scoring-engine";
+import { TOURNAMENT_TAG } from "@/lib/tournamentData";
 import {
   fetchTeams,
   fetchStandings,
@@ -221,6 +223,11 @@ export async function GET(request: NextRequest) {
 
     // 5) Recompute scores
     await recomputeAllScores(supabase);
+
+    // Bust the cached teams/players list (rosters/logos may have changed).
+    // Next 16: revalidateTag takes a cache-life profile; "max" = serve stale
+    // while refreshing in the background (fine for slowly-changing roster data).
+    revalidateTag(TOURNAMENT_TAG, "max");
 
     return NextResponse.json({ ok: true, summary });
   } catch (err) {

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCachedTeams, getCachedPlayers } from "@/lib/tournamentData";
 import type { Player } from "@/lib/types";
 import MatchCard, { type MatchCardData } from "./MatchCard";
 import AutoRefresh from "@/components/AutoRefresh";
@@ -26,14 +27,14 @@ export default async function MatchesPage({
     .maybeSingle();
   if (!league) redirect("/dashboard");
 
-  const [{ data: matches }, { data: teams }, { data: players }, { data: preds }, { data: bracket }] =
+  const [{ data: matches }, teams, players, { data: preds }, { data: bracket }] =
     await Promise.all([
       supabase
         .from("matches")
         .select("id, stage, kickoff_at, status, home_team_id, away_team_id, home_goals, away_goals")
         .order("kickoff_at"),
-      supabase.from("teams").select("id, name"),
-      supabase.from("players").select("id, team_id, name"),
+      getCachedTeams(),
+      getCachedPlayers(),
       supabase
         .from("match_predictions")
         .select("match_id, home_goals, away_goals, scorer_goals, pen_winner_team_id")
@@ -47,9 +48,9 @@ export default async function MatchesPage({
         .maybeSingle(),
     ]);
 
-  const teamName = new Map((teams ?? []).map((t) => [t.id, t.name]));
+  const teamName = new Map(teams.map((t) => [t.id, t.name]));
   const playersByTeam = new Map<number, Player[]>();
-  for (const p of (players ?? []) as Player[]) {
+  for (const p of players as Player[]) {
     if (p.team_id == null) continue;
     if (!playersByTeam.has(p.team_id)) playersByTeam.set(p.team_id, []);
     playersByTeam.get(p.team_id)!.push(p);
