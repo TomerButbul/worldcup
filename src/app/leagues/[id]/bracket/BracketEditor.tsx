@@ -26,6 +26,46 @@ const STAGE_LABELS: Record<string, string> = {
 };
 const STAGE_ORDER: MatchStage[] = ["round_of_32", "round_of_16", "quarter", "semi", "final"];
 
+// One-tap common scorelines (home–away), ordered home wins → draws → away wins.
+const QUICK_SCORES: [number, number][] = [
+  [1, 0], [2, 0], [2, 1], [3, 0], [1, 1], [0, 0], [0, 1], [1, 2], [0, 2],
+];
+
+// Compact tap stepper — no keyboard, handles any score.
+function Stepper({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: number | null;
+  onChange: (v: number) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <span className="inline-flex items-center gap-0.5">
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => onChange(Math.max(0, (value ?? 0) - 1))}
+        aria-label="one fewer"
+        className="flex h-7 w-7 items-center justify-center rounded-md bg-night/10 text-base leading-none text-chalk transition hover:bg-night/20 disabled:opacity-40"
+      >
+        −
+      </button>
+      <span className="w-5 text-center font-display text-base tabular-nums text-chalk">{value ?? "–"}</span>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => onChange((value ?? 0) + 1)}
+        aria-label="one more"
+        className="flex h-7 w-7 items-center justify-center rounded-md bg-grass/20 text-base leading-none text-grass transition hover:bg-grass/30 disabled:opacity-40"
+      >
+        +
+      </button>
+    </span>
+  );
+}
+
 export default function BracketEditor({
   leagueId,
   groupMatches,
@@ -54,6 +94,11 @@ export default function BracketEditor({
   });
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [errMsg, setErrMsg] = useState<string | null>(null);
+  const [activeGroup, setActiveGroup] = useState<string>(() => {
+    const s = new Set<string>();
+    for (const gm of groupMatches) s.add(gm.group);
+    return [...s].sort()[0] ?? "A";
+  });
 
   // --- Static lookups ------------------------------------------------------
   const fifaRankMap = useMemo(() => {
@@ -234,18 +279,20 @@ export default function BracketEditor({
   }, [champion]);
 
   // --- Handlers ------------------------------------------------------------
-  const setScore = useCallback(
-    (matchId: number, side: "h" | "a", raw: string) => {
+  const setNum = useCallback(
+    (matchId: number, side: "h" | "a", v: number) => {
       if (locked) return;
       setScores((prev) => {
         const cur = prev[matchId] ?? { h: null, a: null };
-        let v: number | null = null;
-        if (raw !== "") {
-          const n = parseInt(raw, 10);
-          if (!Number.isNaN(n)) v = Math.max(0, Math.min(99, n));
-        }
-        return { ...prev, [matchId]: { ...cur, [side]: v } };
+        return { ...prev, [matchId]: { ...cur, [side]: Math.max(0, Math.min(20, v)) } };
       });
+    },
+    [locked],
+  );
+  const setPair = useCallback(
+    (matchId: number, h: number, a: number) => {
+      if (locked) return;
+      setScores((prev) => ({ ...prev, [matchId]: { h, a } }));
     },
     [locked],
   );
@@ -306,23 +353,6 @@ export default function BracketEditor({
     },
     [tables, teamsById, matchesByGroup, scores],
   );
-
-  const scoreBox = (matchId: number, side: "h" | "a") => {
-    const v = scores[matchId]?.[side];
-    return (
-      <input
-        type="number"
-        inputMode="numeric"
-        min={0}
-        max={99}
-        disabled={locked}
-        value={v ?? ""}
-        onChange={(e) => setScore(matchId, side, e.target.value)}
-        aria-label={side === "h" ? "Home goals" : "Away goals"}
-        className="h-9 w-9 rounded-lg border border-night/10 bg-white text-center text-sm tabular-nums text-chalk outline-none focus:border-grass focus:ring-2 focus:ring-grass/30 disabled:opacity-60"
-      />
-    );
-  };
 
   const teamChip = (teamId: number | null, selected: boolean, onClick: () => void) => {
     const t = teamId != null ? teamsById.get(teamId) : null;
@@ -395,66 +425,131 @@ export default function BracketEditor({
       {/* Group stage */}
       <section className="space-y-3">
         <div>
-          <h2 className="font-display text-xl text-chalk">⚽ Group stage — predict every scoreline</h2>
+          <h2 className="font-display text-xl text-chalk">⚽ Group stage — one group at a time</h2>
           <p className="text-sm text-chalk-dim">
-            Top 2 of each group advance, plus the 8 best third-placed teams. Your bracket builds itself
-            from these results.
+            Tap a quick score or use ±. Top 2 of each group advance, plus the 8 best third-placed
+            teams — your knockout bracket builds itself from these results.
           </p>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {/* Group nav — jump anywhere; ✓ = done, gold = current. */}
+        <div className="flex flex-wrap gap-1.5">
           {groupsOrder.map((g) => {
-            const gms = matchesByGroup.get(g) ?? [];
-            const standing = displayStanding(g);
-            const complete = !!tables[g];
+            const done = !!tables[g];
+            const active = g === activeGroup;
             return (
-              <div key={g} className="glass rounded-2xl p-3">
-                <div className="mb-2 flex items-center justify-between">
-                  <h3 className="font-display text-sm text-gold">Group {g}</h3>
-                  {complete && <span className="text-xs text-grass">✓ complete</span>}
-                </div>
-
-                <div className="space-y-1.5">
-                  {gms.map((gm) => (
-                    <div key={gm.id} className="flex items-center gap-1.5">
-                      <span className="flex min-w-0 flex-1 items-center justify-end gap-1.5 text-right">
-                        <span className="truncate text-xs text-chalk">{gm.home.name}</span>
-                        <Flag teamId={gm.home.id} logoUrl={gm.home.logo_url} code={gm.home.code} name={gm.home.name} size={16} />
-                      </span>
-                      <span className="flex shrink-0 items-center gap-1">
-                        {scoreBox(gm.id, "h")}
-                        <span className="text-xs text-chalk-dim">:</span>
-                        {scoreBox(gm.id, "a")}
-                      </span>
-                      <span className="flex min-w-0 flex-1 items-center gap-1.5">
-                        <Flag teamId={gm.away.id} logoUrl={gm.away.logo_url} code={gm.away.code} name={gm.away.name} size={16} />
-                        <span className="truncate text-xs text-chalk">{gm.away.name}</span>
-                      </span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Standings preview */}
-                <ol className="mt-3 space-y-1 border-t border-night/10 pt-2">
-                  {standing.map((row, i) => (
-                    <li
-                      key={row.team.id}
-                      className={`flex items-center gap-2 rounded px-1.5 py-1 text-xs ${
-                        i < 2 ? "bg-grass/15" : i === 2 ? "bg-gold/10" : ""
-                      }`}
-                    >
-                      <span className="w-3 shrink-0 text-chalk-dim">{i + 1}</span>
-                      <Flag teamId={row.team.id} logoUrl={row.team.logo_url} code={row.team.code} name={row.team.name} size={14} />
-                      <span className="min-w-0 flex-1 truncate text-chalk">{row.team.name}</span>
-                      {i < 2 && <span className="shrink-0 text-grass">✓</span>}
-                      {i === 2 && <span className="shrink-0 text-[10px] text-gold">3rd</span>}
-                      <span className="shrink-0 tabular-nums text-chalk-dim">{row.pts}p</span>
-                    </li>
-                  ))}
-                </ol>
-              </div>
+              <button
+                key={g}
+                type="button"
+                onClick={() => setActiveGroup(g)}
+                aria-label={`Group ${g}${done ? " complete" : ""}`}
+                className={`flex h-9 w-9 items-center justify-center rounded-lg font-display text-sm transition ${
+                  active ? "bg-gold text-night glow-gold" : done ? "bg-grass/20 text-grass" : "bg-night/5 text-chalk-dim hover:bg-night/10"
+                }`}
+              >
+                {done && !active ? "✓" : g}
+              </button>
             );
           })}
         </div>
+
+        {/* One group at a time. */}
+        {(() => {
+          const g = activeGroup;
+          const gms = matchesByGroup.get(g) ?? [];
+          const standing = displayStanding(g);
+          const complete = !!tables[g];
+          const idx = groupsOrder.indexOf(g);
+          const prevG = groupsOrder[idx - 1];
+          const nextG = groupsOrder[idx + 1];
+          return (
+            <motion.div key={g} layout initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="glass rounded-2xl p-3 sm:p-4">
+              <div className="mb-2 flex items-center justify-between">
+                <h3 className="font-display text-base text-gold">Group {g}</h3>
+                {complete && <span className="text-xs font-semibold text-grass">✓ complete</span>}
+              </div>
+
+              <div className="space-y-2">
+                {gms.map((gm) => {
+                  const s = scores[gm.id] ?? { h: null, a: null };
+                  return (
+                    <div key={gm.id} className="rounded-xl bg-night/5 p-2">
+                      <div className="flex items-center gap-1.5">
+                        <span className="flex min-w-0 flex-1 items-center justify-end gap-1.5 text-right text-xs text-chalk">
+                          <span className="truncate">{gm.home.name}</span>
+                          <Flag teamId={gm.home.id} logoUrl={gm.home.logo_url} code={gm.home.code} name={gm.home.name} size={16} />
+                        </span>
+                        <span className="flex shrink-0 items-center gap-1">
+                          <Stepper value={s.h} disabled={locked} onChange={(v) => setNum(gm.id, "h", v)} />
+                          <span className="text-xs text-chalk-dim">:</span>
+                          <Stepper value={s.a} disabled={locked} onChange={(v) => setNum(gm.id, "a", v)} />
+                        </span>
+                        <span className="flex min-w-0 flex-1 items-center gap-1.5 text-xs text-chalk">
+                          <Flag teamId={gm.away.id} logoUrl={gm.away.logo_url} code={gm.away.code} name={gm.away.name} size={16} />
+                          <span className="truncate">{gm.away.name}</span>
+                        </span>
+                      </div>
+                      {!locked && (
+                        <div className="mt-1.5 flex flex-wrap justify-center gap-1">
+                          {QUICK_SCORES.map(([h, a]) => {
+                            const sel = s.h === h && s.a === a;
+                            return (
+                              <button
+                                key={`${h}-${a}`}
+                                type="button"
+                                onClick={() => setPair(gm.id, h, a)}
+                                className={`rounded-full px-2 py-0.5 text-[11px] tabular-nums transition ${
+                                  sel ? "bg-grass text-night" : "bg-night/10 text-chalk-dim hover:bg-night/20"
+                                }`}
+                              >
+                                {h}-{a}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <ol className="mt-3 space-y-1 border-t border-night/10 pt-2">
+                {standing.map((row, i) => (
+                  <motion.li
+                    key={row.team.id}
+                    layout
+                    className={`flex items-center gap-2 rounded px-1.5 py-1 text-xs ${i < 2 ? "bg-grass/15" : i === 2 ? "bg-gold/10" : ""}`}
+                  >
+                    <span className="w-3 shrink-0 text-center text-chalk-dim">{i + 1}</span>
+                    <Flag teamId={row.team.id} logoUrl={row.team.logo_url} code={row.team.code} name={row.team.name} size={14} />
+                    <span className="min-w-0 flex-1 truncate text-chalk">{row.team.name}</span>
+                    {i < 2 && <span className="shrink-0 text-grass">✓</span>}
+                    {i === 2 && <span className="shrink-0 text-[10px] text-gold">3rd</span>}
+                    <span className="shrink-0 tabular-nums text-chalk-dim">{row.pts}p</span>
+                  </motion.li>
+                ))}
+              </ol>
+
+              <div className="mt-3 flex items-center justify-between gap-2 text-sm">
+                <button
+                  type="button"
+                  onClick={() => prevG && setActiveGroup(prevG)}
+                  disabled={!prevG}
+                  className="rounded-lg px-3 py-1.5 text-chalk-dim transition hover:bg-night/5 disabled:opacity-30"
+                >
+                  ← {prevG ? `Group ${prevG}` : ""}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => nextG && setActiveGroup(nextG)}
+                  disabled={!nextG}
+                  className={`rounded-lg px-3 py-1.5 font-semibold transition disabled:opacity-30 ${complete && nextG ? "bg-grass text-night" : "text-gold hover:bg-gold/10"}`}
+                >
+                  {nextG ? `Group ${nextG}` : "All groups ✓"} →
+                </button>
+              </div>
+            </motion.div>
+          );
+        })()}
       </section>
 
       {/* Knockout */}
