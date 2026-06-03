@@ -53,3 +53,31 @@ export const getCachedPlayers = unstable_cache(
   ["players-v3"], // bump: paginated, in_squad-only, + position/number
   { tags: [TOURNAMENT_TAG], revalidate: 300 },
 );
+
+// The teams playing in the upcoming matchday — for the decorative top flag
+// bunting. A small, meaningful set (no need to cycle the whole field). Cached
+// (service client, cookie-free) and refreshed every 30 min as fixtures pass.
+export const getCachedMatchdayFlags = unstable_cache(
+  async (): Promise<{ id: number; name: string }[]> => {
+    const s = createServiceClient();
+    const { data: up } = await s
+      .from("matches")
+      .select("home_team_id, away_team_id, kickoff_at")
+      .gt("kickoff_at", new Date().toISOString())
+      .order("kickoff_at")
+      .limit(10);
+    const ids: number[] = [];
+    for (const m of up ?? []) {
+      for (const id of [m.home_team_id, m.away_team_id]) {
+        if (id != null && !ids.includes(id)) ids.push(id);
+      }
+    }
+    const top = ids.slice(0, 12);
+    if (!top.length) return [];
+    const { data: teams } = await s.from("teams").select("id, name").in("id", top);
+    const nameById = new Map((teams ?? []).map((t) => [t.id, t.name as string]));
+    return top.map((id) => ({ id, name: nameById.get(id) ?? "" }));
+  },
+  ["matchday-flags"],
+  { tags: [TOURNAMENT_TAG], revalidate: 1800 },
+);

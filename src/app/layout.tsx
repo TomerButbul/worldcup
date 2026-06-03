@@ -4,6 +4,7 @@ import "./globals.css";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import FlagGarland from "@/components/FlagGarland";
 import { PlayerCardHost } from "@/components/PlayerCard";
+import { getCachedMatchdayFlags } from "@/lib/tournamentData";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -46,11 +47,12 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const matchdayFlags = await getCachedMatchdayFlags();
   return (
     <html
       lang="en"
@@ -59,7 +61,7 @@ export default function RootLayout({
       <body className="relative min-h-full flex flex-col overflow-x-hidden">
         <AnimatedBackground />
         <div className="fixed inset-x-0 top-[env(safe-area-inset-top)] z-30">
-          <FlagGarland />
+          <FlagGarland flags={matchdayFlags} />
         </div>
         <div className="relative z-10 flex min-h-screen flex-col pt-[calc(env(safe-area-inset-top)+1.75rem)]">
           {children}
