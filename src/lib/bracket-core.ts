@@ -212,3 +212,97 @@ export function predictedAdvancers(round32: Round32, picks: Record<string, numbe
   }
   return { byStage, champion };
 }
+
+// --- Predicted-bracket resolution (shared by the editor + read-only views) ---
+// Given a manager's predicted group ORDER, their 8 third-place groups, and their
+// per-tie winner picks (keyed by canonical match no), resolve every knockout
+// match's two participants and validated winner. A pick is dropped automatically
+// once an upstream change makes it no longer one of the tie's two teams — so the
+// editor (live) and the locked recap render identically from the same data.
+export interface ResolvedBracket {
+  participants: Record<number, { home: number | null; away: number | null }>;
+  winners: Record<number, number>;
+  champion: number | null;
+}
+
+export function resolvePredictedBracket(
+  groupOrder: Record<string, number[]>,
+  thirdGroups: Iterable<string>,
+  knockoutPicks: Record<number, number>,
+): ResolvedBracket {
+  const tables: GroupTables = {};
+  for (const [g, order] of Object.entries(groupOrder)) tables[g] = { order: [...order], stats: new Map() };
+  const groups = new Set<Group>([...thirdGroups] as Group[]);
+  const annex = groups.size === 8 ? assignThirdsAnnexC(groups) : {};
+
+  const winners: Record<number, number> = {};
+  const participants: Record<number, { home: number | null; away: number | null }> = {};
+  const resolve = (s: SlotRef): number | null => {
+    switch (s.kind) {
+      case "winner":
+        return tables[s.group]?.order[0] ?? null;
+      case "runner":
+        return tables[s.group]?.order[1] ?? null;
+      case "third": {
+        const g = annex[s.match];
+        return g ? tables[g]?.order[2] ?? null : null;
+      }
+      case "matchWinner":
+        return winners[s.match] ?? null;
+      default:
+        return null;
+    }
+  };
+  for (const no of Object.keys(KNOCKOUT_TEMPLATE).map(Number).sort((a, b) => a - b)) {
+    const tpl = KNOCKOUT_TEMPLATE[no];
+    const home = resolve(tpl.home);
+    const away = resolve(tpl.away);
+    participants[no] = { home, away };
+    const pick = knockoutPicks[no];
+    if (pick != null && (pick === home || pick === away)) winners[no] = pick;
+  }
+  return { participants, winners, champion: winners[104] ?? null };
+}
+
+const KO_VIEW_LABELS: Record<string, string> = {
+  round_of_32: "Round of 32",
+  round_of_16: "Round of 16",
+  quarter: "Quarter-finals",
+  semi: "Semi-finals",
+  final: "Final",
+};
+const KO_VIEW_ORDER: MatchStage[] = ["round_of_32", "round_of_16", "quarter", "semi", "final"];
+
+export interface ViewBracketRound {
+  stage: MatchStage;
+  label: string;
+  matches: { no: number; home: number | null; away: number | null; winner: number | null }[];
+}
+
+// Resolve a predicted bracket and shape it into display rounds (R32 → Final),
+// ready to hand straight to the <KnockoutBracket> component. Matches within a
+// round are ascending by canonical no (bracket order).
+export function predictedBracketRounds(
+  groupOrder: Record<string, number[]>,
+  thirdGroups: Iterable<string>,
+  knockoutPicks: Record<number, number>,
+): { rounds: ViewBracketRound[]; champion: number | null } {
+  const { participants, winners, champion } = resolvePredictedBracket(groupOrder, thirdGroups, knockoutPicks);
+  const byStage = new Map<MatchStage, number[]>();
+  for (const no of Object.keys(KNOCKOUT_TEMPLATE).map(Number).sort((a, b) => a - b)) {
+    const st = stageOf(no);
+    if (!byStage.has(st)) byStage.set(st, []);
+    byStage.get(st)!.push(no);
+  }
+  const rounds: ViewBracketRound[] = KO_VIEW_ORDER.filter((s) => byStage.has(s)).map((s) => ({
+    stage: s,
+    label: KO_VIEW_LABELS[s],
+    matches: byStage.get(s)!.map((no) => ({
+      no,
+      home: participants[no]?.home ?? null,
+      away: participants[no]?.away ?? null,
+      winner: winners[no] ?? null,
+    })),
+  }));
+  return { rounds, champion };
+}

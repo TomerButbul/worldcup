@@ -3,8 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "motion/react";
 import type { MatchStage } from "@/lib/types";
-import type { GroupStat, GroupTable } from "@/lib/scoring-core";
-import { KNOCKOUT_TEMPLATE, buildBracketFromOrder, stageOf, type SlotRef } from "@/lib/bracket-core";
+import { KNOCKOUT_TEMPLATE, stageOf, resolvePredictedBracket } from "@/lib/bracket-core";
 import { saveBracket } from "./actions";
 import { celebrate } from "@/lib/confetti";
 import { goalCelebration } from "@/lib/goal";
@@ -135,50 +134,14 @@ export default function BracketEditor({
   }, [KO_ORDER]);
 
   // --- Derived bracket -----------------------------------------------------
-  // Predicted tables straight from the manager's order (no scorelines → empty
-  // stats). Annex C only resolves the thirds when exactly 8 groups are chosen.
-  const tables = useMemo(() => {
-    const out: Record<string, GroupTable> = {};
-    for (const g of Object.keys(order)) {
-      out[g] = { order: order[g], stats: new Map<number, GroupStat>() };
-    }
-    return out;
-  }, [order]);
-
-  const annex = useMemo(() => buildBracketFromOrder(order, thirds).annex, [order, thirds]);
-
-  // Resolve each knockout match's two participants in tournament order, plus the
-  // validated winner picks (`eff`) — a stored pick is dropped automatically once
-  // an upstream edit makes it no longer one of the match's two teams.
+  // Resolve every knockout tie's two participants + validated winner picks from
+  // the predicted order, chosen thirds, and picks. Shared with the read-only
+  // recap (resolvePredictedBracket) so both render identically; a stored pick is
+  // dropped automatically once an upstream edit voids it.
   const { koParticipants, eff } = useMemo(() => {
-    const eff: Record<number, number> = {};
-    const koParticipants: Record<number, { home: number | null; away: number | null }> = {};
-    const resolve = (s: SlotRef): number | null => {
-      switch (s.kind) {
-        case "winner":
-          return tables[s.group]?.order[0] ?? null;
-        case "runner":
-          return tables[s.group]?.order[1] ?? null;
-        case "third": {
-          const g = annex[s.match];
-          return g ? tables[g]?.order[2] ?? null : null;
-        }
-        case "matchWinner":
-          return eff[s.match] ?? null;
-        default:
-          return null;
-      }
-    };
-    for (const no of KO_ORDER) {
-      const tpl = KNOCKOUT_TEMPLATE[no];
-      const home = resolve(tpl.home);
-      const away = resolve(tpl.away);
-      koParticipants[no] = { home, away };
-      const pick = knockout[no];
-      if (pick != null && (pick === home || pick === away)) eff[no] = pick;
-    }
-    return { koParticipants, eff };
-  }, [tables, annex, knockout, KO_ORDER]);
+    const { participants, winners } = resolvePredictedBracket(order, thirds, knockout);
+    return { koParticipants: participants, eff: winners };
+  }, [order, thirds, knockout]);
 
   const champion = eff[104] ?? null;
   const thirdsResolved = thirds.length === MAX_THIRDS;

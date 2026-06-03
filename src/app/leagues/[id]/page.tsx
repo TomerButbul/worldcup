@@ -171,7 +171,7 @@ export default async function LeaguePage({
     const [matchesRes, teamsRes, lineupsRes] = await Promise.all([
       supabase
         .from("matches")
-        .select("id, stage, group_label, status, home_team_id, away_team_id, home_goals, away_goals, kickoff_at"),
+        .select("id, stage, group_label, status, home_team_id, away_team_id, home_goals, away_goals, winner_team_id, kickoff_at"),
       supabase.from("teams").select("id, name"),
       supabase.from("team_lineups").select("team_id, formation, xi"),
     ]);

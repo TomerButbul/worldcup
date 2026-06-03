@@ -7,6 +7,8 @@ import Flag from "@/components/Flag";
 import Ball from "@/components/art/Ball";
 import Trophy from "@/components/art/Trophy";
 import ShareButton from "./ShareButton";
+import KnockoutBracket from "@/components/KnockoutBracket";
+import { predictedBracketRounds } from "@/lib/bracket-core";
 
 // The signed-in user's OWN predictions recap for one league. Unlike the manager
 // profile page (which hides OTHER people's picks until the bracket locks), this
@@ -36,11 +38,11 @@ export default async function MyPredictionsPage({
   const locked = new Date(league.bracket_lock_at).getTime() <= nowMs();
 
   // ----- our own predictions (no lock gate — these are ours to see) -----------
-  const [{ data: prediction }, { data: matchPreds }, { data: groupMatches }] =
+  const [{ data: prediction }, { data: matchPreds }, { data: groupMatches }, { data: myProfile }] =
     await Promise.all([
       supabase
         .from("bracket_predictions")
-        .select("group_order, knockout, champion_team_id, awards")
+        .select("group_order, third_qualifiers, knockout, champion_team_id, awards")
         .eq("league_id", id)
         .eq("user_id", user.id)
         .maybeSingle(),
@@ -53,6 +55,7 @@ export default async function MyPredictionsPage({
         .from("matches")
         .select("id, group_label, home_team_id, away_team_id, stage")
         .order("kickoff_at"),
+      supabase.from("profiles").select("favorite_team_id").eq("id", user.id).maybeSingle(),
     ]);
 
   const teams = await getCachedTeams();
@@ -79,6 +82,16 @@ export default async function MyPredictionsPage({
   const orderedGroups = Object.entries(groupOrder)
     .filter(([, ids]) => ids.length === 4)
     .sort((a, b) => a[0].localeCompare(b[0]));
+
+  // ----- predicted knockout bracket (same resolution as the editor) -----------
+  const favoriteTeamId = myProfile?.favorite_team_id ?? null;
+  const { rounds: bracketRounds } = predictedBracketRounds(
+    groupOrder,
+    (prediction?.third_qualifiers ?? []) as string[],
+    (prediction?.knockout ?? {}) as Record<number, number>,
+  );
+  const bracketTeams: Record<number, { id: number; name: string; code: string | null; logo_url: string | null }> = {};
+  for (const t of teams) bracketTeams[t.id] = { id: t.id, name: t.name, code: t.code, logo_url: t.logo_url };
 
   type DBMatch = {
     id: number;
@@ -249,6 +262,26 @@ export default async function MyPredictionsPage({
           </div>
         )}
       </section>
+
+      {/* Predicted knockout bracket — same paged view as the editor. */}
+      {prediction && (
+        <section className="glass rounded-2xl p-5">
+          <h2 className="mb-1 flex items-center gap-1.5 font-display text-lg text-chalk">
+            <Trophy size={16} />Knockout bracket
+          </h2>
+          <p className="mb-3 text-xs text-chalk-dim">
+            {favoriteTeamId != null
+              ? "Tap through the rounds — gold traces your favorite's path."
+              : "Tap through the rounds to see who you sent through."}
+          </p>
+          <KnockoutBracket
+            rounds={bracketRounds}
+            teamsById={bracketTeams}
+            highlightIds={favoriteTeamId != null ? [favoriteTeamId] : []}
+            championNo={104}
+          />
+        </section>
+      )}
 
       {/* Knockout match picks — usually empty pre-tournament (fixtures TBD). */}
       {knockoutPicks.length > 0 && (

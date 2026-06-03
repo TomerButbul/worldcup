@@ -7,6 +7,8 @@ import Avatar from "@/components/Avatar";
 import Flag from "@/components/Flag";
 import Ball from "@/components/art/Ball";
 import Trophy from "@/components/art/Trophy";
+import KnockoutBracket from "@/components/KnockoutBracket";
+import { predictedBracketRounds } from "@/lib/bracket-core";
 
 // A "Manager" = a human participant in this league (NOT a football player).
 // Their predictions stay hidden until the bracket locks, so peeking can't
@@ -65,7 +67,7 @@ export default async function ManagerProfilePage({
     ? (
         await supabase
           .from("bracket_predictions")
-          .select("group_order, knockout, champion_team_id, awards")
+          .select("group_order, third_qualifiers, knockout, champion_team_id, awards")
           .eq("league_id", id)
           .eq("user_id", playerId)
           .maybeSingle()
@@ -107,6 +109,17 @@ export default async function ManagerProfilePage({
   const orderedGroups = Object.entries(groupOrder)
     .filter(([, ids]) => ids.length === 4)
     .sort((a, b) => a[0].localeCompare(b[0]));
+
+  // Their predicted knockout bracket (same resolution as the editor). favourite
+  // is the viewed manager's — its path through the bracket is highlighted gold.
+  const favoriteTeamId = profile.favorite_team_id ?? null;
+  const { rounds: bracketRounds } = predictedBracketRounds(
+    groupOrder,
+    (prediction?.third_qualifiers ?? []) as string[],
+    (prediction?.knockout ?? {}) as Record<number, number>,
+  );
+  const bracketTeams: Record<number, { id: number; name: string; code: string | null; logo_url: string | null }> = {};
+  for (const t of teams) bracketTeams[t.id] = { id: t.id, name: t.name, code: t.code, logo_url: t.logo_url };
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 p-4 sm:p-6">
@@ -222,6 +235,24 @@ export default async function ManagerProfilePage({
                 ))}
               </div>
             )}
+          </section>
+
+          {/* Predicted knockout bracket — same paged view as the editor. */}
+          <section className="glass rounded-2xl p-5">
+            <h2 className="mb-1 flex items-center gap-1.5 font-display text-lg text-chalk">
+              <Trophy size={16} />Knockout bracket
+            </h2>
+            <p className="mb-3 text-xs text-chalk-dim">
+              {favoriteTeamId != null
+                ? `Tap through the rounds — gold traces ${name}'s favourite.`
+                : "Tap through the rounds to see who they sent through."}
+            </p>
+            <KnockoutBracket
+              rounds={bracketRounds}
+              teamsById={bracketTeams}
+              highlightIds={favoriteTeamId != null ? [favoriteTeamId] : []}
+              championNo={104}
+            />
           </section>
         </>
       )}

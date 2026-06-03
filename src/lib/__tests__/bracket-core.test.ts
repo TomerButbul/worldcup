@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { ROUND32, BRACKET_TREE, THIRD_MATCHES, stageOf, rankThirdPlaceTeams, pickBestEightThirds, buildRound32, buildBracket, buildBracketFromOrder, predictedAdvancers, type GroupTables, type Round32 } from "@/lib/bracket-core";
+import { ROUND32, BRACKET_TREE, THIRD_MATCHES, stageOf, rankThirdPlaceTeams, pickBestEightThirds, buildRound32, buildBracket, buildBracketFromOrder, predictedAdvancers, resolvePredictedBracket, predictedBracketRounds, type GroupTables, type Round32 } from "@/lib/bracket-core";
 import type { GroupStat } from "@/lib/scoring-core";
 
 // Minimal table: only the 3rd-placed team's stats are needed for ranking.
@@ -147,5 +147,66 @@ describe("buildBracketFromOrder (table-pick model)", () => {
     expect(annex).toEqual({});
     expect(round32[73]).toEqual({ home: 2, away: 12 }); // runners still resolve
     expect(round32[79]).toEqual({ home: 1, away: null }); // 1A set, third slot unresolved
+  });
+});
+
+describe("resolvePredictedBracket (shared editor/recap resolution)", () => {
+  const GROUPS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"];
+  const groupOrder: Record<string, number[]> = {};
+  GROUPS.forEach((g, i) => {
+    groupOrder[g] = [i * 10, i * 10 + 1, i * 10 + 2, i * 10 + 3];
+  });
+  const thirds = ["A", "B", "C", "D", "E", "F", "G", "H"];
+
+  it("resolves all 16 Round-of-32 ties from order + 8 thirds", () => {
+    const { participants } = resolvePredictedBracket(groupOrder, thirds, {});
+    for (const no of [73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88]) {
+      expect(participants[no].home).not.toBeNull();
+      expect(participants[no].away).not.toBeNull();
+    }
+    expect(participants[73]).toEqual({ home: 1, away: 11 }); // 2A v 2B (runners)
+  });
+
+  it("propagates a winner pick into the next round (73 & 75 feed R16 match 90)", () => {
+    const { participants } = resolvePredictedBracket(groupOrder, thirds, { 73: 1, 75: 50 });
+    // 90 = W(73) v W(75) per BRACKET_TREE
+    expect(participants[90]).toEqual({ home: 1, away: 50 });
+  });
+
+  it("drops a pick that isn't one of the tie's two teams", () => {
+    const { winners } = resolvePredictedBracket(groupOrder, thirds, { 73: 999 });
+    expect(winners[73]).toBeUndefined();
+  });
+
+  it("crowns the champion once a full home-advancing path is supplied", () => {
+    // Iterate to a fixpoint, always advancing the home team, until 104 resolves.
+    let picks: Record<number, number> = {};
+    for (let pass = 0; pass < 7; pass++) {
+      const { participants } = resolvePredictedBracket(groupOrder, thirds, picks);
+      picks = {};
+      for (const [no, m] of Object.entries(participants)) {
+        if (m.home != null) picks[Number(no)] = m.home;
+      }
+    }
+    const { champion } = resolvePredictedBracket(groupOrder, thirds, picks);
+    expect(champion).not.toBeNull();
+    expect(champion).toBe(picks[104]);
+  });
+
+  it("predictedBracketRounds shapes 5 ordered rounds (16…1 matches)", () => {
+    const { rounds } = predictedBracketRounds(groupOrder, thirds, {});
+    expect(rounds.map((r) => r.stage)).toEqual([
+      "round_of_32",
+      "round_of_16",
+      "quarter",
+      "semi",
+      "final",
+    ]);
+    expect(rounds[0].matches).toHaveLength(16);
+    expect(rounds[4].matches).toHaveLength(1);
+    expect(rounds[4].matches[0].no).toBe(104);
+    // matches ascending by canonical no within a round
+    const r32 = rounds[0].matches.map((m) => m.no);
+    expect(r32).toEqual([...r32].sort((a, b) => a - b));
   });
 });
