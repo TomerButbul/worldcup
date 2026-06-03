@@ -209,6 +209,12 @@ export async function GET(request: NextRequest) {
     // 2d) Most-recent lineup per team (on demand — ~2 calls/team).
     if (request.nextUrl.searchParams.get("teamlineups") === "1") {
       const { data: allTeams } = await supabase.from("teams").select("id");
+      const POS_FROM_LETTER: Record<string, string> = {
+        G: "Goalkeeper",
+        D: "Defender",
+        M: "Midfielder",
+        F: "Attacker",
+      };
       let done = 0;
       for (const t of allTeams ?? []) {
         const fx = await fetchTeamLastFixture(t.id);
@@ -217,16 +223,62 @@ export async function GET(request: NextRequest) {
         const lus = await fetchLineups(fid);
         const l = lus.find((x) => x.team.id === t.id);
         if (!l) continue;
+
+        // Raw XI as reported by the lineup feed.
+        const rawXI = l.startXI.map((x) => ({
+          player_id: x.player.id,
+          name: x.player.name,
+          number: x.player.number,
+          pos: x.player.pos,
+          grid: x.player.grid,
+        }));
+
+        // Drop anyone not in the current WC squad (e.g. friendly-only call-ups)
+        // and backfill the slot with a same-position squad member so the
+        // formation grid stays intact. If we have no squad, leave the XI as-is.
+        const { data: squad } = await supabase
+          .from("players")
+          .select("id, name, number, position")
+          .eq("team_id", t.id)
+          .eq("in_squad", true);
+
+        let xi = rawXI;
+        if (squad && squad.length) {
+          const squadIds = new Set(squad.map((p) => p.id));
+          const used = new Set<number>();
+          // Reserve every kept player up front so backfills can't duplicate them.
+          for (const slot of rawXI) {
+            if (squadIds.has(slot.player_id)) used.add(slot.player_id);
+          }
+          const cleaned: typeof rawXI = [];
+          for (const slot of rawXI) {
+            if (squadIds.has(slot.player_id)) {
+              cleaned.push(slot);
+              continue;
+            }
+            const want = POS_FROM_LETTER[slot.pos ?? ""];
+            const rep = squad.find(
+              (p) => !used.has(p.id) && (want == null || p.position === want),
+            );
+            if (rep) {
+              cleaned.push({
+                player_id: rep.id,
+                name: rep.name,
+                number: rep.number,
+                pos: slot.pos,
+                grid: slot.grid,
+              });
+              used.add(rep.id);
+            }
+            // else: no same-position squad player left → drop the slot.
+          }
+          xi = cleaned;
+        }
+
         await supabase.from("team_lineups").upsert({
           team_id: t.id,
           formation: l.formation ?? null,
-          xi: l.startXI.map((x) => ({
-            player_id: x.player.id,
-            name: x.player.name,
-            number: x.player.number,
-            pos: x.player.pos,
-            grid: x.player.grid,
-          })),
+          xi,
           fixture_id: fid,
           updated_at: new Date().toISOString(),
         });

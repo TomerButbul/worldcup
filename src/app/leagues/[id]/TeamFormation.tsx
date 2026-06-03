@@ -2,6 +2,8 @@
 
 import { motion } from "motion/react";
 import PlayerAvatar from "@/components/PlayerAvatar";
+import { PlayerCardButton } from "@/components/PlayerCard";
+import { rowLabels } from "@/lib/positions";
 
 type LP = { player_id: number; name: string; number: number | null; pos: string | null; grid: string | null };
 export type TeamLineup = { formation: string | null; xi: LP[] };
@@ -35,12 +37,16 @@ function positioned(xi: LP[]) {
     if (!byRow.has(x.r)) byRow.set(x.r, []);
     byRow.get(x.r)!.push(x);
   }
-  const out: { p: LP; x: number; y: number }[] = [];
+  const out: { p: LP; x: number; y: number; label: string }[] = [];
   for (const [r, players] of byRow) {
     const sorted = [...players].sort((a, b) => a.c - b.c);
     const frac = maxRow > 1 ? (r - 1) / (maxRow - 1) : 0; // 0 = keeper, 1 = forwards
+    const line = sorted.map((x) => x.p.pos).find(Boolean) ?? "M";
+    const labels = rowLabels(line, sorted.length, frac);
     // Half-pitch: GK near the goal line (bottom), forwards near the halfway line (top).
-    sorted.forEach((x, i) => out.push({ p: x.p, x: ((i + 0.5) / sorted.length) * 100, y: 88 - frac * 74 }));
+    sorted.forEach((x, i) =>
+      out.push({ p: x.p, x: ((i + 0.5) / sorted.length) * 100, y: 88 - frac * 74, label: labels[i] ?? "" }),
+    );
   }
   return out;
 }
@@ -64,18 +70,30 @@ export default function TeamFormation({ lineup, teamName }: { lineup: TeamLineup
         <div className="absolute bottom-0 left-1/2 h-12 w-28 -translate-x-1/2 border-x border-t border-white/25" />
         <div className="absolute bottom-0 left-1/2 h-5 w-14 -translate-x-1/2 border-x border-t border-white/25" />
         <div className="absolute -top-9 left-1/2 h-16 w-16 -translate-x-1/2 rounded-full border border-white/25" />
-        {pos.map(({ p, x, y }) => (
+        {pos.map(({ p, x, y, label }) => (
           <motion.div
             key={p.player_id}
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="absolute flex w-14 -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-0.5"
+            className="absolute w-14 -translate-x-1/2 -translate-y-1/2"
             style={{ left: `${x}%`, top: `${y}%` }}
           >
-            <PlayerAvatar playerId={p.player_id} name={p.name} size={30} className="border-2 border-white/80 shadow" />
-            <span className="max-w-[3.5rem] truncate rounded bg-night/45 px-1 text-[8px] leading-tight text-white">
-              {p.name.split(" ").slice(-1)[0] ?? p.name}
-            </span>
+            <PlayerCardButton
+              playerId={p.player_id}
+              name={p.name}
+              detailPos={label}
+              className="flex w-full flex-col items-center gap-0.5"
+            >
+              <PlayerAvatar playerId={p.player_id} name={p.name} size={30} className="border-2 border-white/80 shadow" />
+              {label && (
+                <span className="rounded bg-gold/25 px-1 text-[7px] font-bold uppercase leading-tight text-gold">
+                  {label}
+                </span>
+              )}
+              <span className="max-w-[3.5rem] truncate rounded bg-night/45 px-1 text-[8px] leading-tight text-white">
+                {p.name.split(" ").slice(-1)[0] ?? p.name}
+              </span>
+            </PlayerCardButton>
           </motion.div>
         ))}
       </div>

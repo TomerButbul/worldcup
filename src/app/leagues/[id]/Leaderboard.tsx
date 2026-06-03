@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { createClient } from "@/lib/supabase/client";
 import Flag from "@/components/Flag";
@@ -163,9 +164,14 @@ export default function Leaderboard({
                       {isWinner ? "👑" : MEDALS[i] ?? <span className="text-chalk-dim">{i + 1}</span>}
                     </span>
                     <span className="flex min-w-0 items-center gap-1.5">
-                      <Avatar url={r.avatarUrl} name={r.name} size={22} />
-                      {r.favTeamId && <Flag teamId={r.favTeamId} size={16} />}
-                      <span className="min-w-0 flex-1 truncate font-semibold text-chalk">{r.name}</span>
+                      <Link
+                        href={`/leagues/${leagueId}/players/${r.user_id}`}
+                        className="flex min-w-0 flex-1 items-center gap-1.5 hover:opacity-80"
+                      >
+                        <Avatar url={r.avatarUrl} name={r.name} size={22} />
+                        {r.favTeamId && <Flag teamId={r.favTeamId} size={16} />}
+                        <span className="min-w-0 flex-1 truncate font-semibold text-chalk">{r.name}</span>
+                      </Link>
                       {isMe && (
                         <span className="shrink-0 rounded bg-grass/20 px-1.5 py-0.5 text-[10px] font-bold text-grass">
                           you

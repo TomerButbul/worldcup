@@ -9,6 +9,7 @@ import { burst } from "@/lib/confetti";
 import { goalCelebration } from "@/lib/goal";
 import Flag from "@/components/Flag";
 import PlayerAvatar from "@/components/PlayerAvatar";
+import { PlayerCardButton } from "@/components/PlayerCard";
 import MatchCountdown from "@/components/MatchCountdown";
 import { nowMs } from "@/lib/clock";
 import { stageLabel } from "@/lib/stages";
@@ -331,21 +332,29 @@ function TeamScorers({
     ) : null;
     if (count === 0) {
       return (
-        <button
+        <span
           key={p.id}
-          onClick={() => onAdjust(p.id, 1)}
-          disabled={atCap}
-          className="flex items-center gap-1.5 rounded-full border border-night/10 py-1 pl-0.5 pr-2.5 text-xs text-chalk transition hover:bg-night/5 disabled:opacity-40"
+          className="flex items-center rounded-full border border-night/10 text-xs text-chalk transition hover:bg-night/5"
         >
-          <PlayerAvatar playerId={p.id} name={p.name} size={20} />
-          {p.name}
-          {badgeEl}
-        </button>
+          <PlayerCardButton playerId={p.id} name={p.name} className="shrink-0 rounded-full py-1 pl-0.5">
+            <PlayerAvatar playerId={p.id} name={p.name} size={20} />
+          </PlayerCardButton>
+          <button
+            onClick={() => onAdjust(p.id, 1)}
+            disabled={atCap}
+            className="flex items-center gap-1 py-1 pl-1.5 pr-2.5 disabled:opacity-40"
+          >
+            {p.name}
+            {badgeEl}
+          </button>
+        </span>
       );
     }
     return (
       <span key={p.id} className="flex items-center gap-1 rounded-full border border-grass bg-grass/15 py-0.5 pl-0.5 pr-1 text-xs text-chalk">
-        <PlayerAvatar playerId={p.id} name={p.name} size={20} />
+        <PlayerCardButton playerId={p.id} name={p.name} className="shrink-0 rounded-full">
+          <PlayerAvatar playerId={p.id} name={p.name} size={20} />
+        </PlayerCardButton>
         <span className="font-semibold">{p.name}</span>
         {badgeEl}
         <span className="font-display text-grass">×{count}</span>

@@ -1,6 +1,8 @@
 "use client";
 
 import { motion } from "motion/react";
+import { PlayerCardButton } from "@/components/PlayerCard";
+import { rowLabels } from "@/lib/positions";
 
 export type LineupPlayer = {
   player_id: number;
@@ -94,15 +96,20 @@ function positioned(xi: LineupPlayer[], half: "top" | "bottom") {
     if (!byRow.has(x.r)) byRow.set(x.r, []);
     byRow.get(x.r)!.push(x);
   }
-  const out: { p: LineupPlayer; x: number; y: number }[] = [];
+  const out: { p: LineupPlayer; x: number; y: number; label: string }[] = [];
+  const invert = half === "top"; // the top team faces down → mirror left/right labels
   for (const [r, players] of byRow) {
     const sorted = [...players].sort((a, b) => a.c - b.c);
     const frac = maxRow > 1 ? (r - 1) / (maxRow - 1) : 0; // 0 = keeper, 1 = forwards
+    const line = sorted.map((x) => x.p.pos).find(Boolean) ?? "M";
+    const labels = rowLabels(line, sorted.length, frac);
+    if (invert) labels.reverse();
     sorted.forEach((x, i) => {
       out.push({
         p: x.p,
         x: ((i + 0.5) / sorted.length) * 100,
         y: half === "bottom" ? 96 - frac * 40 : 4 + frac * 40,
+        label: labels[i] ?? "",
       });
     });
   }
@@ -128,23 +135,37 @@ function PlayerChip({
   p,
   stat,
   tone,
+  label,
 }: {
   p: LineupPlayer;
   stat: Map<number, Stat>;
   tone: "home" | "away";
+  label?: string;
 }) {
   const first = p.name.split(" ").slice(-1)[0] ?? p.name;
   return (
     <motion.div layout layoutId={`pl-${p.player_id}`} className="flex w-14 flex-col items-center gap-0.5">
-      <span
-        className={`relative flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-bold tabular-nums shadow ${
-          tone === "home" ? "bg-grass text-night" : "bg-white text-night"
-        }`}
+      <PlayerCardButton
+        playerId={p.player_id}
+        name={p.name}
+        detailPos={label}
+        className="flex w-full flex-col items-center gap-0.5"
       >
-        {p.number ?? "•"}
-        <Badges s={stat.get(p.player_id)} />
-      </span>
-      <span className="max-w-[3.5rem] truncate text-[9px] leading-tight text-chalk">{first}</span>
+        <span
+          className={`relative flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-bold tabular-nums shadow ${
+            tone === "home" ? "bg-grass text-night" : "bg-white text-night"
+          }`}
+        >
+          {p.number ?? "•"}
+          <Badges s={stat.get(p.player_id)} />
+        </span>
+        <span className="max-w-[3.5rem] truncate text-[9px] leading-tight text-chalk">{first}</span>
+        {label && (
+          <span className="rounded bg-night/40 px-1 text-[7px] font-bold uppercase leading-none text-gold">
+            {label}
+          </span>
+        )}
+      </PlayerCardButton>
     </motion.div>
   );
 }
@@ -187,14 +208,14 @@ export default function Pitch({
         <div className="absolute left-1/2 top-0 h-12 w-28 -translate-x-1/2 border-x border-b border-white/25" />
         <div className="absolute bottom-0 left-1/2 h-12 w-28 -translate-x-1/2 border-x border-t border-white/25" />
 
-        {aPos.map(({ p, x, y }) => (
+        {aPos.map(({ p, x, y, label }) => (
           <div key={p.player_id} className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${x}%`, top: `${y}%` }}>
-            <PlayerChip p={p} stat={stat} tone="away" />
+            <PlayerChip p={p} stat={stat} tone="away" label={label} />
           </div>
         ))}
-        {hPos.map(({ p, x, y }) => (
+        {hPos.map(({ p, x, y, label }) => (
           <div key={p.player_id} className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${x}%`, top: `${y}%` }}>
-            <PlayerChip p={p} stat={stat} tone="home" />
+            <PlayerChip p={p} stat={stat} tone="home" label={label} />
           </div>
         ))}
       </div>
