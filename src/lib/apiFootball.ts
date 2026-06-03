@@ -56,6 +56,8 @@ export interface AfFixtureEvent {
   type: string; // "Goal", "Card", "subst", "Var"
   detail: string; // "Normal Goal" | "Penalty" | "Own Goal" | "Yellow Card" | "Red Card" | "Second Yellow card"
   player: { id: number | null; name: string | null };
+  // For a Goal: the assisting player. For a subst: the player coming OFF.
+  assist: { id: number | null; name: string | null };
   team: { id: number };
   time: { elapsed: number | null; extra: number | null };
 }
@@ -79,9 +81,16 @@ export function fetchFixtures() {
   return apiGet<AfFixture>("/fixtures", { league: LEAGUE(), season: SEASON() }, 60);
 }
 
-// Goal events for a single finished fixture — cache long once final.
-export function fetchFixtureEvents(fixtureId: number) {
-  return apiGet<AfFixtureEvent>("/fixtures/events", { fixture: fixtureId }, 3600);
+// Only currently-live fixtures (scores + status) — one cheap call for the live
+// sync. Cache 20s so the per-minute live pinger always gets fresh numbers.
+export function fetchLiveFixtures() {
+  return apiGet<AfFixture>("/fixtures", { league: LEAGUE(), season: SEASON(), live: "all" }, 20);
+}
+
+// Goal/card/sub events for a fixture. Long cache for finished matches; pass a
+// short revalidate (e.g. 20s) for live ones so the pitch stays current.
+export function fetchFixtureEvents(fixtureId: number, revalidateSeconds = 3600) {
+  return apiGet<AfFixtureEvent>("/fixtures/events", { fixture: fixtureId }, revalidateSeconds);
 }
 
 export interface AfSquad {
@@ -101,10 +110,15 @@ export function fetchSquad(teamId: number) {
   return apiGet<AfSquad>("/players/squads", { team: teamId }, 86400);
 }
 
+export interface AfLineupPlayer {
+  // grid is "row:col" (row 1 = keeper, higher = more advanced; col = lateral slot).
+  player: { id: number; name: string; number: number | null; pos: string | null; grid: string | null };
+}
 export interface AfLineup {
-  team: { id: number };
-  startXI: { player: { id: number } }[];
-  substitutes: { player: { id: number } }[];
+  team: { id: number; name: string };
+  formation: string | null;
+  startXI: AfLineupPlayer[];
+  substitutes: AfLineupPlayer[];
 }
 
 // Official XI + subs for a fixture — only published ~20-40 min before kickoff.

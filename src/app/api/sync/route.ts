@@ -7,7 +7,9 @@ import {
   fetchTeams,
   fetchStandings,
   fetchFixtures,
+  fetchLiveFixtures,
   fetchFixtureEvents,
+  fetchLineups,
   fetchSquad,
   fetchPlayersByTeam,
   mapStage,
@@ -31,6 +33,82 @@ export async function GET(request: NextRequest) {
   const summary: Record<string, number> = {};
 
   try {
+    // Live mode: lightweight per-minute pull of currently-live fixtures + their
+    // lineups and events (for the pitch). The full sync (every 10 min) owns
+    // teams/standings/squads/scoring — this stays cheap so it can run often.
+    if (request.nextUrl.searchParams.get("mode") === "live") {
+      const liveFixtures = await fetchLiveFixtures();
+      if (liveFixtures.length) {
+        await supabase.from("matches").upsert(
+          liveFixtures.map((f) => ({
+            id: f.fixture.id,
+            status: mapStatus(f.fixture.status.short),
+            home_goals: f.goals.home,
+            away_goals: f.goals.away,
+            winner_team_id: f.teams.home?.winner
+              ? (f.teams.home?.id ?? null)
+              : f.teams.away?.winner
+                ? (f.teams.away?.id ?? null)
+                : null,
+            updated_at: new Date().toISOString(),
+          })),
+        );
+      }
+      let lineups = 0;
+      let events = 0;
+      for (const f of liveFixtures) {
+        const fid = f.fixture.id;
+        const lus = await fetchLineups(fid);
+        if (lus.length) {
+          await supabase.from("match_lineups").upsert(
+            lus.map((l) => ({
+              match_id: fid,
+              team_id: l.team.id,
+              formation: l.formation ?? null,
+              xi: l.startXI.map((x) => ({
+                player_id: x.player.id,
+                name: x.player.name,
+                number: x.player.number,
+                pos: x.player.pos,
+                grid: x.player.grid,
+              })),
+              subs: l.substitutes.map((x) => ({
+                player_id: x.player.id,
+                name: x.player.name,
+                number: x.player.number,
+                pos: x.player.pos,
+              })),
+              updated_at: new Date().toISOString(),
+            })),
+            { onConflict: "match_id,team_id" },
+          );
+          lineups += lus.length;
+        }
+        // Replace the event timeline for this match (no stable ids → idempotent).
+        const evs = await fetchFixtureEvents(fid, 20);
+        await supabase.from("match_events").delete().eq("match_id", fid);
+        const rows = evs
+          .filter((e) => ["Goal", "Card", "subst"].includes(e.type))
+          .map((e, i) => ({
+            match_id: fid,
+            team_id: e.team?.id ?? null,
+            type: e.type.toLowerCase(), // goal | card | subst
+            detail: e.detail ?? null,
+            player_id: e.player?.id ?? null,
+            player_name: e.player?.name ?? null,
+            related_id: e.assist?.id ?? null,
+            related_name: e.assist?.name ?? null,
+            minute: e.time?.elapsed ?? null,
+            sort: i,
+          }));
+        if (rows.length) {
+          await supabase.from("match_events").insert(rows);
+          events += rows.length;
+        }
+      }
+      return NextResponse.json({ ok: true, mode: "live", live: liveFixtures.length, lineups, events });
+    }
+
     // 1) Teams
     const teams = await fetchTeams();
     if (teams.length) {

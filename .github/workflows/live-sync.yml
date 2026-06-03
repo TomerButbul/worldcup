@@ -1,0 +1,27 @@
+name: Live pitch sync
+
+# Pulls currently-live fixtures + their lineups/events for the live pitch.
+# NOTE: GitHub throttles high-frequency schedules to ~5 min in practice, so this
+# is a best-effort baseline. For a true ~60s cadence, point a free external
+# pinger (e.g. cron-job.org) at the same URL every minute. The endpoint is cheap
+# when nothing is live (one cached API call returns an empty set).
+on:
+  schedule:
+    - cron: "*/1 * * * *" # best-effort every minute
+  workflow_dispatch: {}
+
+concurrency:
+  group: live-pitch-sync
+  cancel-in-progress: false
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger /api/sync?mode=live
+        run: |
+          curl -fsS --max-time 60 \
+            -H "Authorization: Bearer ${{ secrets.SYNC_SECRET }}" \
+            "https://worldcup-liart.vercel.app/api/sync?mode=live" -o response.json
+          echo "Live sync response:"
+          cat response.json

@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import Flag from "@/components/Flag";
 import Avatar from "@/components/Avatar";
+import Pitch, { type EventRow, type LineupRow } from "./Pitch";
 import { stageLabel } from "@/lib/stages";
 import AutoRefresh from "@/components/AutoRefresh";
 import { nowMs, KICKOFF_MS } from "@/lib/clock";
@@ -48,7 +49,7 @@ export default async function MatchSummaryPage({
     (t): t is number => t != null,
   );
 
-  const [{ data: teams }, { data: goals }, { data: cards }, { data: players }, { data: preds }, { data: brackets }] =
+  const [{ data: teams }, { data: goals }, { data: cards }, { data: players }, { data: preds }, { data: brackets }, { data: lineupRows }, { data: eventRows }] =
     await Promise.all([
       teamIds.length
         ? supabase.from("teams").select("id, name, code, logo_url").in("id", teamIds)
@@ -69,6 +70,12 @@ export default async function MatchSummaryPage({
         .from("bracket_predictions")
         .select("user_id, group_scores, profiles ( display_name, team_name, avatar_url )")
         .eq("league_id", id),
+      supabase.from("match_lineups").select("team_id, formation, xi, subs").eq("match_id", matchNum),
+      supabase
+        .from("match_events")
+        .select("team_id, type, detail, player_id, player_name, related_id, related_name, minute")
+        .eq("match_id", matchNum)
+        .order("sort"),
     ]);
 
   const teamById = new Map((teams ?? []).map((t) => [t.id, t]));
@@ -77,6 +84,10 @@ export default async function MatchSummaryPage({
   const away = match.away_team_id ? teamById.get(match.away_team_id) : null;
   const homeName = home?.name ?? "TBD";
   const awayName = away?.name ?? "TBD";
+
+  const lineupByTeam = new Map((lineupRows ?? []).map((l) => [l.team_id, l]));
+  const homeLineup = (match.home_team_id != null ? lineupByTeam.get(match.home_team_id) : null) ?? null;
+  const awayLineup = (match.away_team_id != null ? lineupByTeam.get(match.away_team_id) : null) ?? null;
 
   const finished = match.status === "finished";
   const live = match.status === "live";
@@ -272,6 +283,19 @@ export default async function MatchSummaryPage({
           </div>
         )}
       </div>
+
+      {(homeLineup || awayLineup) && (
+        <section className="space-y-3">
+          <h2 className="font-display text-xl text-chalk">📋 Lineups &amp; pitch</h2>
+          <Pitch
+            home={homeLineup as unknown as LineupRow | null}
+            away={awayLineup as unknown as LineupRow | null}
+            homeName={homeName}
+            awayName={awayName}
+            events={(eventRows ?? []) as unknown as EventRow[]}
+          />
+        </section>
+      )}
 
       <section className="space-y-3">
         <h2 className="font-display text-xl text-chalk">
