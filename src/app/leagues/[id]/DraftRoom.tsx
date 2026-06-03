@@ -71,30 +71,53 @@ export default function DraftRoom({
     if (m.data) setMembers((m.data as unknown as MemberQueryRow[]).map(mapMember));
   }, [supabase, leagueId]);
 
-  // Live: any change to state, picks, or seats refetches the room.
+  // Seat changes happen only in the lobby (low frequency) and the realtime
+  // payload lacks the joined profile, so there we refetch just the members.
+  const refreshMembers = useCallback(async () => {
+    const { data } = await supabase
+      .from("league_members")
+      .select("user_id, draft_seat, profiles ( display_name, team_name, avatar_url )")
+      .eq("league_id", leagueId);
+    if (data) setMembers((data as unknown as MemberQueryRow[]).map(mapMember));
+  }, [supabase, leagueId]);
+
+  // Live updates: apply each change incrementally from the payload we already
+  // received, instead of re-fetching all three tables on every event. (Across
+  // 16 clients and two events per pick, the old refetch was a query storm.)
   useEffect(() => {
     const channel = supabase
       .channel(`draft-${leagueId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "draft_state", filter: `league_id=eq.${leagueId}` },
-        refresh,
+        (payload) => {
+          if (payload.new) setState(payload.new as DraftStateRow);
+        },
       )
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "draft_picks", filter: `league_id=eq.${leagueId}` },
-        refresh,
+        { event: "INSERT", schema: "public", table: "draft_picks", filter: `league_id=eq.${leagueId}` },
+        (payload) => {
+          const r = payload.new as { user_id: string; pot: number; slot: number; pick_no: number };
+          setPicks((cur) =>
+            cur.some((p) => p.pick_no === r.pick_no)
+              ? cur
+              : [...cur, { user_id: r.user_id, pot: r.pot, slot: r.slot, pick_no: r.pick_no }].sort(
+                  (a, b) => a.pick_no - b.pick_no,
+                ),
+          );
+        },
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "league_members", filter: `league_id=eq.${leagueId}` },
-        refresh,
+        refreshMembers,
       )
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [supabase, leagueId, refresh]);
+  }, [supabase, leagueId, refreshMembers]);
 
   // Call a draft RPC; surface errors and refetch on success.
   const call = useCallback(
@@ -157,17 +180,26 @@ export default function DraftRoom({
 
   // --- 30s soft clock: only the on-the-clock client auto-picks at zero -----
   const firedRef = useRef(-1);
+  const lastSecRef = useRef<number | null>(null);
   useEffect(() => {
     const active =
       state.status === "in_progress" && state.timer_enabled && !!state.turn_started_at;
     const startedAt = state.turn_started_at ? new Date(state.turn_started_at).getTime() : 0;
     const tick = () => {
       if (!active) {
-        setRemaining(null);
+        if (lastSecRef.current !== null) {
+          lastSecRef.current = null;
+          setRemaining(null);
+        }
         return;
       }
       const rem = Math.max(0, TURN_SECONDS - (Date.now() - startedAt) / 1000);
-      setRemaining(rem);
+      const sec = Math.ceil(rem);
+      // Only re-render when the visible second changes (was 4x/sec).
+      if (sec !== lastSecRef.current) {
+        lastSecRef.current = sec;
+        setRemaining(rem);
+      }
       if (rem <= 0 && isMyTurn && firedRef.current !== state.current_pick_index) {
         firedRef.current = state.current_pick_index;
         const pot = turnFor(state.current_pick_index).pot;

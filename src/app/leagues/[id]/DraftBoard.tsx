@@ -145,9 +145,8 @@ export default function DraftBoard({
             const drafter = pick ? memberById.get(pick.user_id) : null;
             const isOpen = !pick;
             return (
-              <motion.button
+              <button
                 key={t.name}
-                layout
                 onClick={() => clickTeam(slot)}
                 disabled={busy || !isOpen || !canActOnTeam}
                 className={`flex items-center gap-3 rounded-2xl border p-3 text-left transition ${
@@ -170,7 +169,7 @@ export default function DraftBoard({
                 ) : (
                   <span className="shrink-0 text-sm">✓</span>
                 )}
-              </motion.button>
+              </button>
             );
           })}
         </div>

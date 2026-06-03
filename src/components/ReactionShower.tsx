@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 // *broadcast* (ephemeral — no DB writes), so every connected manager sees the
 // same emoji rain in real time. Spam away; we just cap concurrent sprites.
 const EMOJIS = ["🔥", "😂", "💩", "🤡", "🧠", "👀"];
-const MAX = 70;
+const MAX = 36;
 
 interface Floater {
   id: number;
