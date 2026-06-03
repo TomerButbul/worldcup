@@ -2,9 +2,9 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import Flag from "@/components/Flag";
-import Avatar from "@/components/Avatar";
 import Ball from "@/components/art/Ball";
 import Pitch, { type EventRow, type LineupRow } from "./Pitch";
+import MatchPredictions from "./MatchPredictions";
 import MatchTabs from "./MatchTabs";
 import { stageLabel } from "@/lib/stages";
 import AutoRefresh from "@/components/AutoRefresh";
@@ -212,6 +212,9 @@ export default async function MatchSummaryPage({
     name: string;
     avatarUrl: string | null;
     score: string | null;
+    homeGoals: number | null;
+    awayGoals: number | null;
+    penWinnerTeamId: number | null;
     scorerNames: string[];
     points: number | null;
     isMe: boolean;
@@ -234,6 +237,9 @@ export default async function MatchSummaryPage({
           name: nameOf(prof),
           avatarUrl: prof?.avatar_url ?? null,
           score: gs ? `${gs.h}–${gs.a}` : null,
+          homeGoals: gs?.h ?? null,
+          awayGoals: gs?.a ?? null,
+          penWinnerTeamId: null,
           scorerNames: scorerLabelsOf(sg),
           points: finished
             ? scoreLive(cfg, actual, [{ match_id: matchNum, home_goals: null, away_goals: null, scorer_goals: sg }])
@@ -256,6 +262,9 @@ export default async function MatchSummaryPage({
                 p.pen_winner_team_id != null ? ` (🥅 ${teamById.get(p.pen_winner_team_id)?.name ?? "?"})` : ""
               }`
             : null,
+        homeGoals: p.home_goals,
+        awayGoals: p.away_goals,
+        penWinnerTeamId: p.pen_winner_team_id,
         scorerNames: scorerLabelsOf(sg),
         points: finished
           ? scoreLive(cfg, actual, [
@@ -437,38 +446,7 @@ export default async function MatchSummaryPage({
             predictions are revealed the moment this match kicks off.
           </p>
         ) : (
-          <ul className="space-y-2">
-            {predRows.map((r) => (
-              <li
-                key={r.userId}
-                className={`flex items-center gap-3 rounded-2xl glass p-3 ${
-                  r.isMe ? "border-grass/50 bg-grass/5" : ""
-                }`}
-              >
-                <Avatar url={r.avatarUrl} name={r.name} size={36} />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-chalk">
-                    {r.name} {r.isMe && <span className="text-xs text-grass">(you)</span>}
-                  </p>
-                  {r.scorerNames.length > 0 && (
-                    <p className="truncate text-xs text-chalk-dim"><Ball size={13} className="mr-1 inline-block align-[-2px]" />{r.scorerNames.join(", ")}</p>
-                  )}
-                </div>
-                {r.score && (
-                  <span className="font-display text-lg text-chalk">{r.score}</span>
-                )}
-                {r.points != null && (
-                  <span
-                    className={`shrink-0 rounded-lg px-2 py-1 text-xs font-bold ${
-                      r.points > 0 ? "bg-grass/15 text-grass" : "bg-night/5 text-chalk-dim"
-                    }`}
-                  >
-                    +{r.points}
-                  </span>
-                )}
-              </li>
-            ))}
-          </ul>
+          <MatchPredictions home={home ?? null} away={away ?? null} rows={predRows} />
         )}
       </section>
     );
