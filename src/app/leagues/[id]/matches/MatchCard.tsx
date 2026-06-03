@@ -275,6 +275,16 @@ export default function MatchCard({
   );
 }
 
+const POS_SHORT: Record<string, string> = { Goalkeeper: "GK", Defender: "DF", Midfielder: "MF", Attacker: "FW" };
+function posShort(pos: string | null | undefined): string {
+  if (!pos) return "";
+  return POS_SHORT[pos] ?? pos.slice(0, 3).toUpperCase();
+}
+const POS_ORDER: Record<string, number> = { Goalkeeper: 0, Defender: 1, Midfielder: 2, Attacker: 3 };
+function posOrder(pos: string | null | undefined): number {
+  return pos ? (POS_ORDER[pos] ?? 4) : 5;
+}
+
 function TeamScorers({
   label,
   players,
@@ -300,18 +310,23 @@ function TeamScorers({
   // already-picked player), starters first. Otherwise show the full squad.
   const rank = (id: number) => (starters.has(id) ? 0 : subs.has(id) ? 1 : 2);
   const inMain = (id: number) => starters.has(id) || subs.has(id) || (scorerGoals[String(id)] ?? 0) > 0;
-  // With a lineup (official XI or the team's last XI), show that XI up front and
-  // tuck the rest of the squad into a collapsed "Full squad" section.
-  const list = hasLineup ? players.filter((p) => inMain(p.id)).sort((a, b) => rank(a.id) - rank(b.id)) : players;
-  const bench = hasLineup ? players.filter((p) => !inMain(p.id)) : [];
-  const badgeFor = (id: number) => (!hasLineup ? null : starters.has(id) ? "XI" : subs.has(id) ? "sub" : null);
+  const byPos = (a: Player, b: Player) =>
+    posOrder(a.position) - posOrder(b.position) || a.name.localeCompare(b.name);
+  // With a lineup (official XI or the team's last XI), show that XI up front,
+  // ordered like a team sheet (GK → DEF → MID → FWD), and tuck the rest of the
+  // squad into a collapsed "Full squad" section.
+  const list = hasLineup
+    ? players.filter((p) => inMain(p.id)).sort((a, b) => rank(a.id) - rank(b.id) || byPos(a, b))
+    : [...players].sort(byPos);
+  const bench = hasLineup ? players.filter((p) => !inMain(p.id)).sort(byPos) : [];
 
   const renderChip = (p: Player) => {
     const count = scorerGoals[String(p.id)] ?? 0;
-    const b = badgeFor(p.id);
-    const badgeEl = b ? (
-      <span className={`ml-0.5 rounded px-1 text-[9px] font-bold uppercase ${b === "XI" ? "bg-grass/20 text-grass" : "bg-night/10 text-chalk-dim"}`}>
-        {b}
+    const pos = posShort(p.position);
+    const starter = starters.has(p.id);
+    const badgeEl = pos ? (
+      <span className={`ml-0.5 rounded px-1 text-[9px] font-bold uppercase ${starter ? "bg-grass/20 text-grass" : "bg-night/10 text-chalk-dim"}`}>
+        {pos}
       </span>
     ) : null;
     if (count === 0) {

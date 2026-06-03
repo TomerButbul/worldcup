@@ -78,6 +78,7 @@ export function getCachedPlayer(id: number) {
 // Best-effort: returns nulls if the feed has nothing or errors.
 export type ClubForm = {
   name: string | null;
+  league: string | null;
   apps: number;
   goals: number;
   assists: number;
@@ -99,7 +100,9 @@ const loadClub = unstable_cache(
       let assists = 0;
       let ratingSum = 0;
       let ratingApps = 0;
-      const byClub = new Map<string, number>();
+      let topApps = -1;
+      let name: string | null = null;
+      let league: string | null = null;
       for (const st of resp.statistics ?? []) {
         if (st.team?.id == null || st.team.id === nationalTeamId) continue; // skip country
         const a = st.games?.appearences ?? 0;
@@ -111,13 +114,17 @@ const loadClub = unstable_cache(
           ratingSum += r * a;
           ratingApps += a;
         }
-        if (st.team.name) byClub.set(st.team.name, (byClub.get(st.team.name) ?? 0) + a);
+        // The competition with the most apps = the primary club + its league.
+        if (a > topApps) {
+          topApps = a;
+          name = st.team?.name ?? null;
+          league = st.league?.name ?? null;
+        }
       }
-      const name = [...byClub.entries()].sort((x, y) => y[1] - x[1])[0]?.[0] ?? null;
       const rating = ratingApps > 0 ? Math.round((ratingSum / ratingApps) * 10) / 10 : null;
       return {
         injured: resp.player?.injured ?? null,
-        club: apps > 0 ? { name, apps, goals, assists, rating } : null,
+        club: apps > 0 ? { name, league, apps, goals, assists, rating } : null,
       };
     } catch {
       return { injured: null, club: null };

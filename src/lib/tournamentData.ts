@@ -25,9 +25,31 @@ export const getCachedTeams = unstable_cache(
 export const getCachedPlayers = unstable_cache(
   async () => {
     const s = createServiceClient();
-    const { data } = await s.from("players").select("id, team_id, name, in_squad").order("id");
-    return data ?? [];
+    // Paginate: PostgREST caps each response at 1000 rows and there are >1000 WC
+    // squad players — without paging, whole teams' higher-id players vanish from
+    // the scorer picker. We only need squad members (in_squad), with position.
+    type Row = {
+      id: number;
+      team_id: number | null;
+      name: string;
+      position: string | null;
+      number: number | null;
+      in_squad: boolean;
+    };
+    const out: Row[] = [];
+    for (let from = 0; from < 10000; from += 1000) {
+      const { data } = await s
+        .from("players")
+        .select("id, team_id, name, position, number, in_squad")
+        .eq("in_squad", true)
+        .order("id")
+        .range(from, from + 999);
+      if (!data?.length) break;
+      out.push(...(data as Row[]));
+      if (data.length < 1000) break;
+    }
+    return out;
   },
-  ["players-v2"], // bump: shape changed (added in_squad)
+  ["players-v3"], // bump: paginated, in_squad-only, + position/number
   { tags: [TOURNAMENT_TAG], revalidate: 300 },
 );

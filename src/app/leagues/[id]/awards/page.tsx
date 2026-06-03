@@ -20,8 +20,38 @@ export default async function AwardsPage({ params }: { params: Promise<{ id: str
   if (!league) redirect("/dashboard");
   const locked = new Date(league.bracket_lock_at).getTime() <= nowMs();
 
-  const [{ data: players }, { data: teams }, { data: pred }] = await Promise.all([
-    supabase.from("players").select("id, name, team_id, position, age, height_cm, weight_kg, number, nationality"),
+  // Paginate the squad — PostgREST caps responses at 1000 rows and there are
+  // >1000 WC squad players, so a plain select silently drops some (e.g. Messi).
+  async function allSquadPlayers() {
+    const cols = "id, name, team_id, position, age, height_cm, weight_kg, number, nationality";
+    type Row = {
+      id: number;
+      name: string;
+      team_id: number | null;
+      position: string | null;
+      age: number | null;
+      height_cm: number | null;
+      weight_kg: number | null;
+      number: number | null;
+      nationality: string | null;
+    };
+    const rows: Row[] = [];
+    for (let from = 0; from < 10000; from += 1000) {
+      const { data } = await supabase
+        .from("players")
+        .select(cols)
+        .eq("in_squad", true)
+        .order("id")
+        .range(from, from + 999);
+      if (!data?.length) break;
+      rows.push(...(data as Row[]));
+      if (data.length < 1000) break;
+    }
+    return rows;
+  }
+
+  const [players, { data: teams }, { data: pred }] = await Promise.all([
+    allSquadPlayers(),
     supabase.from("teams").select("id, name"),
     supabase
       .from("bracket_predictions")
@@ -32,7 +62,7 @@ export default async function AwardsPage({ params }: { params: Promise<{ id: str
   ]);
 
   const teamName = new Map((teams ?? []).map((t) => [t.id, t.name]));
-  const awardPlayers: AwardPlayer[] = (players ?? [])
+  const awardPlayers: AwardPlayer[] = players
     .map((p) => ({
       id: p.id,
       name: p.name,

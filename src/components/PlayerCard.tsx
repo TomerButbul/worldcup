@@ -20,7 +20,14 @@ type Profile = {
   weight_kg: number | null;
   team: { id: number; name: string; logo_url: string | null; code: string | null } | null;
   stats: { apps: number; minutes: number; goals: number; assists: number; yellow: number; red: number };
-  club: { name: string | null; apps: number; goals: number; assists: number; rating: number | null } | null;
+  club: {
+    name: string | null;
+    league: string | null;
+    apps: number;
+    goals: number;
+    assists: number;
+    rating: number | null;
+  } | null;
 };
 
 const POS_SHORT: Record<string, string> = {
@@ -230,8 +237,13 @@ function PlayerCardModal({ req, onClose }: { req: CardReq; onClose: () => void }
             {p.club && (
               <>
                 <p className="pt-1 text-center text-[11px] font-semibold uppercase tracking-wider text-chalk-dim">
-                  Club · 25/26{p.club.name ? ` · ${p.club.name}` : ""}
+                  Club · 25/26
                 </p>
+                {(p.club.name || p.club.league) && (
+                  <p className="text-center text-xs font-semibold text-chalk">
+                    {[p.club.name, p.club.league].filter(Boolean).join(" · ")}
+                  </p>
+                )}
                 <div className="grid grid-cols-4 gap-2">
                   <Stat label="Apps" value={String(p.club.apps)} />
                   <Stat label="Goals" value={String(p.club.goals)} />
