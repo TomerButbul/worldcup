@@ -124,6 +124,19 @@ export default async function LeaguePage({
     };
   });
 
+  // Nudge toward the under-discovered awards picker (award picks count toward
+  // the Upfront score). Show the prompt until they've made at least one.
+  const { data: myPred } = await supabase
+    .from("bracket_predictions")
+    .select("awards")
+    .eq("league_id", id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  const awardCount = myPred?.awards
+    ? Object.values(myPred.awards as Record<string, unknown>).filter((v) => v != null).length
+    : 0;
+  const needAwards = !locked && awardCount === 0;
+
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 space-y-6 p-4 sm:space-y-8 sm:p-6">
       <AutoRefresh enabled={nowMs() >= KICKOFF_MS} />
@@ -151,6 +164,9 @@ export default async function LeaguePage({
               <Link href={`/leagues/${id}/matches`} className={btnClass("ghost")}>
                 ⚽ Matches
               </Link>
+              <Link href={`/leagues/${id}/awards`} className={btnClass("ghost")}>
+                🥇 Awards
+              </Link>
               <Link
                 href={`/leagues/${id}/bracket`}
                 className={btnClass("gold")}
@@ -163,7 +179,25 @@ export default async function LeaguePage({
         </div>
       </Reveal>
 
-      <Reveal index={1}>
+      {needAwards && (
+        <Reveal index={1}>
+          <Link
+            href={`/leagues/${id}/awards`}
+            className="flex items-center gap-3 rounded-2xl border border-gold/30 bg-gold/10 p-4 transition hover:bg-gold/20"
+          >
+            <span className="text-2xl">🥇</span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold text-chalk">Predict the tournament awards</span>
+              <span className="block text-xs text-chalk-dim">
+                Golden Boot, Ball, Glove &amp; Young Player — they count toward your Upfront score.
+              </span>
+            </span>
+            <span className="shrink-0 text-lg text-gold">&rarr;</span>
+          </Link>
+        </Reveal>
+      )}
+
+      <Reveal index={2}>
         <section>
           <h2 className="mb-3 font-display text-xl text-chalk">Leaderboard</h2>
           <Leaderboard leagueId={id} initialRows={rows} meId={user.id} />
