@@ -23,20 +23,20 @@ const anton = Anton({
 
 export const metadata: Metadata = {
   title: {
-    default: "WorldCuP — 2026 Bracket & Prediction Game",
-    template: "%s · WorldCuP",
+    default: "World Cup — 2026 Bracket & Prediction Game",
+    template: "%s · World Cup",
   },
   description: "Predict the 2026 World Cup bracket and match results. Compete with friends.",
-  applicationName: "WorldCuP",
+  applicationName: "World Cup",
   manifest: "/manifest.webmanifest",
   icons: { icon: "/icon.svg", apple: "/icon.svg" },
-  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "WorldCuP" },
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "World Cup" },
   openGraph: {
-    title: "WorldCuP 2026 — Bracket & Prediction Game",
+    title: "World Cup 2026 — Bracket & Prediction Game",
     description: "Predict the bracket, call every match, and battle your friends across three leaderboards.",
     type: "website",
   },
-  twitter: { card: "summary", title: "WorldCuP 2026", description: "Predict the World Cup. Compete with friends." },
+  twitter: { card: "summary", title: "World Cup 2026", description: "Predict the World Cup. Compete with friends." },
 };
 
 export const viewport: Viewport = {

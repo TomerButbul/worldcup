@@ -253,7 +253,7 @@ export default function DraftRoom({
       {state.status === "in_progress" && <ReactionShower leagueId={leagueId} />}
       <div className="glass-strong rounded-3xl p-5 sm:p-6">
         <Link href="/dashboard" className="text-sm text-chalk-dim hover:text-chalk">
-          &larr; Dashboard
+          &larr; Home
         </Link>
         <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
           <div>

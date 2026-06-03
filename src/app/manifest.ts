@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "WorldCuP 2026",
-    short_name: "WorldCuP",
+    name: "World Cup 2026",
+    short_name: "World Cup",
     description: "Predict the 2026 World Cup bracket and match results. Compete with friends.",
     start_url: "/",
     display: "standalone",

@@ -1,40 +1,60 @@
-<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="WorldCuP">
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="World Cup">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#2563eb"/>
-      <stop offset="0.55" stop-color="#7c3aed"/>
-      <stop offset="1" stop-color="#db2777"/>
+      <stop offset="0" stop-color="#1b2452"/>
+      <stop offset="1" stop-color="#0c1430"/>
     </linearGradient>
-    <radialGradient id="shine" cx="0.5" cy="0.32" r="0.7">
-      <stop offset="0" stop-color="#ffffff" stop-opacity="0.35"/>
+    <radialGradient id="sheen" cx="0.5" cy="0.3" r="0.75">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.16"/>
       <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
     </radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffe07a"/>
+      <stop offset="0.45" stop-color="#ffcf3d"/>
+      <stop offset="1" stop-color="#e0a400"/>
+    </linearGradient>
+    <linearGradient id="goldEdge" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#b97f00"/>
+      <stop offset="0.5" stop-color="#ffe899"/>
+      <stop offset="1" stop-color="#b97f00"/>
+    </linearGradient>
   </defs>
 
-  <rect width="512" height="512" rx="116" fill="url(#bg)"/>
-  <circle cx="256" cy="256" r="240" fill="url(#shine)"/>
+  <!-- maskable background: full bleed, art kept inside central safe zone -->
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <rect width="512" height="512" rx="112" fill="url(#sheen)"/>
 
-  <!-- Soccer ball -->
-  <circle cx="256" cy="256" r="150" fill="#ffffff" stroke="#0c1430" stroke-width="6"/>
+  <!-- World Cup trophy: globe twisting up out of a spiralling base, centred with safe padding -->
+  <g stroke="url(#goldEdge)" stroke-width="6" stroke-linejoin="round" stroke-linecap="round">
+    <!-- the globe / orb crowning the trophy -->
+    <ellipse cx="256" cy="150" rx="60" ry="66" fill="url(#gold)"/>
+    <!-- globe meridians + equator (subtle, survive shrinking) -->
+    <g fill="none" stroke="#b97f00" stroke-width="5" opacity="0.55">
+      <path d="M256 86 Q224 150 256 216"/>
+      <path d="M256 86 Q288 150 256 216"/>
+      <path d="M198 138 Q256 168 314 138"/>
+    </g>
 
-  <!-- seams from the central pentagon vertices to the rim -->
-  <g stroke="#0c1430" stroke-width="11" stroke-linecap="round">
-    <line x1="256" y1="210" x2="256" y2="112"/>
-    <line x1="299.7" y1="241.8" x2="392" y2="212"/>
-    <line x1="283" y1="293.2" x2="340" y2="372"/>
-    <line x1="229" y1="293.2" x2="172" y2="372"/>
-    <line x1="212.3" y1="241.8" x2="120" y2="212"/>
+    <!-- twisting body: two sweeping flanks rising from the base into the globe -->
+    <path d="M214 206
+             C 196 250 196 300 224 332
+             L 200 360
+             C 168 322 168 252 196 196
+             Z" fill="url(#gold)"/>
+    <path d="M298 206
+             C 316 250 316 300 288 332
+             L 312 360
+             C 344 322 344 252 316 196
+             Z" fill="url(#gold)"/>
+    <!-- central column joining the flanks -->
+    <path d="M224 200 H288 V300 Q256 336 224 300 Z" fill="url(#gold)"/>
+
+    <!-- plinth / base -->
+    <path d="M196 360 H316 L304 392 H208 Z" fill="url(#gold)"/>
+    <rect x="188" y="392" width="136" height="30" rx="10" fill="url(#gold)"/>
   </g>
 
-  <!-- central pentagon -->
-  <path d="M256 210 L299.7 241.8 L283 293.2 L229 293.2 L212.3 241.8 Z" fill="#0c1430"/>
-
-  <!-- rim arcs (pentagon corners at the edge) -->
-  <g fill="none" stroke="#0c1430" stroke-width="11" stroke-linecap="round">
-    <path d="M232 116 a150 150 0 0 1 48 0"/>
-    <path d="M380 196 a150 150 0 0 1 22 44"/>
-    <path d="M312 388 a150 150 0 0 1 -44 22"/>
-    <path d="M132 240 a150 150 0 0 1 22 -44"/>
-    <path d="M244 396 a150 150 0 0 1 -42 -20"/>
-  </g>
+  <!-- soft vertical highlight down the trophy for a polished metal feel -->
+  <path d="M250 92 C238 150 238 300 246 360 L260 360 C252 300 252 150 262 92 Z"
+        fill="#ffffff" opacity="0.22"/>
 </svg>

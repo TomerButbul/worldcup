@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
   // Manual smoke test: broadcast a one-off push now, ignoring schedule + dedup.
   if (request.nextUrl.searchParams.get("test") === "1") {
     const n = await broadcast({
-      title: "🔔 WorldCuP test",
+      title: "🔔 World Cup test",
       body: "Reminders are working! ⚽",
       url: "/dashboard",
       tag: "test",

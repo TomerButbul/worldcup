@@ -12,7 +12,7 @@ export default function ShareButton() {
       (typeof window !== "undefined" ? window.location.origin : "") + "/dashboard";
     if (typeof navigator !== "undefined" && navigator.share) {
       try {
-        await navigator.share({ title: "My WorldCuP league", url });
+        await navigator.share({ title: "My World Cup league", url });
       } catch {
         // user dismissed the share sheet — nothing to do.
       }

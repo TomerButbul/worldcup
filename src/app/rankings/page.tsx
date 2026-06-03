@@ -25,7 +25,7 @@ export default async function RankingsPage() {
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 p-4 sm:p-6">
       <div className="glass-strong rounded-3xl p-5">
         <Link href="/dashboard" className="text-sm text-chalk-dim hover:text-chalk">
-          &larr; Dashboard
+          &larr; Home
         </Link>
         <h1 className="mt-1 font-display text-3xl text-gradient-gold">🌍 Global rankings</h1>
         <p className="mt-1 text-sm text-chalk-dim">

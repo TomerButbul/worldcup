@@ -25,3 +25,18 @@ export async function POST(req: Request) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }
+
+// Turn reminders off: drop this device's subscription. The installed PWA stays.
+export async function DELETE(req: Request) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  const body = (await req.json().catch(() => null)) as { endpoint?: string } | null;
+  if (!body?.endpoint) return NextResponse.json({ error: "bad request" }, { status: 400 });
+
+  await supabase.from("push_subscriptions").delete().eq("endpoint", body.endpoint).eq("user_id", user.id);
+  return NextResponse.json({ ok: true });
+}

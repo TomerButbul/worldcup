@@ -19,6 +19,8 @@ import { nowMs, KICKOFF_MS } from "@/lib/clock";
 import { getCachedTeams } from "@/lib/tournamentData";
 import type { Team, Match } from "@/lib/types";
 
+export const metadata = { title: "Home" };
+
 export default async function DashboardPage({
   searchParams,
 }: {
@@ -170,7 +172,7 @@ export default async function DashboardPage({
       </Reveal>
 
       <Reveal>
-        <NotificationToggle />
+        <NotificationToggle placement="top" />
       </Reveal>
 
       {nextMatchData && (
@@ -182,44 +184,9 @@ export default async function DashboardPage({
         </Reveal>
       )}
 
-      <Reveal>
-        <ProfileEditor
-          userId={user.id}
-          displayName={displayName}
-          teamName={profile?.team_name ?? null}
-          avatarUrl={profile?.avatar_url ?? null}
-        />
-      </Reveal>
-
-      {favStatus && (
-        <Reveal>
-          <FavoriteTeamStatus status={favStatus} />
-        </Reveal>
-      )}
-
-      <Reveal>
-        <FavoriteTeamPicker teams={teams} current={favId} />
-      </Reveal>
-
       {error && (
         <p className="rounded-lg bg-red-500/15 px-3 py-2 text-sm text-red-600">{error}</p>
       )}
-
-      <Reveal>
-        <Link
-          href="/rankings"
-          className="group flex items-center justify-between rounded-2xl glass-strong p-4 transition hover:border-gold/50 hover:bg-night/5"
-        >
-          <span className="flex items-center gap-3">
-            <span className="text-2xl">🌍</span>
-            <span>
-              <span className="block font-semibold text-chalk">Global rankings</span>
-              <span className="block text-xs text-chalk-dim">See how you stack up against every player</span>
-            </span>
-          </span>
-          <span className="text-gold transition group-hover:translate-x-0.5">→</span>
-        </Link>
-      </Reveal>
 
       <section className="space-y-3">
         <h2 className="font-display text-lg text-chalk">Your Leagues</h2>
@@ -276,6 +243,45 @@ export default async function DashboardPage({
           </form>
         </Reveal>
       </div>
+
+      <Reveal>
+        <Link
+          href="/rankings"
+          className="group flex items-center justify-between rounded-2xl glass-strong p-4 transition hover:border-gold/50 hover:bg-night/5"
+        >
+          <span className="flex items-center gap-3">
+            <span className="text-2xl">🌍</span>
+            <span>
+              <span className="block font-semibold text-chalk">Global rankings</span>
+              <span className="block text-xs text-chalk-dim">See how you stack up against every player</span>
+            </span>
+          </span>
+          <span className="text-gold transition group-hover:translate-x-0.5">→</span>
+        </Link>
+      </Reveal>
+
+      {favStatus && (
+        <Reveal>
+          <FavoriteTeamStatus status={favStatus} />
+        </Reveal>
+      )}
+
+      <Reveal>
+        <FavoriteTeamPicker teams={teams} current={favId} />
+      </Reveal>
+
+      <Reveal>
+        <ProfileEditor
+          userId={user.id}
+          displayName={displayName}
+          teamName={profile?.team_name ?? null}
+          avatarUrl={profile?.avatar_url ?? null}
+        />
+      </Reveal>
+
+      <Reveal>
+        <NotificationToggle placement="bottom" />
+      </Reveal>
 
       <p className="pt-2 text-center text-xs text-chalk-dim">
         <Link href="/how-it-works" className="hover:text-chalk">

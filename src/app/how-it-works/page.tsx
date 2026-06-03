@@ -54,7 +54,7 @@ export default function HowItWorksPage() {
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 p-4 sm:p-6">
       <Link href="/dashboard" className="text-sm text-chalk-dim hover:text-chalk">
-        &larr; Dashboard
+        &larr; Home
       </Link>
 
       {/* Header */}
