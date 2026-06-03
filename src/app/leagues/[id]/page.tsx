@@ -160,16 +160,16 @@ export default async function LeaguePage({
                 </span>
               </p>
             </div>
-            <div className="flex shrink-0 flex-wrap gap-2">
-              <Link href={`/leagues/${id}/matches`} className={btnClass("ghost")}>
+            <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:shrink-0">
+              <Link href={`/leagues/${id}/matches`} className={`${btnClass("ghost")} flex-1 text-center sm:flex-none`}>
                 ⚽ Matches
               </Link>
-              <Link href={`/leagues/${id}/awards`} className={btnClass("ghost")}>
+              <Link href={`/leagues/${id}/awards`} className={`${btnClass("ghost")} flex-1 text-center sm:flex-none`}>
                 🥇 Awards
               </Link>
               <Link
                 href={`/leagues/${id}/bracket`}
-                className={btnClass("gold")}
+                className={`${btnClass("gold")} w-full text-center sm:w-auto`}
                 style={{ background: GOLD_GRADIENT, boxShadow: "var(--shadow-glow-gold)" }}
               >
                 {locked ? "View bracket" : "🏆 Make picks"}
