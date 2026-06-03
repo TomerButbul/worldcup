@@ -601,7 +601,7 @@ export default function BracketEditor({
             </h2>
             <p className="text-sm text-chalk-dim">
               {bracketReady
-                ? "Tap the team you think wins each tie — winners advance across to the final. Swipe sideways to follow the rounds."
+                ? "Tap the team you think wins each tie — winners flow into the next round. Move through the phases R32 → Final."
                 : "Choose your eight best third-placed teams first to reveal the full bracket."}
             </p>
           </div>
@@ -641,12 +641,6 @@ export default function BracketEditor({
                 locked={locked}
                 championNo={104}
               />
-
-              {champion == null && (
-                <p className="rounded-xl bg-night/[0.03] px-3 py-2 text-center text-xs text-chalk-dim">
-                  Pick your way through to the Final to crown a champion.
-                </p>
-              )}
 
               <div className="flex items-center justify-between gap-2 text-sm">
                 <button

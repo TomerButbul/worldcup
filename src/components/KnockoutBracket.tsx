@@ -1,6 +1,6 @@
 "use client";
 
-import type { JSX } from "react";
+import { useState, type JSX } from "react";
 import Flag from "@/components/Flag";
 
 // A single team as it appears in the bracket. Mirrors the shape the consumer
@@ -21,12 +21,19 @@ export type BracketMatch = {
   winner: number | null;
 };
 
-// A round = one column of the bracket. `matches` are in vertical (bracket) order
-// so that each later round's match centres between its two feeders.
+// A round = one phase of the bracket. `matches` are in vertical bracket order.
 export type BracketRound = {
   stage: string;
   label: string;
   matches: BracketMatch[];
+};
+
+const SHORT_LABEL: Record<string, string> = {
+  round_of_32: "R32",
+  round_of_16: "R16",
+  quarter: "QF",
+  semi: "SF",
+  final: "Final",
 };
 
 export default function KnockoutBracket({
@@ -47,6 +54,12 @@ export default function KnockoutBracket({
   const highlight = new Set(highlightIds ?? []);
   const interactive = typeof onPick === "function" && !locked;
 
+  // Round-by-round paging — one phase at a time, no horizontal scroll.
+  const [active, setActive] = useState(0);
+  const safeActive = Math.max(0, Math.min(active, rounds.length - 1));
+  const round = rounds[safeActive];
+  const isFinalRound = safeActive === rounds.length - 1;
+
   // The crowned team = winner of the final (the round whose match no === championNo,
   // falling back to the last round's last match if no championNo is supplied).
   const championTeamId = (() => {
@@ -57,9 +70,16 @@ export default function KnockoutBracket({
       }
       return null;
     }
-    const last = rounds[rounds.length - 1]?.matches.at(-1);
-    return last?.winner ?? null;
+    return rounds[rounds.length - 1]?.matches.at(-1)?.winner ?? null;
   })();
+
+  // Does a round contain any highlighted (favorite / drafted) team? Drives the
+  // gold ★ on the round chips, so the chips themselves trace the team's path.
+  const roundHasHighlight = (r: BracketRound) =>
+    highlight.size > 0 &&
+    r.matches.some(
+      (m) => (m.home != null && highlight.has(m.home)) || (m.away != null && highlight.has(m.away)),
+    );
 
   // One team row inside a match card. Highlighted teams get the gold trail
   // treatment; the tie's winner gets a grass fill + ✓. Becomes a <button> only
@@ -79,7 +99,7 @@ export default function KnockoutBracket({
     const canPick = interactive;
 
     const base =
-      "flex min-h-9 w-full items-center gap-1.5 rounded-lg border px-2 py-1.5 text-left text-xs transition";
+      "flex min-h-9 w-full items-center gap-1.5 rounded-lg border px-2 py-1.5 text-left text-sm transition";
     const tone = isWinner
       ? "net border-grass bg-grass text-night font-semibold"
       : isGold
@@ -89,13 +109,7 @@ export default function KnockoutBracket({
 
     const inner = (
       <>
-        <Flag
-          teamId={teamId}
-          logoUrl={t?.logo_url ?? null}
-          code={t?.code ?? null}
-          name={name}
-          size={16}
-        />
+        <Flag teamId={teamId} logoUrl={t?.logo_url ?? null} code={t?.code ?? null} name={name} size={18} />
         <span className="min-w-0 flex-1 truncate">{name}</span>
         {isWinner && <span className="shrink-0 text-[11px] leading-none">✓</span>}
       </>
@@ -117,26 +131,17 @@ export default function KnockoutBracket({
   };
 
   const matchCard = (m: BracketMatch) => {
-    // A card sits on the gold trail if either participant is highlighted.
     const onTrail =
-      (m.home != null && highlight.has(m.home)) ||
-      (m.away != null && highlight.has(m.away));
+      (m.home != null && highlight.has(m.home)) || (m.away != null && highlight.has(m.away));
     const isFinal = championNo != null && m.no === championNo;
-
     return (
       <div
         key={m.no}
-        className={`glass relative overflow-hidden rounded-xl p-1.5 ${
-          onTrail ? "ring-1 ring-gold/70" : ""
-        } ${isFinal ? "ring-1 ring-gold" : ""}`}
+        className={`glass relative overflow-hidden rounded-xl p-2 ${onTrail ? "ring-1 ring-gold/70" : ""} ${
+          isFinal ? "ring-1 ring-gold" : ""
+        }`}
       >
-        {/* Gold left-accent bar reinforces a highlighted team's path. */}
-        {onTrail && (
-          <span
-            aria-hidden
-            className="absolute inset-y-1 left-0 w-1 rounded-full bg-gold"
-          />
-        )}
+        {onTrail && <span aria-hidden className="absolute inset-y-1 left-0 w-1 rounded-full bg-gold" />}
         <div className="space-y-1">
           {teamRow(m.no, m.home, m.winner != null && m.winner === m.home)}
           {teamRow(m.no, m.away, m.winner != null && m.winner === m.away)}
@@ -146,48 +151,100 @@ export default function KnockoutBracket({
   };
 
   const champTeam = championTeamId != null ? teamsById[championTeamId] : null;
+  const pickedInRound = round?.matches.filter((m) => m.winner != null).length ?? 0;
+  const prevRound = rounds[safeActive - 1];
+  const nextRound = rounds[safeActive + 1];
+
+  if (!round) return <div className="glass rounded-2xl p-6 text-center text-sm text-chalk-dim">No bracket yet.</div>;
 
   return (
-    <div className="overflow-x-auto pb-2">
-      <div className="flex min-w-max items-stretch gap-3">
-        {rounds.map((round) => (
-          <div
-            key={round.stage}
-            className="flex min-w-[160px] flex-1 flex-col justify-around gap-2"
-          >
-            <div className="sticky top-0 z-10 mb-1 rounded-lg bg-pitch/80 px-2 py-1 text-center font-display text-[11px] uppercase tracking-wide text-chalk-dim backdrop-blur">
-              {round.label}
-            </div>
-            {round.matches.map((m) => matchCard(m))}
-          </div>
-        ))}
+    <div className="space-y-3">
+      {/* Round phase nav — gold ★ marks where a highlighted team is in play. */}
+      <div className="flex flex-wrap gap-1.5">
+        {rounds.map((r, i) => {
+          const isActive = i === safeActive;
+          const fav = roundHasHighlight(r);
+          const allPicked = r.matches.length > 0 && r.matches.every((m) => m.winner != null);
+          return (
+            <button
+              key={r.stage}
+              type="button"
+              onClick={() => setActive(i)}
+              aria-label={r.label}
+              aria-current={isActive}
+              className={`relative flex items-center gap-1 rounded-lg px-2.5 py-1.5 font-display text-xs transition ${
+                isActive
+                  ? "bg-gold text-night glow-gold"
+                  : allPicked
+                    ? "bg-grass/15 text-grass hover:bg-grass/25"
+                    : "bg-night/5 text-chalk-dim hover:bg-night/10"
+              }`}
+            >
+              {SHORT_LABEL[r.stage] ?? r.label}
+              {fav && (
+                <span className={`text-[9px] leading-none ${isActive ? "text-night" : "text-gold"}`}>★</span>
+              )}
+            </button>
+          );
+        })}
+      </div>
 
-        {/* Trailing Champion column. */}
-        <div className="flex min-w-[160px] flex-col justify-around">
-          <div className="sticky top-0 z-10 mb-1 rounded-lg bg-pitch/80 px-2 py-1 text-center font-display text-[11px] uppercase tracking-wide text-gold backdrop-blur">
-            Champion
-          </div>
+      {/* Active round header */}
+      <div className="flex items-baseline justify-between">
+        <h3 className="font-display text-base text-gold">{round.label}</h3>
+        <span className="text-xs tabular-nums text-chalk-dim">
+          {pickedInRound}/{round.matches.length}
+        </span>
+      </div>
+
+      {/* Matches — vertical, no horizontal scroll. */}
+      <div
+        className={`mx-auto grid gap-2 ${
+          round.matches.length === 1 ? "max-w-sm" : "max-w-2xl sm:grid-cols-2"
+        }`}
+      >
+        {round.matches.map((m) => matchCard(m))}
+      </div>
+
+      {/* Champion reveal on the final phase. */}
+      {isFinalRound && (
+        <div className="pt-1">
           {champTeam ? (
-            <div className="glass-strong flex flex-col items-center gap-1.5 rounded-2xl border border-gold bg-gold/15 p-3 text-center text-gold glow-gold">
-              <span className="text-lg leading-none">👑</span>
-              <Flag
-                teamId={champTeam.id}
-                logoUrl={champTeam.logo_url}
-                code={champTeam.code}
-                name={champTeam.name}
-                size={28}
-              />
-              <span className="font-display text-sm leading-tight">{champTeam.name}</span>
+            <div className="glass-strong mx-auto flex max-w-sm flex-col items-center gap-1.5 rounded-2xl border border-gold bg-gold/15 p-4 text-center text-gold glow-gold">
+              <span className="text-xl leading-none">👑</span>
+              <Flag teamId={champTeam.id} logoUrl={champTeam.logo_url} code={champTeam.code} name={champTeam.name} size={32} />
+              <span className="font-display text-lg leading-tight">{champTeam.name}</span>
+              <span className="text-[11px] uppercase tracking-wide text-gold/80">Champion</span>
             </div>
           ) : (
-            <div className="glass flex flex-col items-center gap-1 rounded-2xl border border-dashed border-gold/40 p-3 text-center">
-              <span className="text-lg leading-none opacity-60">🏆</span>
+            <div className="glass mx-auto flex max-w-sm flex-col items-center gap-1 rounded-2xl border border-dashed border-gold/40 p-4 text-center">
+              <span className="text-xl leading-none opacity-60">🏆</span>
               <span className="font-display text-xs uppercase tracking-wide text-chalk-dim">
-                Champion
+                Win the Final to crown a champion
               </span>
             </div>
           )}
         </div>
+      )}
+
+      {/* Phase nav */}
+      <div className="flex items-center justify-between gap-2 text-sm">
+        <button
+          type="button"
+          onClick={() => setActive(safeActive - 1)}
+          disabled={!prevRound}
+          className="rounded-lg px-3 py-1.5 text-chalk-dim transition hover:bg-night/5 disabled:opacity-30"
+        >
+          ← {prevRound ? prevRound.label : ""}
+        </button>
+        <button
+          type="button"
+          onClick={() => setActive(safeActive + 1)}
+          disabled={!nextRound}
+          className="rounded-lg px-3 py-1.5 font-semibold text-gold transition hover:bg-gold/10 disabled:opacity-30"
+        >
+          {nextRound ? `${nextRound.label} →` : ""}
+        </button>
       </div>
     </div>
   );
