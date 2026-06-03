@@ -18,9 +18,104 @@ import Trophy from "@/components/art/Trophy";
 import AutoRefresh from "@/components/AutoRefresh";
 import LeagueIntro from "@/components/LeagueIntro";
 import { nowMs, KICKOFF_MS } from "@/lib/clock";
-import { computeActuals, type MatchRow } from "@/lib/scoring-core";
+import { computeActuals, computeGroupTables, type MatchRow } from "@/lib/scoring-core";
 import { teamAt } from "@/lib/draft";
 import { draftTeamIds, teamProgressPoints, draftScores } from "@/lib/draft-scoring";
+import {
+  KNOCKOUT_TEMPLATE,
+  buildBracket,
+  stageOf,
+  type SlotRef,
+} from "@/lib/bracket-core";
+import type { MatchStage } from "@/lib/types";
+import type { BracketRound, BracketTeam } from "@/components/KnockoutBracket";
+
+// Round-column labels — must match BracketEditor.tsx's STAGE_LABELS.
+const KO_STAGE_LABELS: Record<string, string> = {
+  round_of_32: "Round of 32",
+  round_of_16: "Round of 16",
+  quarter: "Quarter-finals",
+  semi: "Semi-finals",
+  final: "Final",
+};
+const KO_STAGE_ORDER: MatchStage[] = ["round_of_32", "round_of_16", "quarter", "semi", "final"];
+
+// Build the read-only knockout bracket from REAL results. The DB has no canonical
+// match-number column (matches.id is the API-Football fixture id), and the
+// knockout pairings live only in KNOCKOUT_TEMPLATE — so resolve each canonical
+// match's two participants from the actual group order (+ Annex C thirds) and the
+// winners that have propagated forward, then overlay the real advancer for any tie
+// that's been decided. Everything is TBD until the group stage completes (the
+// group tables only resolve once every group's matches are finished) and then the
+// bracket fills in round by round as knockout results arrive — exactly as intended.
+function buildKnockoutRounds(matches: MatchRow[]): BracketRound[] {
+  const tables = computeGroupTables(matches);
+  const { round32, annex } = buildBracket(tables);
+
+  // Real decided ties → advancer, keyed by the unordered team pair. winner_team_id
+  // is correct even for shootouts; fall back to the higher scorer. A level result
+  // with no recorded shootout winner (or an unplayed/ongoing tie) stays unresolved.
+  const pairKey = (a: number, b: number) => (a < b ? `${a}-${b}` : `${b}-${a}`);
+  const winnerByPair = new Map<string, number>();
+  for (const m of matches) {
+    if (m.stage === "group") continue;
+    if (m.status !== "finished" || m.home_team_id == null || m.away_team_id == null) continue;
+    if (m.home_goals == null || m.away_goals == null) continue;
+    const decisive =
+      m.home_goals > m.away_goals
+        ? m.home_team_id
+        : m.home_goals < m.away_goals
+          ? m.away_team_id
+          : null;
+    const winner = m.winner_team_id ?? decisive;
+    if (winner != null) winnerByPair.set(pairKey(m.home_team_id, m.away_team_id), winner);
+  }
+
+  // Resolve every canonical match top-down so a later round's participants come
+  // from the winners we've already settled. `winners[no]` = advancer of match `no`.
+  const winners = new Map<number, number | null>();
+  const order = Object.keys(KNOCKOUT_TEMPLATE)
+    .map(Number)
+    .sort((a, b) => a - b);
+
+  const resolveSlot = (s: SlotRef): number | null => {
+    switch (s.kind) {
+      case "winner":
+        return tables[s.group]?.order[0] ?? null;
+      case "runner":
+        return tables[s.group]?.order[1] ?? null;
+      case "third": {
+        const g = annex[s.match];
+        return g ? (tables[g]?.order[2] ?? null) : null;
+      }
+      case "matchWinner":
+        return winners.get(s.match) ?? null;
+      default:
+        return null; // matchLoser does not occur in this template
+    }
+  };
+
+  const byStage = new Map<MatchStage, { no: number; home: number | null; away: number | null; winner: number | null }[]>();
+  for (const no of order) {
+    const tpl = KNOCKOUT_TEMPLATE[no];
+    // Round of 32 participants come pre-resolved (incl. Annex C thirds); deeper
+    // rounds resolve from the winners settled in earlier iterations.
+    const home = no <= 88 ? (round32[no]?.home ?? null) : resolveSlot(tpl.home);
+    const away = no <= 88 ? (round32[no]?.away ?? null) : resolveSlot(tpl.away);
+    const winner =
+      home != null && away != null ? (winnerByPair.get(pairKey(home, away)) ?? null) : null;
+    winners.set(no, winner);
+    const st = stageOf(no);
+    if (!byStage.has(st)) byStage.set(st, []);
+    byStage.get(st)!.push({ no, home, away, winner });
+  }
+
+  return KO_STAGE_ORDER.filter((s) => byStage.has(s)).map((s) => ({
+    stage: s,
+    label: KO_STAGE_LABELS[s],
+    matches: byStage.get(s)!.sort((a, b) => a.no - b.no),
+  }));
+}
 
 export default async function LeaguePage({
   params,
@@ -135,6 +230,22 @@ export default async function LeaguePage({
       else fixtures.push({ day, matches: [row] });
     }
 
+    // Read-only knockout bracket: the real tournament tree, resolved from actual
+    // results, with THIS manager's three drafted nations highlighted along their
+    // path. TBD until the knockouts fill in (see buildKnockoutRounds).
+    const koRounds = buildKnockoutRounds((matchesRes.data ?? []) as MatchRow[]);
+    const bracketTeams: Record<number, BracketTeam> = {};
+    for (const t of teamsRes.data ?? []) {
+      bracketTeams[t.id] = { id: t.id, name: t.name, code: null, logo_url: null };
+    }
+    const meTeamIds = initialPicks
+      .filter((p) => p.user_id === user.id)
+      .map((p) => {
+        const team = teamAt(p.pot, p.slot);
+        return team ? (idByDraftName.get(team.name) ?? null) : null;
+      })
+      .filter((id): id is number => id != null);
+
     return (
       <DraftRoom
         leagueId={id}
@@ -147,6 +258,9 @@ export default async function LeaguePage({
         standings={standings}
         teamLineups={teamLineups}
         fixtures={fixtures}
+        koRounds={koRounds}
+        bracketTeams={bracketTeams}
+        meTeamIds={meTeamIds}
         tournamentStarted={nowMs() >= KICKOFF_MS}
       />
     );

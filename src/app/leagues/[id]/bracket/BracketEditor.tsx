@@ -11,6 +11,7 @@ import { goalCelebration } from "@/lib/goal";
 import Flag from "@/components/Flag";
 import Ball from "@/components/art/Ball";
 import Trophy from "@/components/art/Trophy";
+import KnockoutBracket, { type BracketRound, type BracketTeam } from "@/components/KnockoutBracket";
 
 export type EditorTeam = {
   id: number;
@@ -21,6 +22,10 @@ export type EditorTeam = {
 };
 
 type SaveState = "idle" | "saving" | "saved" | "error";
+
+// The editor is a guided three-stage flow, each its own "page".
+type Step = "groups" | "thirds" | "bracket";
+const STEPS: Step[] = ["groups", "thirds", "bracket"];
 
 const STAGE_LABELS: Record<string, string> = {
   round_of_32: "Round of 32",
@@ -40,6 +45,7 @@ export default function BracketEditor({
   initialOrder,
   initialThirds,
   initialKnockout,
+  favoriteTeamId,
   locked,
 }: {
   leagueId: string;
@@ -49,6 +55,7 @@ export default function BracketEditor({
   initialThirds: string[];
   initialKnockout: Record<string, number>;
   initialChampion: number | null;
+  favoriteTeamId: number | null;
   locked: boolean;
 }) {
   // --- Static lookups ------------------------------------------------------
@@ -59,6 +66,14 @@ export default function BracketEditor({
     for (const list of Object.values(groups)) for (const t of list) m.set(t.id, t);
     return m;
   }, [groups]);
+
+  // The visual bracket wants a plain id→team record (id/name/code/logo only).
+  const teamsRecord = useMemo(() => {
+    const o: Record<number, BracketTeam> = {};
+    for (const [id, t] of teamsById)
+      o[id] = { id: t.id, name: t.name, code: t.code, logo_url: t.logo_url };
+    return o;
+  }, [teamsById]);
 
   // Better FIFA rank (lower number) sorts first; nulls last. Falls back to name.
   const rankOf = useCallback(
@@ -98,6 +113,7 @@ export default function BracketEditor({
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [errMsg, setErrMsg] = useState<string | null>(null);
   const [activeGroup, setActiveGroup] = useState<string>(() => groupsOrder[0] ?? "A");
+  const [step, setStep] = useState<Step>("groups");
 
   const KO_ORDER = useMemo(
     () => Object.keys(KNOCKOUT_TEMPLATE).map(Number).sort((a, b) => a - b),
@@ -167,6 +183,30 @@ export default function BracketEditor({
   const champion = eff[104] ?? null;
   const thirdsResolved = thirds.length === MAX_THIRDS;
   const bracketReady = thirdsResolved;
+
+  // Rounds fed to the visual bracket: resolved participants + validated picks.
+  const bracketRounds = useMemo<BracketRound[]>(
+    () =>
+      koRounds.map((r) => ({
+        stage: r.stage,
+        label: r.label,
+        matches: r.matches.map((no) => ({
+          no,
+          home: koParticipants[no]?.home ?? null,
+          away: koParticipants[no]?.away ?? null,
+          winner: eff[no] ?? null,
+        })),
+      })),
+    [koRounds, koParticipants, eff],
+  );
+
+  const highlightIds = useMemo(
+    () => (favoriteTeamId != null ? [favoriteTeamId] : []),
+    [favoriteTeamId],
+  );
+  const favInBracket =
+    favoriteTeamId != null &&
+    Object.values(koParticipants).some((m) => m.home === favoriteTeamId || m.away === favoriteTeamId);
 
   // --- Progress ------------------------------------------------------------
   // Every group is ordered the moment it's seeded, so this is always all 12.
@@ -274,34 +314,6 @@ export default function BracketEditor({
   );
 
   // --- Render helpers ------------------------------------------------------
-  const teamChip = (teamId: number | null, selected: boolean, onClick: () => void) => {
-    const t = teamId != null ? teamsById.get(teamId) : null;
-    return (
-      <button
-        type="button"
-        onClick={onClick}
-        disabled={locked || teamId == null}
-        className={`flex min-h-10 w-full items-center gap-2 rounded-lg border px-2.5 py-2 text-left text-sm transition disabled:cursor-not-allowed ${
-          selected
-            ? "border-grass bg-grass text-night glow-grass"
-            : teamId == null
-              ? "border-dashed border-night/15 text-chalk-dim"
-              : "border-night/10 text-chalk hover:bg-night/5"
-        }`}
-      >
-        {t ? (
-          <>
-            <Flag teamId={t.id} logoUrl={t.logo_url} code={t.code} name={t.name} size={18} />
-            <span className="min-w-0 flex-1 truncate">{t.name}</span>
-            {selected && <span className="shrink-0 text-xs">✓</span>}
-          </>
-        ) : (
-          <span className="text-xs italic">TBD</span>
-        )}
-      </button>
-    );
-  };
-
   const saveBadge =
     saveState === "saving"
       ? { text: "Saving…", cls: "glass text-chalk-dim" }
@@ -320,289 +332,338 @@ export default function BracketEditor({
     [groupsOrder, order],
   );
 
+  // Stage tabs — each is its own "page", clickable to jump anywhere.
+  const stepMeta: Record<Step, { n: number; label: string; sub: string; done: boolean }> = {
+    groups: { n: 1, label: "Groups", sub: `${groupsOrdered}/${groupsOrder.length}`, done: groupsOrdered === groupsOrder.length },
+    thirds: { n: 2, label: "3rd place", sub: `${thirds.length}/${MAX_THIRDS}`, done: thirdsResolved },
+    bracket: { n: 3, label: "Bracket", sub: champion != null ? "champion ✓" : `${koPicked}/${koTotal}`, done: champion != null },
+  };
+  const goStep = (s: Step) => {
+    setStep(s);
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   return (
-    <div className="space-y-8 pb-28">
-      {/* Intro / progress */}
-      <div className="glass rounded-2xl p-4">
-        <p className="mb-3 text-sm text-chalk-dim">
-          Order each group, pick the 8 best third-place teams, then your knockout bracket builds
-          itself. Match scores are predicted live during the tournament.
-        </p>
-        <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-          <span className="text-chalk">
-            <span className="font-display text-gold">{groupsOrdered}</span>
-            <span className="text-chalk-dim">/{groupsOrder.length} groups ordered</span>
-          </span>
-          <span className="text-chalk">
-            <span className="font-display text-gold">{thirds.length}</span>
-            <span className="text-chalk-dim">/{MAX_THIRDS} third-place teams</span>
-          </span>
-          <span className="text-chalk">
-            <span className="font-display text-gold">{koPicked}</span>
-            <span className="text-chalk-dim">/{koTotal} knockout picks</span>
-          </span>
-          <span className="text-chalk">
-            <Trophy size={18} className="mr-1 inline-block align-[-3px]" />
-            {champion ? (teamsById.get(champion)?.name ?? "") : "—"}
-          </span>
-        </div>
-        <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-night/10">
-          <motion.div
-            className="h-full rounded-full bg-grass"
-            initial={false}
-            animate={{ width: `${(koPicked / Math.max(1, koTotal)) * 100}%` }}
-            transition={{ type: "spring", stiffness: 200, damping: 30 }}
-          />
+    <div className="space-y-6 pb-28">
+      {/* Stage stepper */}
+      <div className="glass rounded-2xl p-2">
+        <div className="flex items-stretch gap-1.5">
+          {STEPS.map((s) => {
+            const m = stepMeta[s];
+            const active = s === step;
+            return (
+              <button
+                key={s}
+                type="button"
+                onClick={() => goStep(s)}
+                className={`flex flex-1 flex-col items-center gap-0.5 rounded-xl px-2 py-2 text-center transition ${
+                  active ? "bg-gold/15 glow-gold" : "hover:bg-night/5"
+                }`}
+              >
+                <span
+                  className={`flex h-7 w-7 items-center justify-center rounded-full font-display text-sm ${
+                    active ? "bg-gold text-night" : m.done ? "bg-grass text-night" : "bg-night/10 text-chalk-dim"
+                  }`}
+                >
+                  {m.done && !active ? "✓" : m.n}
+                </span>
+                <span className={`text-xs font-semibold leading-tight ${active ? "text-gold" : "text-chalk"}`}>{m.label}</span>
+                <span className="text-[10px] tabular-nums text-chalk-dim">{m.sub}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Group stage — predict the table */}
-      <section className="space-y-3">
-        <div>
-          <h2 className="flex items-center gap-1.5 font-display text-xl text-chalk">
-            <Ball size={18} />Group stage — predict the table
-          </h2>
-          <p className="text-sm text-chalk-dim">
-            Order each group&apos;s four teams 1 → 4. The top two advance; the third may sneak
-            through as one of the eight best third-placed teams.
-          </p>
-        </div>
-
-        {/* Group nav — jump anywhere; gold = current. */}
-        <div className="flex flex-wrap gap-1.5">
-          {groupsOrder.map((g) => {
-            const active = g === activeGroup;
-            return (
-              <button
-                key={g}
-                type="button"
-                onClick={() => setActiveGroup(g)}
-                aria-label={`Group ${g}`}
-                className={`flex h-9 w-9 items-center justify-center rounded-lg font-display text-sm transition ${
-                  active ? "bg-gold text-night glow-gold" : "bg-night/5 text-chalk-dim hover:bg-night/10"
-                }`}
-              >
-                {g}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* One group at a time — ordered list with up/down reorder. */}
-        {(() => {
-          const g = activeGroup;
-          const list = order[g] ?? [];
-          const idx = groupsOrder.indexOf(g);
-          const prevG = groupsOrder[idx - 1];
-          const nextG = groupsOrder[idx + 1];
-          return (
-            <motion.div key={g} layout initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="glass rounded-2xl p-3 sm:p-4">
-              <div className="mb-2 flex items-center justify-between">
-                <h3 className="font-display text-base text-gold">Group {g}</h3>
-                <span className="text-xs text-chalk-dim">Top 2 advance · 3rd may qualify</span>
-              </div>
-
-              <ol className="space-y-1.5">
-                {list.map((teamId, i) => {
-                  const t = teamsById.get(teamId);
-                  if (!t) return null;
-                  return (
-                    <motion.li
-                      key={teamId}
-                      layout
-                      className={`flex items-center gap-2 rounded-xl px-2 py-2 ${
-                        i < 2 ? "bg-grass/15" : i === 2 ? "bg-gold/10" : "bg-night/5"
-                      }`}
-                    >
-                      <span className="w-4 shrink-0 text-center font-display text-sm text-chalk-dim">{i + 1}</span>
-                      <Flag teamId={t.id} logoUrl={t.logo_url} code={t.code} name={t.name} size={18} />
-                      <span className="min-w-0 flex-1 truncate text-sm text-chalk">{t.name}</span>
-                      {i < 2 && (
-                        <span className="shrink-0 rounded-full bg-grass/20 px-2 py-0.5 text-[10px] font-semibold text-grass">
-                          advances
-                        </span>
-                      )}
-                      {i === 2 && (
-                        <span className="shrink-0 rounded-full bg-gold/20 px-2 py-0.5 text-[10px] font-semibold text-gold">
-                          3rd — playoff?
-                        </span>
-                      )}
-                      <span className="flex shrink-0 flex-col gap-0.5">
-                        <button
-                          type="button"
-                          disabled={locked || i === 0}
-                          onClick={() => move(g, i, i - 1)}
-                          aria-label={`Move ${t.name} up`}
-                          className="flex h-5 w-7 items-center justify-center rounded bg-night/10 text-xs leading-none text-chalk transition hover:bg-night/20 disabled:opacity-30"
-                        >
-                          ▲
-                        </button>
-                        <button
-                          type="button"
-                          disabled={locked || i === list.length - 1}
-                          onClick={() => move(g, i, i + 1)}
-                          aria-label={`Move ${t.name} down`}
-                          className="flex h-5 w-7 items-center justify-center rounded bg-night/10 text-xs leading-none text-chalk transition hover:bg-night/20 disabled:opacity-30"
-                        >
-                          ▼
-                        </button>
-                      </span>
-                    </motion.li>
-                  );
-                })}
-              </ol>
-
-              <div className="mt-3 flex items-center justify-between gap-2 text-sm">
-                <button
-                  type="button"
-                  onClick={() => prevG && setActiveGroup(prevG)}
-                  disabled={!prevG}
-                  className="rounded-lg px-3 py-1.5 text-chalk-dim transition hover:bg-night/5 disabled:opacity-30"
-                >
-                  ← {prevG ? `Group ${prevG}` : ""}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => nextG && setActiveGroup(nextG)}
-                  disabled={!nextG}
-                  className={`rounded-lg px-3 py-1.5 font-semibold transition disabled:opacity-30 ${nextG ? "bg-grass text-night" : "text-gold hover:bg-gold/10"}`}
-                >
-                  {nextG ? `Group ${nextG}` : "All groups ✓"} →
-                </button>
-              </div>
-            </motion.div>
-          );
-        })()}
-      </section>
-
-      {/* Best third-placed teams */}
-      <section className="space-y-3 border-t border-night/10 pt-6">
-        <div>
-          <h2 className="flex items-center gap-1.5 font-display text-xl text-chalk">
-            <Ball size={18} />Best third-placed teams
-          </h2>
-          <p className="text-sm text-chalk-dim">
-            Eight of the twelve third-placed teams advance. Tap to send a group&apos;s 3rd through —{" "}
-            <span className={thirdsResolved ? "text-grass" : "text-gold"}>
-              {thirds.length}/{MAX_THIRDS} third-place teams
-            </span>
-            .
-          </p>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-          {thirdTeams.map(({ group: g, teamId }) => {
-            const t = teamsById.get(teamId);
-            if (!t) return null;
-            const selected = thirds.includes(g);
-            const atMax = !selected && thirds.length >= MAX_THIRDS;
-            return (
-              <button
-                key={g}
-                type="button"
-                onClick={() => toggleThird(g)}
-                disabled={locked || atMax}
-                aria-pressed={selected}
-                className={`flex min-h-10 items-center gap-2 rounded-lg border px-2.5 py-2 text-left text-sm transition disabled:cursor-not-allowed ${
-                  selected
-                    ? "border-gold bg-gold/15 text-gold glow-gold"
-                    : atMax
-                      ? "border-dashed border-night/15 text-chalk-dim opacity-50"
-                      : "border-night/10 text-chalk hover:bg-night/5"
-                }`}
-              >
-                <span className="shrink-0 font-display text-xs text-chalk-dim">{g}</span>
-                <Flag teamId={t.id} logoUrl={t.logo_url} code={t.code} name={t.name} size={18} />
-                <span className="min-w-0 flex-1 truncate">{t.name}</span>
-                {selected && <span className="shrink-0 text-xs">✓</span>}
-              </button>
-            );
-          })}
-        </div>
-
-        {!thirdsResolved && (
-          <p className="rounded-xl bg-gold/10 px-3 py-2 text-xs text-gold">
-            Pick exactly {MAX_THIRDS} third-place teams to lock in the eight third-place slots and
-            reveal the full Round of 32.
-          </p>
-        )}
-      </section>
-
-      {/* Knockout */}
-      <section className="space-y-4 border-t border-night/10 pt-6">
-        <div>
-          <h2 className="font-display text-xl text-chalk">🔥 Knockout bracket</h2>
-          <p className="text-sm text-chalk-dim">
-            {bracketReady
-              ? "Tap the team you think wins each tie. Winners advance automatically."
-              : "Choose your eight best third-placed teams to reveal the full bracket."}
-          </p>
-        </div>
-
-        {!bracketReady ? (
-          <div className="glass rounded-2xl p-6 text-center">
+      {/* ============================ STEP 1: GROUPS ============================ */}
+      {step === "groups" && (
+        <section className="space-y-3">
+          <div>
+            <h2 className="flex items-center gap-1.5 font-display text-xl text-chalk">
+              <Ball size={18} />Predict each group&apos;s table
+            </h2>
             <p className="text-sm text-chalk-dim">
-              {thirds.length}/{MAX_THIRDS} third-place teams chosen
+              Order the four teams 1 → 4. The top two advance; the third may sneak through as one of
+              the eight best third-placed teams.
             </p>
-            <div className="mx-auto mt-3 h-2 w-full max-w-xs overflow-hidden rounded-full bg-night/10">
-              <div
-                className="h-full rounded-full bg-gold transition-all"
-                style={{ width: `${(thirds.length / MAX_THIRDS) * 100}%` }}
-              />
-            </div>
           </div>
-        ) : (
-          <div className="space-y-5">
-            {koRounds.map((round) => (
-              <div key={round.stage}>
-                <h3 className="mb-2 font-display text-sm text-chalk">{round.label}</h3>
-                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                  {round.matches.map((no) => {
-                    const { home, away } = koParticipants[no];
-                    const pick = eff[no] ?? null;
-                    const isFinal = no === 104;
+
+          {/* Group nav — jump anywhere; gold = current, ★ = your favorite's group. */}
+          <div className="flex flex-wrap gap-1.5">
+            {groupsOrder.map((g) => {
+              const active = g === activeGroup;
+              const hasFav = favoriteTeamId != null && (order[g] ?? []).includes(favoriteTeamId);
+              return (
+                <button
+                  key={g}
+                  type="button"
+                  onClick={() => setActiveGroup(g)}
+                  aria-label={`Group ${g}`}
+                  className={`relative flex h-9 w-9 items-center justify-center rounded-lg font-display text-sm transition ${
+                    active ? "bg-gold text-night glow-gold" : "bg-night/5 text-chalk-dim hover:bg-night/10"
+                  }`}
+                >
+                  {g}
+                  {hasFav && !active && (
+                    <span className="absolute -right-0.5 -top-0.5 text-[9px] leading-none text-gold">★</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* One group at a time — ordered list with up/down reorder. */}
+          {(() => {
+            const g = activeGroup;
+            const list = order[g] ?? [];
+            const idx = groupsOrder.indexOf(g);
+            const prevG = groupsOrder[idx - 1];
+            const nextG = groupsOrder[idx + 1];
+            const isLastGroup = !nextG;
+            return (
+              <motion.div key={g} layout initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="glass rounded-2xl p-3 sm:p-4">
+                <div className="mb-2 flex items-center justify-between">
+                  <h3 className="font-display text-base text-gold">Group {g}</h3>
+                  <span className="text-xs text-chalk-dim">Top 2 advance · 3rd may qualify</span>
+                </div>
+
+                <ol className="space-y-1.5">
+                  {list.map((teamId, i) => {
+                    const t = teamsById.get(teamId);
+                    if (!t) return null;
+                    const isFav = teamId === favoriteTeamId;
                     return (
-                      <div
-                        key={no}
-                        className={`glass space-y-1 rounded-xl p-2 ${isFinal ? "ring-1 ring-gold" : ""}`}
+                      <motion.li
+                        key={teamId}
+                        layout
+                        className={`flex items-center gap-2 rounded-xl px-2 py-2 ${isFav ? "ring-1 ring-gold/70 " : ""}${
+                          i < 2 ? "bg-grass/15" : i === 2 ? "bg-gold/10" : "bg-night/5"
+                        }`}
                       >
-                        {teamChip(home, pick != null && pick === home, () => pickWinner(no, home))}
-                        {teamChip(away, pick != null && pick === away, () => pickWinner(no, away))}
-                      </div>
+                        <span className="w-4 shrink-0 text-center font-display text-sm text-chalk-dim">{i + 1}</span>
+                        <Flag teamId={t.id} logoUrl={t.logo_url} code={t.code} name={t.name} size={18} />
+                        <span className="flex min-w-0 flex-1 items-center gap-1 truncate text-sm text-chalk">
+                          <span className="truncate">{t.name}</span>
+                          {isFav && <span className="shrink-0 text-[11px] text-gold" title="Your favorite">★</span>}
+                        </span>
+                        {i < 2 && (
+                          <span className="shrink-0 rounded-full bg-grass/20 px-2 py-0.5 text-[10px] font-semibold text-grass">
+                            advances
+                          </span>
+                        )}
+                        {i === 2 && (
+                          <span className="shrink-0 rounded-full bg-gold/20 px-2 py-0.5 text-[10px] font-semibold text-gold">
+                            3rd — playoff?
+                          </span>
+                        )}
+                        <span className="flex shrink-0 flex-col gap-0.5">
+                          <button
+                            type="button"
+                            disabled={locked || i === 0}
+                            onClick={() => move(g, i, i - 1)}
+                            aria-label={`Move ${t.name} up`}
+                            className="flex h-5 w-7 items-center justify-center rounded bg-night/10 text-xs leading-none text-chalk transition hover:bg-night/20 disabled:opacity-30"
+                          >
+                            ▲
+                          </button>
+                          <button
+                            type="button"
+                            disabled={locked || i === list.length - 1}
+                            onClick={() => move(g, i, i + 1)}
+                            aria-label={`Move ${t.name} down`}
+                            className="flex h-5 w-7 items-center justify-center rounded bg-night/10 text-xs leading-none text-chalk transition hover:bg-night/20 disabled:opacity-30"
+                          >
+                            ▼
+                          </button>
+                        </span>
+                      </motion.li>
                     );
                   })}
-                </div>
-              </div>
-            ))}
+                </ol>
 
-            {/* Champion */}
-            <div className="glass-strong rounded-2xl p-5 text-center">
-              <p className="mb-2 flex items-center justify-center gap-1.5 font-display text-lg text-gradient-gold">
-                Your champion <Trophy size={18} />
-              </p>
-              {champion != null ? (
-                <motion.div
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  className="inline-flex items-center gap-3 rounded-xl border border-gold bg-gold/15 px-5 py-3 font-display text-xl text-gold glow-gold"
-                >
-                  <span>👑</span>
-                  <Flag
-                    teamId={champion}
-                    logoUrl={teamsById.get(champion)?.logo_url ?? null}
-                    code={teamsById.get(champion)?.code ?? null}
-                    name={teamsById.get(champion)?.name ?? "?"}
-                    size={28}
-                  />
-                  {teamsById.get(champion)?.name}
-                </motion.div>
-              ) : (
-                <p className="text-sm text-chalk-dim">Pick the winner of the final to crown your champion.</p>
-              )}
-            </div>
+                <div className="mt-3 flex items-center justify-between gap-2 text-sm">
+                  <button
+                    type="button"
+                    onClick={() => prevG && setActiveGroup(prevG)}
+                    disabled={!prevG}
+                    className="rounded-lg px-3 py-1.5 text-chalk-dim transition hover:bg-night/5 disabled:opacity-30"
+                  >
+                    ← {prevG ? `Group ${prevG}` : ""}
+                  </button>
+                  {isLastGroup ? (
+                    <button
+                      type="button"
+                      onClick={() => goStep("thirds")}
+                      className="rounded-lg bg-grass px-3 py-1.5 font-semibold text-night transition hover:brightness-105"
+                    >
+                      Pick 3rd-place teams →
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => nextG && setActiveGroup(nextG)}
+                      className="rounded-lg bg-grass px-3 py-1.5 font-semibold text-night transition hover:brightness-105"
+                    >
+                      Group {nextG} →
+                    </button>
+                  )}
+                </div>
+              </motion.div>
+            );
+          })()}
+        </section>
+      )}
+
+      {/* ========================== STEP 2: THIRD PLACE ========================== */}
+      {step === "thirds" && (
+        <section className="space-y-3">
+          <div>
+            <h2 className="flex items-center gap-1.5 font-display text-xl text-chalk">
+              <Ball size={18} />Best third-placed teams
+            </h2>
+            <p className="text-sm text-chalk-dim">
+              Eight of the twelve third-placed teams advance. Tap to send a group&apos;s 3rd through —{" "}
+              <span className={thirdsResolved ? "text-grass" : "text-gold"}>
+                {thirds.length}/{MAX_THIRDS} chosen
+              </span>
+              .
+            </p>
           </div>
-        )}
-      </section>
+
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+            {thirdTeams.map(({ group: g, teamId }) => {
+              const t = teamsById.get(teamId);
+              if (!t) return null;
+              const selected = thirds.includes(g);
+              const atMax = !selected && thirds.length >= MAX_THIRDS;
+              const isFav = teamId === favoriteTeamId;
+              return (
+                <button
+                  key={g}
+                  type="button"
+                  onClick={() => toggleThird(g)}
+                  disabled={locked || atMax}
+                  aria-pressed={selected}
+                  className={`flex min-h-10 items-center gap-2 rounded-lg border px-2.5 py-2 text-left text-sm transition disabled:cursor-not-allowed ${
+                    selected
+                      ? "border-gold bg-gold/15 text-gold glow-gold"
+                      : atMax
+                        ? "border-dashed border-night/15 text-chalk-dim opacity-50"
+                        : `${isFav ? "border-gold/50" : "border-night/10"} text-chalk hover:bg-night/5`
+                  }`}
+                >
+                  <span className="shrink-0 font-display text-xs text-chalk-dim">{g}</span>
+                  <Flag teamId={t.id} logoUrl={t.logo_url} code={t.code} name={t.name} size={18} />
+                  <span className="flex min-w-0 flex-1 items-center gap-1 truncate">
+                    <span className="truncate">{t.name}</span>
+                    {isFav && <span className="shrink-0 text-[11px] text-gold">★</span>}
+                  </span>
+                  {selected && <span className="shrink-0 text-xs">✓</span>}
+                </button>
+              );
+            })}
+          </div>
+
+          {!thirdsResolved && (
+            <p className="rounded-xl bg-gold/10 px-3 py-2 text-xs text-gold">
+              Pick exactly {MAX_THIRDS} third-place teams to lock in the eight third-place slots and
+              reveal the full Round of 32.
+            </p>
+          )}
+
+          <div className="flex items-center justify-between gap-2 text-sm">
+            <button
+              type="button"
+              onClick={() => goStep("groups")}
+              className="rounded-lg px-3 py-1.5 text-chalk-dim transition hover:bg-night/5"
+            >
+              ← Groups
+            </button>
+            <button
+              type="button"
+              onClick={() => goStep("bracket")}
+              className={`rounded-lg px-3 py-1.5 font-semibold transition ${
+                thirdsResolved ? "bg-grass text-night hover:brightness-105" : "bg-night/10 text-chalk-dim"
+              }`}
+            >
+              {thirdsResolved ? "See my bracket →" : "See bracket (incomplete) →"}
+            </button>
+          </div>
+        </section>
+      )}
+
+      {/* ============================ STEP 3: BRACKET ============================ */}
+      {step === "bracket" && (
+        <section className="space-y-4">
+          <div>
+            <h2 className="flex items-center gap-1.5 font-display text-xl text-chalk">
+              <Trophy size={18} />Your knockout bracket
+            </h2>
+            <p className="text-sm text-chalk-dim">
+              {bracketReady
+                ? "Tap the team you think wins each tie — winners advance across to the final. Swipe sideways to follow the rounds."
+                : "Choose your eight best third-placed teams first to reveal the full bracket."}
+            </p>
+          </div>
+
+          {favoriteTeamId != null && bracketReady && (
+            <p className="flex items-center gap-1.5 rounded-xl bg-gold/10 px-3 py-2 text-xs text-gold">
+              <span>★</span>
+              {favInBracket
+                ? "Gold traces your favorite's path to the final."
+                : "Your favorite isn't advancing in your current picks — reorder their group to send them through."}
+            </p>
+          )}
+
+          {!bracketReady ? (
+            <button
+              type="button"
+              onClick={() => goStep("thirds")}
+              className="glass block w-full rounded-2xl p-6 text-center transition hover:bg-night/5"
+            >
+              <p className="text-sm text-chalk-dim">
+                {thirds.length}/{MAX_THIRDS} third-place teams chosen — tap to finish picking
+              </p>
+              <div className="mx-auto mt-3 h-2 w-full max-w-xs overflow-hidden rounded-full bg-night/10">
+                <div
+                  className="h-full rounded-full bg-gold transition-all"
+                  style={{ width: `${(thirds.length / MAX_THIRDS) * 100}%` }}
+                />
+              </div>
+            </button>
+          ) : (
+            <>
+              <KnockoutBracket
+                rounds={bracketRounds}
+                teamsById={teamsRecord}
+                highlightIds={highlightIds}
+                onPick={pickWinner}
+                locked={locked}
+                championNo={104}
+              />
+
+              {champion == null && (
+                <p className="rounded-xl bg-night/[0.03] px-3 py-2 text-center text-xs text-chalk-dim">
+                  Pick your way through to the Final to crown a champion.
+                </p>
+              )}
+
+              <div className="flex items-center justify-between gap-2 text-sm">
+                <button
+                  type="button"
+                  onClick={() => goStep("thirds")}
+                  className="rounded-lg px-3 py-1.5 text-chalk-dim transition hover:bg-night/5"
+                >
+                  ← 3rd-place teams
+                </button>
+                <span className="text-xs text-chalk-dim">
+                  {koPicked}/{koTotal} ties picked
+                </span>
+              </div>
+            </>
+          )}
+        </section>
+      )}
 
       {/* Sticky save bar */}
       {!locked && (

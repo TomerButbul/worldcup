@@ -8,6 +8,7 @@ import Trophy from "@/components/art/Trophy";
 import TeamFormation, { type TeamLineup } from "./TeamFormation";
 import { DRAFT_POTS, POT_LABELS, teamAt, type Pot } from "@/lib/draft";
 import DraftFixtures, { type FixtureDay } from "./DraftFixtures";
+import KnockoutBracket, { type BracketRound, type BracketTeam } from "@/components/KnockoutBracket";
 import type { StandingRow } from "@/lib/draft-scoring";
 import type { DraftMember, PickRow } from "./draftTypes";
 
@@ -19,6 +20,9 @@ export default function DraftResults({
   standings,
   teamLineups,
   fixtures,
+  koRounds,
+  bracketTeams,
+  meTeamIds,
   tournamentStarted,
 }: {
   picks: PickRow[];
@@ -26,6 +30,9 @@ export default function DraftResults({
   standings: { perPot: Record<number, StandingRow[]>; totals: StandingRow[] };
   teamLineups: Record<string, { formation: string | null; xi: unknown[] }>;
   fixtures: FixtureDay[];
+  koRounds: BracketRound[];
+  bracketTeams: Record<number, BracketTeam>;
+  meTeamIds: number[];
   tournamentStarted: boolean;
 }) {
   const memberById = new Map(members.map((m) => [m.userId, m]));
@@ -115,6 +122,25 @@ export default function DraftResults({
           </div>
         </div>
       )}
+
+      {/* Read-only tournament bracket with this manager's nations traced in gold. */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="glass rounded-2xl p-4 sm:p-5"
+      >
+        <h3 className="font-display text-lg text-chalk">Your nations&apos; road to the final</h3>
+        <p className="mb-3 text-xs text-chalk-dim">
+          Fills in as the tournament plays — your drafted nations light up gold along their path.
+          Mostly TBD until the knockouts begin.
+        </p>
+        <KnockoutBracket
+          rounds={koRounds}
+          teamsById={bracketTeams}
+          highlightIds={meTeamIds}
+          championNo={104}
+        />
+      </motion.div>
 
       <DraftFixtures days={fixtures} />
 

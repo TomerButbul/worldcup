@@ -29,7 +29,7 @@ export default async function BracketPage({
 
   const locked = new Date(league.bracket_lock_at).getTime() <= nowMs();
 
-  const [teams, { data: prediction }] = await Promise.all([
+  const [teams, { data: prediction }, { data: profile }] = await Promise.all([
     getCachedTeams(),
     supabase
       .from("bracket_predictions")
@@ -37,6 +37,7 @@ export default async function BracketPage({
       .eq("league_id", id)
       .eq("user_id", user.id)
       .maybeSingle(),
+    supabase.from("profiles").select("favorite_team_id").eq("id", user.id).maybeSingle(),
   ]);
 
   const teamList = teams as (Team & { fifa_rank: number | null })[];
@@ -95,6 +96,7 @@ export default async function BracketPage({
           initialThirds={(prediction?.third_qualifiers ?? []) as string[]}
           initialKnockout={(prediction?.knockout ?? {}) as Record<string, number>}
           initialChampion={prediction?.champion_team_id ?? null}
+          favoriteTeamId={profile?.favorite_team_id ?? null}
           locked={locked}
         />
       )}
