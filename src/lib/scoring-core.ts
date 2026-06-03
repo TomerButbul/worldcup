@@ -27,7 +27,9 @@ export interface ActualOutcomes {
 }
 
 export interface BracketPick {
-  group_scores: Record<string, MatchScore>; // DB match id (string) → predicted score
+  group_scores: Record<string, MatchScore>; // DB match id (string) → predicted score (legacy model)
+  group_order?: Record<string, number[]>;    // table-pick model: group label → [1st,2nd,3rd,4th] team ids
+  third_qualifiers?: string[];               // table-pick model: the 8 groups whose 3rd-placed team advances
   knockout: Record<string, number>;          // canonical match no (string) → winner team id
   champion_team_id: number | null;
   awards?: Record<string, number>;           // award key → predicted player id

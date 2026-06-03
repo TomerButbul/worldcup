@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { ROUND32, BRACKET_TREE, THIRD_MATCHES, stageOf, rankThirdPlaceTeams, pickBestEightThirds, buildRound32, buildBracket, predictedAdvancers, type GroupTables, type Round32 } from "@/lib/bracket-core";
+import { ROUND32, BRACKET_TREE, THIRD_MATCHES, stageOf, rankThirdPlaceTeams, pickBestEightThirds, buildRound32, buildBracket, buildBracketFromOrder, predictedAdvancers, type GroupTables, type Round32 } from "@/lib/bracket-core";
 import type { GroupStat } from "@/lib/scoring-core";
 
 // Minimal table: only the 3rd-placed team's stats are needed for ranking.
@@ -123,5 +123,29 @@ describe("predictedAdvancers", () => {
     expect(a.byStage.semi).toEqual(new Set([1]));
     expect(a.byStage.final).toEqual(new Set([1]));
     expect(a.champion).toBe(1);
+  });
+});
+
+describe("buildBracketFromOrder (table-pick model)", () => {
+  it("builds the full Round of 32 from a predicted order + 8 chosen thirds", () => {
+    const groups = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"];
+    const groupOrder: Record<string, number[]> = {};
+    groups.forEach((g, i) => {
+      groupOrder[g] = [i * 10, i * 10 + 1, i * 10 + 2, i * 10 + 3];
+    });
+    const { round32, annex } = buildBracketFromOrder(groupOrder, ["A", "B", "C", "D", "E", "F", "G", "H"]);
+    expect(Object.keys(annex)).toHaveLength(8);
+    for (const m of Object.values(round32)) {
+      expect(m.home).not.toBeNull();
+      expect(m.away).not.toBeNull();
+    }
+    expect(round32[73]).toEqual({ home: 1, away: 11 }); // 2A v 2B (runners-up = order[1])
+  });
+
+  it("leaves the third-place slots null when fewer than 8 thirds are chosen", () => {
+    const { round32, annex } = buildBracketFromOrder({ A: [1, 2, 3, 4], B: [11, 12, 13, 14] }, ["A"]);
+    expect(annex).toEqual({});
+    expect(round32[73]).toEqual({ home: 2, away: 12 }); // runners still resolve
+    expect(round32[79]).toEqual({ home: 1, away: null }); // 1A set, third slot unresolved
   });
 });

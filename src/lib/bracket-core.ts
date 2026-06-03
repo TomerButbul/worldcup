@@ -157,6 +157,25 @@ export function buildBracket(tables: GroupTables, fifaRank: Map<number, number> 
   return { round32: buildRound32(tables, annex), bestThirds: best.teams, annex };
 }
 
+// Table-pick model: build the Round of 32 straight from the manager's predicted
+// group ORDER + the 8 groups whose third-placed team they sent through — no
+// scorelines needed. `groupOrder` maps each group label to its [1st,2nd,3rd,4th]
+// team ids; `thirdGroups` are the (ideally 8) groups providing a third-place
+// qualifier. Annex C slots the thirds only when exactly 8 are chosen; otherwise
+// the eight third-place slots stay null (bracket incomplete).
+export function buildBracketFromOrder(
+  groupOrder: Record<string, number[]>,
+  thirdGroups: Iterable<string>,
+): { round32: Round32; annex: Record<number, Group> } {
+  const tables: GroupTables = {};
+  for (const [g, order] of Object.entries(groupOrder)) {
+    tables[g] = { order: [...order], stats: new Map() };
+  }
+  const groups = new Set<Group>([...thirdGroups] as Group[]);
+  const annex = groups.size === 8 ? assignThirdsAnnexC(groups) : {};
+  return { round32: buildRound32(tables, annex), annex };
+}
+
 const NEXT_STAGE: Record<string, MatchStage | "champion"> = {
   round_of_32: "round_of_16",
   round_of_16: "quarter",
