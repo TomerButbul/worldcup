@@ -442,17 +442,21 @@ export function scoreLive(
   for (const p of preds) {
     const r = actual.results.get(p.match_id);
     if (!r) continue;
-    // Scoreline points apply to any match the user predicted a score for. Group
-    // scores now live in match predictions (upfront is table-order only), so they
-    // score here too — knockouts always did. A group draw has no shootout, so the
-    // pen bonus below stays knockout-only via r.winner being null on group draws.
+    // Group games are plentiful (72 of 103) and lower-stakes, so they score
+    // lighter than knockouts — this keeps the Live crown from dwarfing Upfront in
+    // the Total. A group draw has no shootout (r.winner null), so the pen bonus
+    // stays knockout-only. ?? falls back to defaults for legacy league configs.
+    const grp = r.stage === "group";
+    const exactPts = grp ? (cfg.live.group_exact_score ?? DEFAULT_SCORING.live.group_exact_score) : cfg.live.exact_score;
+    const resultPts = grp ? (cfg.live.group_correct_result ?? DEFAULT_SCORING.live.group_correct_result) : cfg.live.correct_result;
+    const scorerPts = grp ? (cfg.live.group_goal_scorer ?? DEFAULT_SCORING.live.group_goal_scorer) : cfg.live.goal_scorer;
     if (p.home_goals != null && p.away_goals != null) {
       if (p.home_goals === r.home && p.away_goals === r.away) {
-        pts += cfg.live.exact_score;
+        pts += exactPts;
       } else {
         const predSign = Math.sign(p.home_goals - p.away_goals);
         const actualSign = Math.sign(r.home - r.away);
-        if (predSign === actualSign) pts += cfg.live.correct_result;
+        if (predSign === actualSign) pts += resultPts;
       }
       // Shootout bonus: the tie went to pens (level result), the user predicted
       // a level score, and called the advancing team correctly. Stacks on top of
@@ -470,7 +474,7 @@ export function scoreLive(
     // that player actually scored (so over-predicting a brace earns no extra).
     for (const [pid, predCount] of Object.entries(p.scorer_goals ?? {})) {
       const actualCount = r.scorers.get(Number(pid)) ?? 0;
-      pts += cfg.live.goal_scorer * Math.min(predCount, actualCount);
+      pts += scorerPts * Math.min(predCount, actualCount);
     }
   }
   return pts;

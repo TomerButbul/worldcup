@@ -66,10 +66,13 @@ export interface ScoringConfig {
     sweep_semi: number;
   };
   live: {
-    exact_score: number;
-    correct_result: number;
-    goal_scorer: number;
-    pen_winner: number; // knockout shootout: called the advancing team
+    exact_score: number;          // knockout match exact scoreline
+    correct_result: number;       // knockout match W/D/L
+    goal_scorer: number;          // knockout match: per correct goal
+    pen_winner: number;           // knockout shootout: called the advancing team
+    group_exact_score: number;    // group match exact scoreline (lighter — 72 of them)
+    group_correct_result: number; // group match W/D/L
+    group_goal_scorer: number;    // group match: per correct goal
   };
 }
 
@@ -121,7 +124,7 @@ export const DEFAULT_SCORING: ScoringConfig = {
     advance_quarter: 4,
     advance_semi: 6,
     advance_final: 8,
-    champion: 15,
+    champion: 25,
     golden_boot: 12,
     golden_ball: 10,
     golden_glove: 8,
@@ -136,6 +139,9 @@ export const DEFAULT_SCORING: ScoringConfig = {
     correct_result: 2,
     goal_scorer: 2,
     pen_winner: 2,
+    group_exact_score: 2,
+    group_correct_result: 1,
+    group_goal_scorer: 1,
   },
 };
 

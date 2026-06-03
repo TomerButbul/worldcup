@@ -18,7 +18,14 @@ describe("DEFAULT_SCORING", () => {
     expect(DEFAULT_SCORING.upfront.advance_quarter).toBe(4);
     expect(DEFAULT_SCORING.upfront.advance_semi).toBe(6);
     expect(DEFAULT_SCORING.upfront.advance_final).toBe(8);
-    expect(DEFAULT_SCORING.upfront.champion).toBe(15);
+    expect(DEFAULT_SCORING.upfront.champion).toBe(25);
+  });
+
+  it("scores group-stage live games lighter than knockouts", () => {
+    expect(DEFAULT_SCORING.live.group_exact_score).toBe(2);
+    expect(DEFAULT_SCORING.live.group_correct_result).toBe(1);
+    expect(DEFAULT_SCORING.live.group_goal_scorer).toBe(1);
+    expect(DEFAULT_SCORING.live.exact_score).toBe(5); // knockout stays full-weight
   });
 
   it("defines group-order point defaults", () => {

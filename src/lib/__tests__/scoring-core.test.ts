@@ -306,16 +306,16 @@ describe("scoreLive", () => {
       .toBe(cfg.live.exact_score + cfg.live.goal_scorer * 1);
   });
 
-  it("group: now scores the scoreline too (scores moved to live picks) + count-aware scorers", () => {
-    // groupActual match 5 finished 3-1. A perfect 3-1 line now earns exact_score.
+  it("group: scores the (lighter) group scoreline + count-aware scorers at group rates", () => {
+    // groupActual match 5 finished 3-1. A perfect 3-1 line earns the GROUP exact rate.
     expect(scoreLive(cfg, groupActual, [{ match_id: 5, home_goals: 3, away_goals: 1, scorer_goals: {} }]))
-      .toBe(cfg.live.exact_score);
-    // Scorers still count, capped at the player's actual goals (101 scored 2).
+      .toBe(cfg.live.group_exact_score);
+    // Scorers count at the group rate, capped at the player's actual goals (101 scored 2).
     expect(scoreLive(cfg, groupActual, [{ match_id: 5, home_goals: 3, away_goals: 1, scorer_goals: { 101: 3 } }]))
-      .toBe(cfg.live.exact_score + cfg.live.goal_scorer * 2);
+      .toBe(cfg.live.group_exact_score + cfg.live.group_goal_scorer * 2);
     // A scorers-only pick (no score entered) still scores just the scorers.
     expect(scoreLive(cfg, groupActual, [{ match_id: 5, home_goals: null, away_goals: null, scorer_goals: { 101: 2 } }]))
-      .toBe(cfg.live.goal_scorer * 2);
+      .toBe(cfg.live.group_goal_scorer * 2);
   });
 
   it("ignores predictions for matches with no result yet", () => {

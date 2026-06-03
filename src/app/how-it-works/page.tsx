@@ -3,9 +3,9 @@ import Link from "next/link";
 export const metadata = { title: "How it works" };
 
 const GAME_STEPS = [
-  "Predict the bracket — set the 72 group scorelines and your knockout bracket builds itself; then crown your champion.",
+  "Predict the bracket — order each group's table (1st→4th) and pick the 8 best third-placed teams; your knockout bracket builds itself, then crown your champion.",
   "Predict the 4 individual awards (Golden Boot, Ball, Glove, Young Player).",
-  "As the tournament plays, predict each match's goal scorers — and for knockout games, the exact score + who wins on penalties.",
+  "As the tournament plays, predict every match's exact score + goal scorers (and the shootout winner for level knockouts).",
   "Climb three leaderboards. Everything auto-saves; picks lock at kickoff (Jun 11).",
 ];
 
@@ -25,9 +25,10 @@ const AWARD_POINTS = [
 ];
 
 const LIVE_POINTS = [
-  ["Exact score", "5"],
-  ["Correct result", "2"],
-  ["Each correct goal scorer", "2"],
+  ["Exact score — knockout", "5"],
+  ["Exact score — group", "2"],
+  ["Correct result — knockout / group", "2 / 1"],
+  ["Each correct goal scorer — knockout / group", "2 / 1"],
   ["Calling the penalty-shootout winner", "2"],
 ];
 
@@ -94,10 +95,10 @@ export default function HowItWorksPage() {
             Your bracket + awards — locked at kickoff.
           </p>
           <div className="mt-2">
-            <ScoreRow label="Exact group scoreline" points="3" />
-            <ScoreRow label="Correct group result (W/D/L)" points="1" />
+            <ScoreRow label="Each group finishing position (1st–4th)" points="1" />
+            <ScoreRow label="Perfect group order (all four)" points="+3" />
             <ScoreRow label="Predict a group winner" points="3" />
-            <ScoreRow label="Champion" points="15" />
+            <ScoreRow label="Champion" points="25" />
           </div>
 
           <div className="mt-3 rounded-2xl bg-night/[0.03] p-3">
@@ -137,7 +138,7 @@ export default function HowItWorksPage() {
             <span className="text-lg">⚡</span>
             <h3 className="font-display text-lg text-grass">Live</h3>
           </div>
-          <p className="mt-0.5 text-xs text-chalk-dim">Per knockout match, as games play.</p>
+          <p className="mt-0.5 text-xs text-chalk-dim">Per match, as games play — group games score lighter than knockouts.</p>
           <div className="mt-2">
             {LIVE_POINTS.map(([label, pts]) => (
               <ScoreRow key={label} label={label} points={pts} grass />
