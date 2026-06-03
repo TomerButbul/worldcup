@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCachedTeams, getCachedPlayers } from "@/lib/tournamentData";
 import type { Player } from "@/lib/types";
 import MatchCard, { type MatchCardData } from "./MatchCard";
+import FixturesList, { type FixtureDay } from "@/components/FixturesList";
 import AutoRefresh from "@/components/AutoRefresh";
 import MatchClock from "@/components/art/MatchClock";
 import Ball from "@/components/art/Ball";
@@ -116,6 +117,29 @@ export default async function MatchesPage({
   const [firstDay, ...laterDays] = upcomingByDay;
   const laterCount = laterDays.reduce((s, d) => s + d.matches.length, 0);
 
+  // Browsable full schedule: every match in the tournament, grouped by calendar
+  // day. `matches` already arrives ordered by kickoff, so a single pass keeps
+  // both days and the matches within each day in chronological order. Each row
+  // is tappable straight through to its match card.
+  const scheduleDays: FixtureDay[] = [];
+  for (const m of matches ?? []) {
+    const day = dayLabel(m.kickoff_at);
+    const last = scheduleDays[scheduleDays.length - 1];
+    const row = {
+      id: m.id,
+      homeTeamId: m.home_team_id,
+      awayTeamId: m.away_team_id,
+      homeName: m.home_team_id ? (teamName.get(m.home_team_id) ?? "TBD") : "TBD",
+      awayName: m.away_team_id ? (teamName.get(m.away_team_id) ?? "TBD") : "TBD",
+      homeGoals: m.home_goals,
+      awayGoals: m.away_goals,
+      status: m.status,
+      kickoff: m.kickoff_at,
+    };
+    if (last && last.day === day) last.matches.push(row);
+    else scheduleDays.push({ day, matches: [row] });
+  }
+
   function toCard(m: NonNullable<typeof matches>[number]): MatchCardData {
     return {
       id: m.id,
@@ -212,6 +236,18 @@ export default async function MatchesPage({
             <section className="space-y-3">
               <h2 className="font-display text-xl text-chalk">Played</h2>
               {past.map(renderCard)}
+            </section>
+          )}
+
+          {/* Full schedule — browse every fixture day-by-day and tap through to
+              any match's card. Complements the prediction-entry cards above. */}
+          {scheduleDays.length > 0 && (
+            <section className="glass rounded-2xl p-4">
+              <h2 className="font-display text-chalk">Full schedule</h2>
+              <p className="mb-2 mt-1 text-[11px] text-chalk-dim">
+                Every fixture, grouped by day — tap any game to open its match card.
+              </p>
+              <FixturesList leagueId={id} days={scheduleDays} />
             </section>
           )}
         </>

@@ -46,6 +46,8 @@ export async function GET(request: NextRequest) {
             status: mapStatus(f.fixture.status.short),
             home_goals: f.goals.home,
             away_goals: f.goals.away,
+            // Live minute (status.elapsed isn't in the shared AfFixture type).
+            elapsed: (f.fixture.status as { elapsed?: number | null }).elapsed ?? null,
             winner_team_id: f.teams.home?.winner
               ? (f.teams.home?.id ?? null)
               : f.teams.away?.winner
@@ -57,6 +59,7 @@ export async function GET(request: NextRequest) {
       }
       let lineups = 0;
       let events = 0;
+      let stats = 0;
       for (const f of liveFixtures) {
         const fid = f.fixture.id;
         const lus = await fetchLineups(fid);
@@ -106,8 +109,10 @@ export async function GET(request: NextRequest) {
           await supabase.from("match_events").insert(rows);
           events += rows.length;
         }
+        // Per-team live statistics (possession, shots, passes, …).
+        stats += await syncMatchStats(supabase, fid);
       }
-      return NextResponse.json({ ok: true, mode: "live", live: liveFixtures.length, lineups, events });
+      return NextResponse.json({ ok: true, mode: "live", live: liveFixtures.length, lineups, events, stats });
     }
 
     // 1) Teams
@@ -326,6 +331,7 @@ export async function GET(request: NextRequest) {
 
     let goalsImported = 0;
     let cardsImported = 0;
+    let statsImported = 0;
     for (const m of pending ?? []) {
       const events = await fetchFixtureEvents(m.id);
       const goals = events.filter(
@@ -425,10 +431,14 @@ export async function GET(request: NextRequest) {
         );
       }
 
+      // Final per-team statistics for the finished match.
+      statsImported += await syncMatchStats(supabase, m.id);
+
       await supabase.from("matches").update({ goals_synced: true }).eq("id", m.id);
     }
     summary.goals = goalsImported;
     summary.cards = cardsImported;
+    summary.stats = statsImported;
 
     // 5) Recompute scores
     await recomputeAllScores(supabase);
@@ -451,4 +461,57 @@ export async function GET(request: NextRequest) {
 function roundGroup(round: string): string | null {
   const m = round.match(/Group\s+([A-L])/i);
   return m ? m[1].toUpperCase() : null;
+}
+
+// --- Match statistics (fixtures/statistics) -------------------------------
+// Not exposed by the shared apiFootball client, so we call the endpoint here
+// with the same base URL + auth header. Each response entry is one team and
+// its statistic list: { team: { id }, statistics: [ { type, value }, … ] }.
+interface AfTeamStatistics {
+  team: { id: number };
+  statistics: { type: string; value: number | string | null }[];
+}
+
+async function fetchStatistics(fixtureId: number): Promise<AfTeamStatistics[]> {
+  const key = process.env.API_FOOTBALL_KEY;
+  if (!key) throw new Error("API_FOOTBALL_KEY is not set");
+  const url = new URL("https://v3.football.api-sports.io/fixtures/statistics");
+  url.searchParams.set("fixture", String(fixtureId));
+  const res = await fetch(url, {
+    headers: { "x-apisports-key": key },
+    next: { revalidate: 20 }, // short cache: live stats should stay fresh
+  });
+  if (!res.ok) {
+    throw new Error(`API-Football /fixtures/statistics -> ${res.status} ${res.statusText}`);
+  }
+  const json = (await res.json()) as { response?: AfTeamStatistics[] };
+  return json.response ?? [];
+}
+
+// Fold a team's [{type,value}, …] list into a { type: value } JSONB object,
+// keeping the raw API type strings as keys and values as-is.
+function statsToObject(list: AfTeamStatistics["statistics"]): Record<string, number | string | null> {
+  const out: Record<string, number | string | null> = {};
+  for (const s of list) out[s.type] = s.value;
+  return out;
+}
+
+// Upsert per-team statistics for one fixture into match_stats. Returns the
+// number of team rows written (0 if the API has no stats yet — e.g. a match
+// that hasn't kicked off). Defensive: skips teams with an empty stat list.
+async function syncMatchStats(
+  supabase: ReturnType<typeof createServiceClient>,
+  matchId: number,
+): Promise<number> {
+  const teamStats = await fetchStatistics(matchId);
+  const rows = teamStats
+    .filter((t) => t.team?.id != null && (t.statistics?.length ?? 0) > 0)
+    .map((t) => ({
+      match_id: matchId,
+      team_id: t.team.id,
+      stats: statsToObject(t.statistics),
+    }));
+  if (!rows.length) return 0;
+  await supabase.from("match_stats").upsert(rows, { onConflict: "match_id,team_id" });
+  return rows.length;
 }

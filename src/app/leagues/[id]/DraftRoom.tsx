@@ -323,6 +323,7 @@ export default function DraftRoom({
       {state.status === "complete" && (
         <DraftResults
           tab={tab}
+          leagueId={leagueId}
           picks={picks}
           members={members}
           standings={standings}

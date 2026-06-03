@@ -17,6 +17,7 @@ const POTS: Pot[] = [1, 2, 3];
 
 export default function DraftResults({
   tab,
+  leagueId,
   picks,
   members,
   standings,
@@ -29,6 +30,7 @@ export default function DraftResults({
   tournamentStarted,
 }: {
   tab: string;
+  leagueId: string;
   picks: PickRow[];
   members: DraftMember[];
   standings: { perPot: Record<number, StandingRow[]>; totals: StandingRow[] };
@@ -221,7 +223,7 @@ export default function DraftResults({
       )}
 
       {/* Fixtures: every match grouped by day, with who drafted each nation. */}
-      {tab === "fixtures" && <DraftFixtures days={fixtures} />}
+      {tab === "fixtures" && <DraftFixtures leagueId={leagueId} days={fixtures} />}
     </div>
   );
 }

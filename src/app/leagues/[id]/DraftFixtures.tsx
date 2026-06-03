@@ -1,4 +1,4 @@
-import Flag from "@/components/Flag";
+import FixturesList, { type FixtureDay as FixtureDayLite } from "@/components/FixturesList";
 
 // One fixture, fully resolved on the server (no Maps cross the client boundary):
 // both teams + the manager who drafted each (null if undrafted / TBD knockout).
@@ -17,49 +17,33 @@ export type FixtureRow = {
 };
 export type FixtureDay = { day: string; matches: FixtureRow[] };
 
-function timeLabel(iso: string) {
-  return new Date(iso).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
-}
-
-function MatchRow({ m }: { m: FixtureRow }) {
-  const played = (m.status === "finished" || m.status === "live") && m.homeGoals != null;
-  return (
-    <div className="flex items-center gap-2 border-b border-night/5 py-2 last:border-b-0">
-      <div className="flex min-w-0 flex-1 flex-col items-end">
-        <span className="flex max-w-full items-center gap-1.5">
-          <span className="truncate text-sm font-semibold text-chalk">{m.homeName}</span>
-          <Flag teamId={m.homeTeamId} name={m.homeName} size={18} className="shrink-0" />
-        </span>
-        <span className="max-w-full truncate text-[11px] font-semibold text-gold">
-          {m.homeMgr ?? " "}
-        </span>
-      </div>
-
-      <div className="shrink-0 px-1 text-center">
-        {played ? (
-          <span className="net rounded-md bg-night/5 px-2 py-0.5 font-display text-sm text-chalk">
-            {m.homeGoals}–{m.awayGoals}
-          </span>
-        ) : (
-          <span className="text-[11px] text-chalk-dim">{timeLabel(m.kickoff)}</span>
-        )}
-      </div>
-
-      <div className="flex min-w-0 flex-1 flex-col items-start">
-        <span className="flex max-w-full items-center gap-1.5">
-          <Flag teamId={m.awayTeamId} name={m.awayName} size={18} className="shrink-0" />
-          <span className="truncate text-sm font-semibold text-chalk">{m.awayName}</span>
-        </span>
-        <span className="max-w-full truncate text-[11px] font-semibold text-gold">
-          {m.awayMgr ?? " "}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-export default function DraftFixtures({ days }: { days: FixtureDay[] }) {
+export default function DraftFixtures({
+  leagueId,
+  days,
+}: {
+  leagueId: string;
+  days: FixtureDay[];
+}) {
   if (!days.length) return null;
+  // Map the draft-resolved rows onto the shared FixturesList shape — the gold
+  // manager names ride along as the optional extra lines under each nation.
+  const liteDays: FixtureDayLite[] = days.map((d) => ({
+    day: d.day,
+    matches: d.matches.map((m) => ({
+      id: m.id,
+      homeTeamId: m.homeTeamId,
+      awayTeamId: m.awayTeamId,
+      homeName: m.homeName,
+      awayName: m.awayName,
+      homeGoals: m.homeGoals,
+      awayGoals: m.awayGoals,
+      status: m.status,
+      kickoff: m.kickoff,
+      homeExtra: m.homeMgr,
+      awayExtra: m.awayMgr,
+    })),
+  }));
+
   // Renders in full as its own tab (the bottom nav gates visibility), so it's a
   // plain section rather than a collapsible — every fixture is shown at once.
   return (
@@ -67,22 +51,9 @@ export default function DraftFixtures({ days }: { days: FixtureDay[] }) {
       <h2 className="font-display text-chalk">Fixtures &amp; managers</h2>
       <p className="mb-2 mt-1 text-[11px] text-chalk-dim">
         Every game is a manager-vs-manager matchup — the gold name under each nation is who drafted
-        it.
+        it. Tap any fixture for the match card.
       </p>
-      <div className="max-h-[70vh] space-y-3 overflow-y-auto pr-1">
-        {days.map((d) => (
-          <div key={d.day}>
-            <p className="sticky top-0 z-10 bg-white/85 py-1 text-xs font-semibold uppercase tracking-wider text-chalk-dim backdrop-blur-sm">
-              {d.day}
-            </p>
-            <div>
-              {d.matches.map((m) => (
-                <MatchRow key={m.id} m={m} />
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
+      <FixturesList leagueId={leagueId} days={liteDays} />
     </section>
   );
 }

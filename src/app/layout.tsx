@@ -5,6 +5,7 @@ import AnimatedBackground from "@/components/AnimatedBackground";
 import FlagGarland from "@/components/FlagGarland";
 import { PlayerCardHost } from "@/components/PlayerCard";
 import { GlobalNav } from "@/components/BottomNav";
+import LiveScoresWidget from "@/components/LiveScoresWidget";
 import { getCachedMatchdayFlags } from "@/lib/tournamentData";
 import { createClient } from "@/lib/supabase/server";
 
@@ -86,6 +87,7 @@ export default async function RootLayout({
         {/* GlobalNav self-hides on auth/landing/league routes; LeagueNav (in the
             league layout) takes over inside a league. */}
         {user && <GlobalNav />}
+        {user && <LiveScoresWidget />}
         <PlayerCardHost />
       </body>
     </html>
