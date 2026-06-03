@@ -117,7 +117,7 @@ export function computeFavStatus(
     }
   } else if (next) {
     headline = `${team.name} kick off soon vs ${next.opponentName}.`;
-    emoji = "⏳";
+    emoji = "⏱️";
   }
 
   return { team: { id: team.id, name: team.name, logo_url: team.logo_url, code: team.code }, last, next, eliminated, champion, headline, emoji, mood };

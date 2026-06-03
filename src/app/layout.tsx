@@ -63,7 +63,7 @@ export default async function RootLayout({
         <div className="fixed inset-x-0 top-[env(safe-area-inset-top)] z-30">
           <FlagGarland flags={matchdayFlags} />
         </div>
-        <div className="relative z-10 flex min-h-screen flex-col pt-[calc(env(safe-area-inset-top)+1.75rem)]">
+        <div className="relative z-10 flex min-h-screen flex-col pt-[calc(env(safe-area-inset-top)+2.25rem)]">
           {children}
         </div>
         <PlayerCardHost />

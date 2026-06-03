@@ -5,6 +5,7 @@ import { getCachedTeams, getCachedPlayers } from "@/lib/tournamentData";
 import type { Player } from "@/lib/types";
 import MatchCard, { type MatchCardData } from "./MatchCard";
 import AutoRefresh from "@/components/AutoRefresh";
+import MatchClock from "@/components/art/MatchClock";
 import { fetchLineups } from "@/lib/apiFootball";
 import { nowMs, KICKOFF_MS } from "@/lib/clock";
 
@@ -201,7 +202,7 @@ export default async function MatchesPage({
               {laterDays.length > 0 && (
                 <details className="group space-y-3">
                   <summary className="flex cursor-pointer list-none items-center justify-center gap-2 rounded-2xl glass p-3 text-sm font-semibold text-gold transition hover:text-gold-bright">
-                    ⏳ Predict earlier — {laterCount} more game{laterCount === 1 ? "" : "s"}
+                    <MatchClock size={15} /> Predict earlier — {laterCount} more game{laterCount === 1 ? "" : "s"}
                     <span className="transition group-open:rotate-180">▾</span>
                   </summary>
                   <div className="mt-4 space-y-6">

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { countdownParts } from "@/lib/clock";
+import MatchClock from "@/components/art/MatchClock";
 
 function format(target: number): string | null {
   const p = countdownParts(target);
@@ -56,7 +57,8 @@ export default function MatchCountdown({
     <span
       className={`inline-flex items-center gap-1 rounded-full bg-gold/10 px-2 py-0.5 text-[11px] font-semibold text-gold ${className}`}
     >
-      ⏳ {text}
+      <MatchClock size={13} />
+      {text}
     </span>
   );
 }
