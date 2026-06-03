@@ -314,12 +314,59 @@ function TeamScorers({
   // With an official lineup, show only the matchday squad (XI + subs, plus any
   // already-picked player), starters first. Otherwise show the full squad.
   const rank = (id: number) => (starters.has(id) ? 0 : subs.has(id) ? 1 : 2);
-  const list = hasLineup
-    ? players
-        .filter((p) => starters.has(p.id) || subs.has(p.id) || (scorerGoals[String(p.id)] ?? 0) > 0)
-        .sort((a, b) => rank(a.id) - rank(b.id))
-    : players;
+  const inMain = (id: number) => starters.has(id) || subs.has(id) || (scorerGoals[String(id)] ?? 0) > 0;
+  // With a lineup (official XI or the team's last XI), show that XI up front and
+  // tuck the rest of the squad into a collapsed "Full squad" section.
+  const list = hasLineup ? players.filter((p) => inMain(p.id)).sort((a, b) => rank(a.id) - rank(b.id)) : players;
+  const bench = hasLineup ? players.filter((p) => !inMain(p.id)) : [];
   const badgeFor = (id: number) => (!hasLineup ? null : starters.has(id) ? "XI" : subs.has(id) ? "sub" : null);
+
+  const renderChip = (p: Player) => {
+    const count = scorerGoals[String(p.id)] ?? 0;
+    const b = badgeFor(p.id);
+    const badgeEl = b ? (
+      <span className={`ml-0.5 rounded px-1 text-[9px] font-bold uppercase ${b === "XI" ? "bg-grass/20 text-grass" : "bg-night/10 text-chalk-dim"}`}>
+        {b}
+      </span>
+    ) : null;
+    if (count === 0) {
+      return (
+        <button
+          key={p.id}
+          onClick={() => onAdjust(p.id, 1)}
+          disabled={atCap}
+          className="flex items-center gap-1.5 rounded-full border border-night/10 py-1 pl-0.5 pr-2.5 text-xs text-chalk transition hover:bg-night/5 disabled:opacity-40"
+        >
+          <PlayerAvatar playerId={p.id} name={p.name} size={20} />
+          {p.name}
+          {badgeEl}
+        </button>
+      );
+    }
+    return (
+      <span key={p.id} className="flex items-center gap-1 rounded-full border border-grass bg-grass/15 py-0.5 pl-0.5 pr-1 text-xs text-chalk">
+        <PlayerAvatar playerId={p.id} name={p.name} size={20} />
+        <span className="font-semibold">{p.name}</span>
+        {badgeEl}
+        <span className="font-display text-grass">×{count}</span>
+        <button
+          onClick={() => onAdjust(p.id, -1)}
+          aria-label={`One fewer for ${p.name}`}
+          className="ml-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-night/10 text-sm leading-none text-chalk hover:bg-night/20"
+        >
+          −
+        </button>
+        <button
+          onClick={() => onAdjust(p.id, 1)}
+          disabled={atCap}
+          aria-label={`One more for ${p.name}`}
+          className="flex h-5 w-5 items-center justify-center rounded-full bg-grass text-sm leading-none text-night hover:brightness-110 disabled:opacity-40"
+        >
+          +
+        </button>
+      </span>
+    );
+  };
 
   return (
     <div>
@@ -337,58 +384,16 @@ function TeamScorers({
       {cap === 0 ? (
         <p className="text-[11px] text-chalk-dim">Predict a goal for {label} to assign scorers.</p>
       ) : (
-        <div className="flex flex-wrap gap-1.5">
-          {list.map((p) => {
-            const count = scorerGoals[String(p.id)] ?? 0;
-            const b = badgeFor(p.id);
-            const badgeEl = b ? (
-              <span
-                className={`ml-0.5 rounded px-1 text-[9px] font-bold uppercase ${b === "XI" ? "bg-grass/20 text-grass" : "bg-night/10 text-chalk-dim"}`}
-              >
-                {b}
-              </span>
-            ) : null;
-            if (count === 0) {
-              return (
-                <button
-                  key={p.id}
-                  onClick={() => onAdjust(p.id, 1)}
-                  disabled={atCap}
-                  className="flex items-center gap-1.5 rounded-full border border-night/10 py-1 pl-0.5 pr-2.5 text-xs text-chalk transition hover:bg-night/5 disabled:opacity-40"
-                >
-                  <PlayerAvatar playerId={p.id} name={p.name} size={20} />
-                  {p.name}
-                  {badgeEl}
-                </button>
-              );
-            }
-            return (
-              <span
-                key={p.id}
-                className="flex items-center gap-1 rounded-full border border-grass bg-grass/15 py-0.5 pl-0.5 pr-1 text-xs text-chalk"
-              >
-                <PlayerAvatar playerId={p.id} name={p.name} size={20} />
-                <span className="font-semibold">{p.name}</span>
-                {badgeEl}
-                <span className="font-display text-grass">×{count}</span>
-                <button
-                  onClick={() => onAdjust(p.id, -1)}
-                  aria-label={`One fewer for ${p.name}`}
-                  className="ml-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-night/10 text-sm leading-none text-chalk hover:bg-night/20"
-                >
-                  −
-                </button>
-                <button
-                  onClick={() => onAdjust(p.id, 1)}
-                  disabled={atCap}
-                  aria-label={`One more for ${p.name}`}
-                  className="flex h-5 w-5 items-center justify-center rounded-full bg-grass text-sm leading-none text-night hover:brightness-110 disabled:opacity-40"
-                >
-                  +
-                </button>
-              </span>
-            );
-          })}
+        <div className="space-y-2">
+          <div className="flex flex-wrap gap-1.5">{list.map(renderChip)}</div>
+          {bench.length > 0 && (
+            <details>
+              <summary className="cursor-pointer list-none text-[11px] font-semibold text-chalk-dim transition hover:text-chalk">
+                ⬇ Full squad ({bench.length} more)
+              </summary>
+              <div className="mt-1.5 flex flex-wrap gap-1.5">{bench.map(renderChip)}</div>
+            </details>
+          )}
         </div>
       )}
     </div>

@@ -50,8 +50,8 @@ export default async function MatchesPage({
 
   const teamName = new Map(teams.map((t) => [t.id, t.name]));
   const playersByTeam = new Map<number, Player[]>();
-  for (const p of players as Player[]) {
-    if (p.team_id == null) continue;
+  for (const p of players as (Player & { in_squad?: boolean })[]) {
+    if (p.team_id == null || !p.in_squad) continue; // World Cup squad only
     if (!playersByTeam.has(p.team_id)) playersByTeam.set(p.team_id, []);
     playersByTeam.get(p.team_id)!.push(p);
   }
@@ -98,6 +98,16 @@ export default async function MatchesPage({
     }),
   );
 
+  // Fallback for the scorer picker: each team's most recent starting XI, so the
+  // picker defaults to ~11 players (not the whole 28-man squad) before official
+  // lineups drop. Official lineups (above) still win when posted.
+  const { data: teamLineups } = await supabase.from("team_lineups").select("team_id, xi");
+  const lastXIByTeam = new Map<number, { starters: number[]; subs: number[] }>();
+  for (const tl of teamLineups ?? []) {
+    const ids = ((tl.xi ?? []) as { player_id: number }[]).map((x) => x.player_id).filter(Boolean);
+    if (ids.length) lastXIByTeam.set(tl.team_id, { starters: ids, subs: [] });
+  }
+
   // Group upcoming by matchday so the page isn't a wall of cards: show the next
   // matchday, tuck the rest behind a "predict earlier" disclosure.
   const dayLabel = (iso: string) =>
@@ -137,8 +147,8 @@ export default async function MatchesPage({
         awayPlayers={m.away_team_id ? (playersByTeam.get(m.away_team_id) ?? []) : []}
         initial={predByMatch.get(m.id) ?? null}
         bracketScore={groupScores[String(m.id)] ?? null}
-        homeLineup={m.home_team_id ? (lineupByMatch.get(m.id)?.[m.home_team_id] ?? null) : null}
-        awayLineup={m.away_team_id ? (lineupByMatch.get(m.id)?.[m.away_team_id] ?? null) : null}
+        homeLineup={m.home_team_id ? (lineupByMatch.get(m.id)?.[m.home_team_id] ?? lastXIByTeam.get(m.home_team_id) ?? null) : null}
+        awayLineup={m.away_team_id ? (lineupByMatch.get(m.id)?.[m.away_team_id] ?? lastXIByTeam.get(m.away_team_id) ?? null) : null}
       />
     );
   }

@@ -25,9 +25,9 @@ export const getCachedTeams = unstable_cache(
 export const getCachedPlayers = unstable_cache(
   async () => {
     const s = createServiceClient();
-    const { data } = await s.from("players").select("id, team_id, name").order("id");
+    const { data } = await s.from("players").select("id, team_id, name, in_squad").order("id");
     return data ?? [];
   },
-  ["players"],
+  ["players-v2"], // bump: shape changed (added in_squad)
   { tags: [TOURNAMENT_TAG], revalidate: 300 },
 );
