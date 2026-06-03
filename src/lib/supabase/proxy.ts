@@ -44,7 +44,12 @@ export async function updateSession(request: NextRequest) {
   // JSON, never an HTML redirect to /login — otherwise the cron silently 307s.
   const isApi = pathname.startsWith("/api");
   const isPublic =
-    pathname === "/" || pathname.startsWith("/preview") || isAuthRoute || isApi;
+    pathname === "/" ||
+    pathname.startsWith("/preview") ||
+    pathname.startsWith("/forgot-password") ||
+    pathname.startsWith("/reset-password") ||
+    isAuthRoute ||
+    isApi;
 
   if (!user && !isPublic) {
     // Not signed in on a protected route (e.g. a shared /leagues/<id> link) →

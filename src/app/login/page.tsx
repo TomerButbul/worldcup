@@ -51,6 +51,12 @@ export default async function LoginPage({
             </GameButton>
           </form>
 
+          <p className="text-center text-sm">
+            <Link href="/forgot-password" className="text-chalk-dim hover:text-gold hover:underline">
+              Forgot password?
+            </Link>
+          </p>
+
           <p className="text-center text-sm text-chalk-dim">
             No account?{" "}
             <Link href="/signup" className="font-semibold text-gold hover:underline">

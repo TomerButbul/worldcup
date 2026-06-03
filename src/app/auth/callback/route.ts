@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { safeRelativePath } from "@/lib/safe-redirect";
 
 // OAuth providers (e.g. Google) redirect here with a `code` after the user
 // authorizes. We exchange it for a session, which @supabase/ssr writes to
@@ -28,5 +29,7 @@ export async function GET(request: Request) {
   const forwardedHost = request.headers.get("x-forwarded-host");
   const isLocal = process.env.NODE_ENV === "development";
   const base = isLocal ? origin : forwardedHost ? `https://${forwardedHost}` : origin;
-  return NextResponse.redirect(`${base}/dashboard`);
+  // Recovery links pass ?next=/reset-password; OAuth has no `next` → /dashboard.
+  const next = safeRelativePath(searchParams.get("next"));
+  return NextResponse.redirect(`${base}${next}`);
 }
