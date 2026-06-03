@@ -276,6 +276,12 @@ export default async function DashboardPage({
           </form>
         </Reveal>
       </div>
+
+      <p className="pt-2 text-center text-xs text-chalk-dim">
+        <Link href="/how-it-works" className="hover:text-chalk">
+          ℹ️ How it works &amp; scoring
+        </Link>
+      </p>
     </main>
   );
 }

@@ -23,6 +23,13 @@ export default async function Home() {
         </Link>
       </div>
 
+      <Link
+        href="/how-it-works"
+        className="text-sm text-chalk-dim underline-offset-2 hover:text-chalk hover:underline"
+      >
+        How it works &amp; scoring &rarr;
+      </Link>
+
       <div className="grid max-w-2xl gap-3 sm:grid-cols-3">
         {[
           { t: "Upfront Bracket", d: "Call all 12 groups + the full knockout to the champion." },

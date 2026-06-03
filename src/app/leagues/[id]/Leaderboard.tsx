@@ -80,9 +80,18 @@ export default function Leaderboard({
     };
   }, [leagueId]);
 
-  // Sort by the active metric (Total / Upfront / Live = the three crowns).
+  // Sort by the active metric (Total / Upfront / Live = the three crowns), then
+  // break ties deterministically — Total, then Upfront, then name — so players on
+  // equal points keep a stable, defined order instead of jumping around.
   const sorted = useMemo(
-    () => [...rows].sort((a, b) => b[tab] - a[tab]),
+    () =>
+      [...rows].sort(
+        (a, b) =>
+          b[tab] - a[tab] ||
+          b.total - a.total ||
+          b.upfront - a.upfront ||
+          a.name.localeCompare(b.name),
+      ),
     [rows, tab],
   );
 

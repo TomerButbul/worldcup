@@ -178,6 +178,9 @@ export default async function LeaguePage({
               <Link href={`/leagues/${id}/awards`} className={`${btnClass("ghost")} flex-1 text-center sm:flex-none`}>
                 🥇 Awards
               </Link>
+              <Link href={`/leagues/${id}/me`} className={`${btnClass("ghost")} flex-1 text-center sm:flex-none`}>
+                📋 My picks
+              </Link>
               <Link
                 href={`/leagues/${id}/bracket`}
                 className={`${btnClass("gold")} w-full text-center sm:w-auto`}
@@ -213,7 +216,11 @@ export default async function LeaguePage({
           <h2 className="mb-3 font-display text-xl text-chalk">Leaderboard</h2>
           <Leaderboard leagueId={id} initialRows={rows} meId={user.id} />
           <p className="mt-2 text-xs text-chalk-dim">
-            Three crowns: top Upfront 🎯, top Live ⚡, top Total 👑. Updates live.
+            Three crowns: top Upfront 🎯, top Live ⚡, top Total 👑. Updates live. Ties break by Upfront
+            points, then name.{" "}
+            <Link href="/how-it-works" className="font-semibold text-gold hover:text-gold-bright">
+              How scoring works &rarr;
+            </Link>
           </p>
         </section>
       </Reveal>
