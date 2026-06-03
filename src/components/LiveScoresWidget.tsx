@@ -41,10 +41,19 @@ export default function LiveScoresWidget() {
       }
     };
     void load();
-    const t = setInterval(load, 45_000);
+    // Only poll while visible; refetch immediately on reopen/refocus so the
+    // installed app shows fresh scores the instant you come back to it.
+    const t = setInterval(() => {
+      if (document.visibilityState === "visible") void load();
+    }, 45_000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void load();
+    };
+    document.addEventListener("visibilitychange", onVisible);
     return () => {
       alive = false;
       clearInterval(t);
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, []);
 
