@@ -306,15 +306,15 @@ describe("scoreLive", () => {
       .toBe(cfg.live.exact_score + cfg.live.goal_scorer * 1);
   });
 
-  it("group: scores goal scorers only (count-aware), never the scoreline", () => {
-    // A perfect 3-1 line earns nothing for a group match...
+  it("group: now scores the scoreline too (scores moved to live picks) + count-aware scorers", () => {
+    // groupActual match 5 finished 3-1. A perfect 3-1 line now earns exact_score.
     expect(scoreLive(cfg, groupActual, [{ match_id: 5, home_goals: 3, away_goals: 1, scorer_goals: {} }]))
-      .toBe(0);
-    // ...but the correctly-called brace earns 2x (scoreline stored null)...
+      .toBe(cfg.live.exact_score);
+    // Scorers still count, capped at the player's actual goals (101 scored 2).
+    expect(scoreLive(cfg, groupActual, [{ match_id: 5, home_goals: 3, away_goals: 1, scorer_goals: { 101: 3 } }]))
+      .toBe(cfg.live.exact_score + cfg.live.goal_scorer * 2);
+    // A scorers-only pick (no score entered) still scores just the scorers.
     expect(scoreLive(cfg, groupActual, [{ match_id: 5, home_goals: null, away_goals: null, scorer_goals: { 101: 2 } }]))
-      .toBe(cfg.live.goal_scorer * 2);
-    // ...and over-predicting the brace is still capped at the 2 actually scored.
-    expect(scoreLive(cfg, groupActual, [{ match_id: 5, home_goals: null, away_goals: null, scorer_goals: { 101: 3 } }]))
       .toBe(cfg.live.goal_scorer * 2);
   });
 
@@ -423,6 +423,44 @@ describe("scoreUpfront — group-order points", () => {
         4 * cfg.upfront.group_position +
         cfg.upfront.group_order_bonus,
     );
+  });
+});
+
+describe("scoreUpfront — table-pick (group order) model", () => {
+  const ctx = (groupFixtures: MatchRow[] = []) => ({ groupFixtures, fifaRank: new Map<number, number>() });
+
+  it("scores group-order points from a predicted order, no scorelines needed", () => {
+    const actual = computeActuals(groupA, new Map()); // actual Group A order [1, 3, 4, 2]
+    const pts = scoreUpfront(
+      cfg,
+      actual,
+      { group_scores: {}, group_order: { A: [1, 3, 4, 2] }, third_qualifiers: [], knockout: {}, champion_team_id: null },
+      ctx(groupA),
+    );
+    expect(pts).toBe(cfg.upfront.group_winner + 4 * cfg.upfront.group_position + cfg.upfront.group_order_bonus);
+  });
+
+  it("partial order: counts correct slots + winner, no perfect-order bonus", () => {
+    const actual = computeActuals(groupA, new Map()); // [1, 3, 4, 2]
+    // [1, 3, 2, 4] → slots 0,1 (teams 1,3) right; 2,3 swapped.
+    const pts = scoreUpfront(
+      cfg,
+      actual,
+      { group_scores: {}, group_order: { A: [1, 3, 2, 4] }, third_qualifiers: [], knockout: {}, champion_team_id: null },
+      ctx(),
+    );
+    expect(pts).toBe(cfg.upfront.group_winner + 2 * cfg.upfront.group_position);
+  });
+
+  it("still scores champion in the order model", () => {
+    const actual = computeActuals([ko(20, "final", 7, 9, 2, 0, "finished")], new Map());
+    const pts = scoreUpfront(
+      cfg,
+      actual,
+      { group_scores: {}, group_order: { A: [1, 2, 3, 4] }, third_qualifiers: [], knockout: { "104": 7 }, champion_team_id: null },
+      ctx(),
+    );
+    expect(pts).toBe(cfg.upfront.champion);
   });
 });
 

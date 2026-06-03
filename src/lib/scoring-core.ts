@@ -1,6 +1,6 @@
 import type { ScoringConfig, MatchStage, MatchScore } from "@/lib/types";
 import { DEFAULT_SCORING } from "@/lib/types";
-import { buildBracket, predictedAdvancers } from "@/lib/bracket-core";
+import { buildBracket, buildBracketFromOrder, predictedAdvancers } from "@/lib/bracket-core";
 
 // Pure scoring logic — no Supabase, fully unit-testable.
 
@@ -256,6 +256,67 @@ export function computeActuals(
   };
 }
 
+// Table-pick upfront scoring: derive the bracket from the predicted group ORDER
+// + the chosen thirds, then award group-order points (per-position, perfect-group
+// bonus, group winner) plus the shared advance / sweep / champion / award points.
+// No scorelines — group scores live in match predictions now.
+function scoreUpfrontFromOrder(cfg: ScoringConfig, actual: ActualOutcomes, bracket: BracketPick): number {
+  let pts = 0;
+  const groupOrder = bracket.group_order ?? {};
+  const { round32 } = buildBracketFromOrder(groupOrder, bracket.third_qualifiers ?? []);
+  const adv = predictedAdvancers(round32, bracket.knockout ?? {});
+
+  const groupPosition = cfg.upfront.group_position ?? DEFAULT_SCORING.upfront.group_position;
+  const groupOrderBonus = cfg.upfront.group_order_bonus ?? DEFAULT_SCORING.upfront.group_order_bonus;
+  for (const [label, actualOrder] of Object.entries(actual.groupStandings)) {
+    const predicted = groupOrder[label];
+    if (!predicted || predicted.length !== 4 || actualOrder.length !== 4) continue;
+    if (predicted[0] === actualOrder[0]) pts += cfg.upfront.group_winner;
+    let matched = 0;
+    for (let i = 0; i < 4; i++) if (predicted[i] === actualOrder[i]) matched++;
+    pts += matched * groupPosition;
+    if (matched === 4) pts += groupOrderBonus;
+  }
+
+  for (const [stage, key] of Object.entries(ADVANCE_KEYS)) {
+    const reached = actual.advancers[stage];
+    const predicted = adv.byStage[stage];
+    if (!reached || !predicted) continue;
+    for (const teamId of predicted) if (reached.has(teamId)) pts += cfg.upfront[key];
+  }
+
+  const SWEEP_KEYS: Record<string, keyof ScoringConfig["upfront"]> = {
+    round_of_32: "sweep_round_of_32",
+    round_of_16: "sweep_round_of_16",
+    quarter: "sweep_quarter",
+    semi: "sweep_semi",
+  };
+  for (const [stage, key] of Object.entries(SWEEP_KEYS)) {
+    const reached = actual.advancers[stage];
+    const predicted = adv.byStage[stage];
+    if (!reached || reached.size === 0 || !predicted) continue;
+    if (predicted.size !== reached.size) continue;
+    let identical = true;
+    for (const teamId of reached) {
+      if (!predicted.has(teamId)) {
+        identical = false;
+        break;
+      }
+    }
+    if (identical) pts += cfg.upfront[key] ?? DEFAULT_SCORING.upfront[key];
+  }
+
+  const predictedChampion = adv.champion ?? bracket.champion_team_id;
+  if (actual.champion != null && predictedChampion === actual.champion) pts += cfg.upfront.champion;
+
+  for (const key of AWARD_KEYS) {
+    const pick = bracket.awards?.[key];
+    const winner = actual.awards[key];
+    if (pick != null && winner != null && pick === winner) pts += cfg.upfront[key];
+  }
+  return pts;
+}
+
 export function scoreUpfront(
   cfg: ScoringConfig,
   actual: ActualOutcomes,
@@ -263,6 +324,11 @@ export function scoreUpfront(
   ctx: { groupFixtures: MatchRow[]; fifaRank: Map<number, number> },
 ): number {
   if (!bracket) return 0;
+  // Table-pick model: when the manager predicted a group ORDER, score from that
+  // (+ chosen thirds). Legacy scoreline predictions fall through to the path below.
+  if (bracket.group_order && Object.keys(bracket.group_order).length > 0) {
+    return scoreUpfrontFromOrder(cfg, actual, bracket);
+  }
   let pts = 0;
 
   // Overlay the user's predicted scorelines onto the real group fixtures, then
@@ -376,9 +442,11 @@ export function scoreLive(
   for (const p of preds) {
     const r = actual.results.get(p.match_id);
     if (!r) continue;
-    // Scoreline points apply to knockout matches only — group scorelines are
-    // scored by the upfront bracket, so the live game scores scorers there.
-    if (r.stage !== "group" && p.home_goals != null && p.away_goals != null) {
+    // Scoreline points apply to any match the user predicted a score for. Group
+    // scores now live in match predictions (upfront is table-order only), so they
+    // score here too — knockouts always did. A group draw has no shootout, so the
+    // pen bonus below stays knockout-only via r.winner being null on group draws.
+    if (p.home_goals != null && p.away_goals != null) {
       if (p.home_goals === r.home && p.away_goals === r.away) {
         pts += cfg.live.exact_score;
       } else {

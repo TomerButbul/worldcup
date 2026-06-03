@@ -40,7 +40,7 @@ export default async function MyPredictionsPage({
     await Promise.all([
       supabase
         .from("bracket_predictions")
-        .select("group_scores, knockout, champion_team_id, awards")
+        .select("group_order, knockout, champion_team_id, awards")
         .eq("league_id", id)
         .eq("user_id", user.id)
         .maybeSingle(),
@@ -74,11 +74,11 @@ export default async function MyPredictionsPage({
   ];
   const awardIds = awardEntries.map((a) => a.id).filter((v): v is number => v != null);
 
-  // ----- group scorelines -----------------------------------------------------
-  const groupScores = (prediction?.group_scores ?? {}) as Record<
-    string,
-    { h: number; a: number }
-  >;
+  // ----- predicted group order (table-pick model) -----------------------------
+  const groupOrder = (prediction?.group_order ?? {}) as Record<string, number[]>;
+  const orderedGroups = Object.entries(groupOrder)
+    .filter(([, ids]) => ids.length === 4)
+    .sort((a, b) => a[0].localeCompare(b[0]));
 
   type DBMatch = {
     id: number;
@@ -88,18 +88,6 @@ export default async function MyPredictionsPage({
     stage: string | null;
   };
   const allMatches = (groupMatches ?? []) as DBMatch[];
-
-  // Group-stage matches bucketed by label (A..L).
-  const byGroup = new Map<string, DBMatch[]>();
-  for (const m of allMatches) {
-    if (m.stage !== "group") continue;
-    const g = m.group_label ?? "—";
-    if (!byGroup.has(g)) byGroup.set(g, []);
-    byGroup.get(g)!.push(m);
-  }
-  const groupBuckets = [...byGroup.entries()]
-    .sort((a, b) => a[0].localeCompare(b[0]))
-    .map(([group, matches]) => ({ group, matches }));
 
   // ----- knockout match picks (only rows the user actually filled in) ---------
   type MatchPred = {
@@ -146,9 +134,7 @@ export default async function MyPredictionsPage({
       .filter((s): s is string => !!s);
 
   // ----- completeness ---------------------------------------------------------
-  const filled = Object.values(groupScores).filter(
-    (s) => s && s.h != null && s.a != null,
-  ).length;
+  const groupsOrdered = orderedGroups.length;
   const awardsFilled = awardIds.length;
   const hasChampion = championId != null;
 
@@ -180,8 +166,8 @@ export default async function MyPredictionsPage({
       {/* Completeness */}
       <section className="glass rounded-2xl p-5">
         <p className="text-sm text-chalk-dim">
-          <span className="font-semibold text-chalk">Group scorelines</span>{" "}
-          <span className="font-display tabular-nums text-chalk">{filled}/72</span>
+          <span className="font-semibold text-chalk">Groups ordered</span>{" "}
+          <span className="font-display tabular-nums text-chalk">{groupsOrdered}/12</span>
           {" · "}
           <span className="font-semibold text-chalk">Awards</span>{" "}
           <span className="font-display tabular-nums text-chalk">{awardsFilled}/4</span>
@@ -228,40 +214,36 @@ export default async function MyPredictionsPage({
         </div>
       </section>
 
-      {/* Group predictions */}
+      {/* Predicted group order */}
       <section className="glass rounded-2xl p-5">
-        <h2 className="mb-3 flex items-center gap-1.5 font-display text-lg text-chalk"><Ball size={16} />Group predictions</h2>
-        {groupBuckets.length === 0 ? (
-          <p className="text-sm text-chalk-dim">—</p>
+        <h2 className="mb-3 flex items-center gap-1.5 font-display text-lg text-chalk"><Ball size={16} />Group order</h2>
+        {orderedGroups.length === 0 ? (
+          <p className="text-sm text-chalk-dim">No group order predicted yet.</p>
         ) : (
           <div className="space-y-2">
-            {groupBuckets.map((bucket) => (
-              <details key={bucket.group} className="group rounded-xl bg-night/5 px-3 py-2">
+            {orderedGroups.map(([group, ids]) => (
+              <details key={group} className="group rounded-xl bg-night/5 px-3 py-2">
                 <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-semibold text-chalk">
-                  Group {bucket.group}
+                  Group {group}
                   <span className="text-chalk-dim transition group-open:rotate-180">▾</span>
                 </summary>
-                <ul className="mt-2 space-y-1.5">
-                  {bucket.matches.map((m) => {
-                    const s = groupScores[String(m.id)];
+                <ol className="mt-2 space-y-1">
+                  {ids.map((tid, i) => {
+                    const t = teamById.get(tid);
                     return (
                       <li
-                        key={m.id}
-                        className="flex items-center justify-between gap-2 text-xs text-chalk-dim"
+                        key={tid}
+                        className={`flex items-center gap-2 rounded px-1.5 py-1 text-xs ${i < 2 ? "bg-grass/15" : i === 2 ? "bg-gold/10" : ""}`}
                       >
-                        <span className="min-w-0 flex-1 truncate text-right">
-                          {teamName(m.home_team_id)}
-                        </span>
-                        <span className="shrink-0 font-display tabular-nums text-chalk">
-                          {s ? `${s.h}–${s.a}` : "—"}
-                        </span>
-                        <span className="min-w-0 flex-1 truncate">
-                          {teamName(m.away_team_id)}
-                        </span>
+                        <span className="w-3 shrink-0 text-center text-chalk-dim">{i + 1}</span>
+                        {t && <Flag teamId={t.id} logoUrl={t.logo_url} code={t.code} name={t.name} size={14} />}
+                        <span className="min-w-0 flex-1 truncate text-chalk">{t?.name ?? teamName(tid)}</span>
+                        {i < 2 && <span className="shrink-0 text-grass">✓</span>}
+                        {i === 2 && <span className="shrink-0 text-[10px] text-gold">3rd</span>}
                       </li>
                     );
                   })}
-                </ul>
+                </ol>
               </details>
             ))}
           </div>
@@ -271,7 +253,7 @@ export default async function MyPredictionsPage({
       {/* Knockout match picks — usually empty pre-tournament (fixtures TBD). */}
       {knockoutPicks.length > 0 && (
         <section className="glass rounded-2xl p-5">
-          <h2 className="mb-3 font-display text-lg text-chalk">⚔️ Knockout match picks</h2>
+          <h2 className="mb-3 font-display text-lg text-chalk">⚔️ Match score picks</h2>
           <ul className="space-y-2">
             {knockoutPicks.map((p) => {
               const m = matchById.get(p.match_id);

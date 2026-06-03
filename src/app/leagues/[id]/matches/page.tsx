@@ -29,9 +29,8 @@ export default async function MatchesPage({
     .maybeSingle();
   if (!league) redirect("/dashboard");
   if (league.kind === "draft") redirect(`/leagues/${id}`); // draft leagues don't predict
-  const bracketLockAt = league.bracket_lock_at as string;
 
-  const [{ data: matches }, teams, players, { data: preds }, { data: bracket }] =
+  const [{ data: matches }, teams, players, { data: preds }] =
     await Promise.all([
       supabase
         .from("matches")
@@ -44,12 +43,6 @@ export default async function MatchesPage({
         .select("match_id, home_goals, away_goals, scorer_goals, pen_winner_team_id")
         .eq("league_id", id)
         .eq("user_id", user.id),
-      supabase
-        .from("bracket_predictions")
-        .select("group_scores")
-        .eq("league_id", id)
-        .eq("user_id", user.id)
-        .maybeSingle(),
     ]);
 
   const teamName = new Map(teams.map((t) => [t.id, t.name]));
@@ -60,9 +53,6 @@ export default async function MatchesPage({
     playersByTeam.get(p.team_id)!.push(p);
   }
   const predByMatch = new Map((preds ?? []).map((p) => [p.match_id, p]));
-  // The user's upfront bracket scorelines (keyed by DB match id) — shown
-  // read-only on group cards, where the live game scores scorers only.
-  const groupScores = (bracket?.group_scores ?? {}) as Record<string, { h: number; a: number }>;
 
   const now = nowMs();
   const live: typeof matches = [];
@@ -150,8 +140,6 @@ export default async function MatchesPage({
         homePlayers={m.home_team_id ? (playersByTeam.get(m.home_team_id) ?? []) : []}
         awayPlayers={m.away_team_id ? (playersByTeam.get(m.away_team_id) ?? []) : []}
         initial={predByMatch.get(m.id) ?? null}
-        bracketScore={groupScores[String(m.id)] ?? null}
-        bracketLockAt={bracketLockAt}
         homeLineup={m.home_team_id ? (lineupByMatch.get(m.id)?.[m.home_team_id] ?? lastXIByTeam.get(m.home_team_id) ?? null) : null}
         awayLineup={m.away_team_id ? (lineupByMatch.get(m.id)?.[m.away_team_id] ?? lastXIByTeam.get(m.away_team_id) ?? null) : null}
       />

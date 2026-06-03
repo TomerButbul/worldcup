@@ -36,7 +36,7 @@ export async function recomputeAllScores(supabase: SupabaseClient) {
 
     const { data: brackets } = await supabase
       .from("bracket_predictions")
-      .select("user_id, group_scores, knockout, champion_team_id, awards")
+      .select("user_id, group_scores, group_order, third_qualifiers, knockout, champion_team_id, awards")
       .eq("league_id", league.id);
 
     const { data: matchPreds } = await supabase

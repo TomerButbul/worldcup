@@ -3,12 +3,12 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import type { MatchScore } from "@/lib/types";
 
 export async function saveBracket(
   leagueId: string,
   payload: {
-    group_scores: Record<string, MatchScore>;
+    group_order: Record<string, number[]>; // group label → predicted [1st,2nd,3rd,4th] team ids
+    third_qualifiers: string[]; // the 8 groups whose 3rd-placed team advances
     knockout: Record<string, number>;
     champion_team_id: number | null;
   },
@@ -31,11 +31,14 @@ export async function saveBracket(
   }
 
   const now = new Date().toISOString();
+  // Upsert the table-pick fields (group_scores/awards are managed elsewhere and
+  // left untouched: omitted columns keep their existing value on conflict-update).
   const { error } = await supabase.from("bracket_predictions").upsert(
     {
       league_id: leagueId,
       user_id: user.id,
-      group_scores: payload.group_scores,
+      group_order: payload.group_order,
+      third_qualifiers: payload.third_qualifiers,
       knockout: payload.knockout,
       champion_team_id: payload.champion_team_id,
       submitted_at: now,

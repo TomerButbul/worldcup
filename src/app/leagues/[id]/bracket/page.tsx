@@ -2,8 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCachedTeams } from "@/lib/tournamentData";
-import type { MatchScore, Team } from "@/lib/types";
-import BracketEditor, { type GroupMatch } from "./BracketEditor";
+import type { Team } from "@/lib/types";
+import BracketEditor, { type EditorTeam } from "./BracketEditor";
 import { nowMs } from "@/lib/clock";
 import Ball from "@/components/art/Ball";
 
@@ -29,44 +29,37 @@ export default async function BracketPage({
 
   const locked = new Date(league.bracket_lock_at).getTime() <= nowMs();
 
-  const [teams, { data: matches }, { data: prediction }] = await Promise.all([
+  const [teams, { data: prediction }] = await Promise.all([
     getCachedTeams(),
     supabase
-      .from("matches")
-      .select("id, group_label, home_team_id, away_team_id, kickoff_at")
-      .eq("stage", "group")
-      .order("kickoff_at")
-      .order("id"),
-    supabase
       .from("bracket_predictions")
-      .select("group_scores, knockout, champion_team_id")
+      .select("group_order, third_qualifiers, knockout, champion_team_id")
       .eq("league_id", id)
       .eq("user_id", user.id)
       .maybeSingle(),
   ]);
 
   const teamList = teams as (Team & { fifa_rank: number | null })[];
-  const byId = new Map(teamList.map((t) => [t.id, t]));
 
-  // Stitch each fixture to its two team objects; derive the group from the
-  // match (backfilled) or fall back to the home team's group.
-  const groupMatches: GroupMatch[] = [];
-  for (const m of matches ?? []) {
-    const home = m.home_team_id != null ? byId.get(m.home_team_id) : undefined;
-    const away = m.away_team_id != null ? byId.get(m.away_team_id) : undefined;
-    if (!home || !away) continue;
-    const group = m.group_label ?? home.group_label;
-    if (!group) continue;
-    groupMatches.push({
-      id: m.id,
-      group,
-      home: { id: home.id, name: home.name, code: home.code, logo_url: home.logo_url },
-      away: { id: away.id, name: away.name, code: away.code, logo_url: away.logo_url },
+  // Bucket the 48 teams into their 12 groups (A..L), 4 teams each, keyed by
+  // group_label. Order within a group doesn't matter here — the editor seeds the
+  // predicted order from the saved row (or FIFA rank).
+  const groups: Record<string, EditorTeam[]> = {};
+  for (const t of teamList) {
+    if (!t.group_label) continue;
+    (groups[t.group_label] ??= []).push({
+      id: t.id,
+      name: t.name,
+      code: t.code,
+      logo_url: t.logo_url,
+      fifa_rank: t.fifa_rank,
     });
   }
 
   const fifaRank: Record<number, number> = {};
   for (const t of teamList) if (t.fifa_rank != null) fifaRank[t.id] = t.fifa_rank;
+
+  const hasGroups = Object.keys(groups).length > 0;
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 space-y-6 p-4 sm:p-6">
@@ -78,7 +71,7 @@ export default async function BracketPage({
         <p className="text-sm text-chalk-dim">
           {locked
             ? "🔒 Predictions are locked."
-            : "Predict every group scoreline — the knockout bracket builds itself from your results. Then call the winners all the way to the trophy."}
+            : "Order each group, pick the 8 best third-place teams, then your knockout bracket builds itself. Match scores are predicted live during the tournament."}
         </p>
         <Link
           href={`/leagues/${id}/awards`}
@@ -88,17 +81,18 @@ export default async function BracketPage({
         </Link>
       </div>
 
-      {groupMatches.length === 0 ? (
+      {!hasGroups ? (
         <p className="glass rounded-2xl p-8 text-center text-sm text-chalk-dim">
-          <Ball size={14} className="mr-1 inline-block align-[-2px]" />Tournament fixtures haven&apos;t been loaded yet. Run the sync to import the 2026
+          <Ball size={14} className="mr-1 inline-block align-[-2px]" />Tournament teams haven&apos;t been loaded yet. Run the sync to import the 2026
           groups, then come back to make your picks.
         </p>
       ) : (
         <BracketEditor
           leagueId={id}
-          groupMatches={groupMatches}
+          groups={groups}
           fifaRank={fifaRank}
-          initialScores={(prediction?.group_scores ?? {}) as Record<string, MatchScore>}
+          initialOrder={(prediction?.group_order ?? {}) as Record<string, number[]>}
+          initialThirds={(prediction?.third_qualifiers ?? []) as string[]}
           initialKnockout={(prediction?.knockout ?? {}) as Record<string, number>}
           initialChampion={prediction?.champion_team_id ?? null}
           locked={locked}

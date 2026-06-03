@@ -99,42 +99,22 @@ export default async function DashboardPage({
     };
 
     if (predictionLeagues.length > 0) {
-      if (nextMatch.stage === "group") {
-        // Group: the predicted scoreline lives in each league's bracket.
-        const { data: myBrackets } = await supabase
-          .from("bracket_predictions")
-          .select("league_id, group_scores")
-          .eq("user_id", user.id);
-        const gsByLeague = new Map(
-          (myBrackets ?? []).map((b) => [
-            b.league_id,
-            (b.group_scores ?? {}) as Record<string, { h: number; a: number }>,
-          ]),
-        );
-        nextPredictions = predictionLeagues.map((l) => {
-          const gs = gsByLeague.get(l.id)?.[String(nextMatch.id)];
-          return {
-            leagueId: l.id,
-            leagueName: l.name,
-            pred: gs ? { home: gs.h, away: gs.a } : null,
-          };
-        });
-      } else {
-        const { data: myPreds } = await supabase
-          .from("match_predictions")
-          .select("league_id, home_goals, away_goals")
-          .eq("user_id", user.id)
-          .eq("match_id", nextMatch.id);
-        const predByLeague = new Map((myPreds ?? []).map((p) => [p.league_id, p]));
-        nextPredictions = predictionLeagues.map((l) => {
-          const p = predByLeague.get(l.id);
-          return {
-            leagueId: l.id,
-            leagueName: l.name,
-            pred: p && p.home_goals != null ? { home: p.home_goals, away: p.away_goals } : null,
-          };
-        });
-      }
+      // Every stage's scoreline now lives in match_predictions (the upfront
+      // bracket is table-order only), so one lookup covers group + knockout.
+      const { data: myPreds } = await supabase
+        .from("match_predictions")
+        .select("league_id, home_goals, away_goals")
+        .eq("user_id", user.id)
+        .eq("match_id", nextMatch.id);
+      const predByLeague = new Map((myPreds ?? []).map((p) => [p.league_id, p]));
+      nextPredictions = predictionLeagues.map((l) => {
+        const p = predByLeague.get(l.id);
+        return {
+          leagueId: l.id,
+          leagueName: l.name,
+          pred: p && p.home_goals != null ? { home: p.home_goals, away: p.away_goals } : null,
+        };
+      });
     }
   }
 

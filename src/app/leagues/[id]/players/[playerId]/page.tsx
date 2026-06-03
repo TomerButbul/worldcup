@@ -65,7 +65,7 @@ export default async function ManagerProfilePage({
     ? (
         await supabase
           .from("bracket_predictions")
-          .select("group_scores, knockout, champion_team_id, awards")
+          .select("group_order, knockout, champion_team_id, awards")
           .eq("league_id", id)
           .eq("user_id", playerId)
           .maybeSingle()
@@ -102,35 +102,11 @@ export default async function ManagerProfilePage({
     awardNames = new Map((awardPlayers ?? []).map((p) => [p.id, p.name]));
   }
 
-  const groupScores = (prediction?.group_scores ?? {}) as Record<
-    string,
-    { h: number; a: number }
-  >;
-
-  // Their group-stage scorelines, grouped by group label (A..L).
-  type GMatch = {
-    id: number;
-    group_label: string | null;
-    home_team_id: number | null;
-    away_team_id: number | null;
-  };
-  let groupBuckets: { group: string; matches: GMatch[] }[] = [];
-  if (prediction) {
-    const { data: groupMatches } = await supabase
-      .from("matches")
-      .select("id, group_label, home_team_id, away_team_id")
-      .eq("stage", "group")
-      .order("kickoff_at");
-    const byGroup = new Map<string, GMatch[]>();
-    for (const m of (groupMatches ?? []) as GMatch[]) {
-      const g = m.group_label ?? "—";
-      if (!byGroup.has(g)) byGroup.set(g, []);
-      byGroup.get(g)!.push(m);
-    }
-    groupBuckets = [...byGroup.entries()]
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([group, matches]) => ({ group, matches }));
-  }
+  // Their predicted group finishing order (table-pick model), by group label.
+  const groupOrder = (prediction?.group_order ?? {}) as Record<string, number[]>;
+  const orderedGroups = Object.entries(groupOrder)
+    .filter(([, ids]) => ids.length === 4)
+    .sort((a, b) => a[0].localeCompare(b[0]));
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 p-4 sm:p-6">
@@ -212,40 +188,36 @@ export default async function ManagerProfilePage({
             </div>
           </section>
 
-          {/* Group predictions */}
+          {/* Predicted group order */}
           <section className="glass rounded-2xl p-5">
-            <h2 className="mb-3 flex items-center gap-1.5 font-display text-lg text-chalk"><Ball size={16} />Group predictions</h2>
-            {groupBuckets.length === 0 ? (
-              <p className="text-sm text-chalk-dim">—</p>
+            <h2 className="mb-3 flex items-center gap-1.5 font-display text-lg text-chalk"><Ball size={16} />Group order</h2>
+            {orderedGroups.length === 0 ? (
+              <p className="text-sm text-chalk-dim">No group order predicted.</p>
             ) : (
               <div className="space-y-2">
-                {groupBuckets.map((bucket) => (
-                  <details key={bucket.group} className="group rounded-xl bg-night/5 px-3 py-2">
+                {orderedGroups.map(([group, ids]) => (
+                  <details key={group} className="group rounded-xl bg-night/5 px-3 py-2">
                     <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-semibold text-chalk">
-                      Group {bucket.group}
+                      Group {group}
                       <span className="text-chalk-dim transition group-open:rotate-180">▾</span>
                     </summary>
-                    <ul className="mt-2 space-y-1.5">
-                      {bucket.matches.map((m) => {
-                        const s = groupScores[String(m.id)];
+                    <ol className="mt-2 space-y-1">
+                      {ids.map((tid, i) => {
+                        const t = teamById.get(tid);
                         return (
                           <li
-                            key={m.id}
-                            className="flex items-center justify-between gap-2 text-xs text-chalk-dim"
+                            key={tid}
+                            className={`flex items-center gap-2 rounded px-1.5 py-1 text-xs ${i < 2 ? "bg-grass/15" : i === 2 ? "bg-gold/10" : ""}`}
                           >
-                            <span className="min-w-0 flex-1 truncate text-right">
-                              {teamName(m.home_team_id)}
-                            </span>
-                            <span className="shrink-0 font-display tabular-nums text-chalk">
-                              {s ? `${s.h}–${s.a}` : "—"}
-                            </span>
-                            <span className="min-w-0 flex-1 truncate">
-                              {teamName(m.away_team_id)}
-                            </span>
+                            <span className="w-3 shrink-0 text-center text-chalk-dim">{i + 1}</span>
+                            {t && <Flag teamId={t.id} logoUrl={t.logo_url} code={t.code} name={t.name} size={14} />}
+                            <span className="min-w-0 flex-1 truncate text-chalk">{t?.name ?? teamName(tid)}</span>
+                            {i < 2 && <span className="shrink-0 text-grass">✓</span>}
+                            {i === 2 && <span className="shrink-0 text-[10px] text-gold">3rd</span>}
                           </li>
                         );
                       })}
-                    </ul>
+                    </ol>
                   </details>
                 ))}
               </div>

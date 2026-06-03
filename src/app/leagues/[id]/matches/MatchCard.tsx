@@ -4,7 +4,7 @@ import { useState, useCallback } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
 import type { Player } from "@/lib/types";
-import { savePrediction, saveGroupScore } from "./actions";
+import { savePrediction } from "./actions";
 import { useAutosave } from "@/lib/useAutosave";
 import SaveStatus from "@/components/SaveStatus";
 import Flag from "@/components/Flag";
@@ -39,10 +39,6 @@ interface Props {
   homePlayers: Player[];
   awayPlayers: Player[];
   initial: { home_goals: number | null; away_goals: number | null; scorer_goals: Record<string, number>; pen_winner_team_id: number | null } | null;
-  // The user's upfront bracket scoreline for this match (group stage only).
-  bracketScore: { h: number; a: number } | null;
-  // When the bracket (and thus group scorelines) locks — Jun 11.
-  bracketLockAt: string;
   // Official lineups once posted (~40 min pre-kickoff); null → full squad.
   homeLineup?: Lineup | null;
   awayLineup?: Lineup | null;
@@ -54,21 +50,16 @@ export default function MatchCard({
   homePlayers,
   awayPlayers,
   initial,
-  bracketScore,
-  bracketLockAt,
   homeLineup,
   awayLineup,
 }: Props) {
-  // Group scorelines live in the bracket; the live game scores scorers there.
-  // Knockouts capture a full scoreline here.
+  // Every match — group and knockout — captures a full scoreline here now (the
+  // upfront bracket is table-order only). Locks at kickoff.
   const isGroup = match.stage === "group";
 
   const [locked, setLocked] = useState(() => new Date(match.kickoff_at).getTime() <= nowMs());
-  // Group scorelines live in the bracket and lock at bracket lock (Jun 11), even
-  // for group games that kick off later; scorers stay editable until kickoff.
-  const bracketLocked = new Date(bracketLockAt).getTime() <= nowMs();
-  const [home, setHome] = useState(isGroup ? (bracketScore?.h ?? 0) : (initial?.home_goals ?? 0));
-  const [away, setAway] = useState(isGroup ? (bracketScore?.a ?? 0) : (initial?.away_goals ?? 0));
+  const [home, setHome] = useState(initial?.home_goals ?? 0);
+  const [away, setAway] = useState(initial?.away_goals ?? 0);
   // player_id (string) -> predicted goals for that player.
   const [scorerGoals, setScorerGoals] = useState<Record<string, number>>(() => ({ ...(initial?.scorer_goals ?? {}) }));
   const [penWinner, setPenWinner] = useState<number | null>(initial?.pen_winner_team_id ?? null);
@@ -85,10 +76,7 @@ export default function MatchCard({
   const allPlayers = [...homePlayers, ...awayPlayers];
   const playerName = (id: number) => allPlayers.find((p) => p.id === id)?.name ?? `#${id}`;
 
-  // Group scores now live in `home`/`away` too (seeded from the bracket), so the
-  // cap is just the current scoreline for both stages. The group score is
-  // editable until bracket lock; the knockout score until kickoff.
-  const scoreEditable = !locked && (isGroup ? !bracketLocked : true);
+  // The scorer cap is the current scoreline (editable until kickoff).
   const homeCap = home;
   const awayCap = away;
   const sumFor = (players: Player[]) => players.reduce((s, p) => s + (scorerGoals[String(p.id)] ?? 0), 0);
@@ -110,30 +98,17 @@ export default function MatchCard({
     setter((n) => Math.max(0, n + delta));
   }
 
-  const saveFn = useCallback(async () => {
-    if (isGroup) {
-      // Group scoreline → bracket (only while editable); scorers → match_predictions.
-      // Sequential: savePrediction reads the group cap from the bracket, so the
-      // updated score must land first.
-      if (scoreEditable) {
-        const gs = await saveGroupScore(leagueId, match.id, home, away);
-        if (!gs.ok) return gs;
-      }
-      return savePrediction(leagueId, match.id, null, null, scorerGoals, null);
-    }
-    return savePrediction(leagueId, match.id, home, away, scorerGoals, home === away ? penWinner : null);
-  }, [leagueId, match.id, isGroup, scoreEditable, home, away, scorerGoals, penWinner]);
+  const saveFn = useCallback(
+    () =>
+      savePrediction(leagueId, match.id, home, away, scorerGoals, !isGroup && home === away ? penWinner : null),
+    [leagueId, match.id, isGroup, home, away, scorerGoals, penWinner],
+  );
   // Auto-save ~0.8s after the last tap — no Save button.
   const signature = `${home}-${away}-${penWinner ?? ""}|${JSON.stringify(scorerGoals)}`;
   const { state: saveState, error: saveErr } = useAutosave(signature, saveFn, { enabled: !locked });
 
-  const pickScore = isGroup
-    ? bracketScore
-      ? `${bracketScore.h}–${bracketScore.a}`
-      : null
-    : initial && initial.home_goals != null
-      ? `${initial.home_goals}–${initial.away_goals}`
-      : null;
+  const pickScore =
+    initial && initial.home_goals != null ? `${initial.home_goals}–${initial.away_goals}` : null;
 
   const lockedScorers = Object.entries(initial?.scorer_goals ?? {})
     .map(([pid, n]) => `${playerName(Number(pid))}${n > 1 ? ` ×${n}` : ""}`)
@@ -175,21 +150,11 @@ export default function MatchCard({
               ? `${match.homeGoalsActual ?? 0} – ${match.awayGoalsActual ?? 0}`
               : "vs"}
           </span>
-        ) : scoreEditable ? (
-          <span className="flex flex-col items-center">
-            <div className="flex items-center gap-2">
-              <Stepper value={home} onDec={() => step(setHome, -1)} onInc={() => step(setHome, 1)} />
-              <span className="text-chalk-dim">–</span>
-              <Stepper value={away} onDec={() => step(setAway, -1)} onInc={() => step(setAway, 1)} />
-            </div>
-            {isGroup && (
-              <span className="mt-1 text-[10px] uppercase tracking-wider text-chalk-dim">saved to your bracket</span>
-            )}
-          </span>
         ) : (
-          <span className="flex flex-col items-center">
-            <span className="net rounded-xl bg-gold/10 px-4 py-2 font-display text-xl text-gold">{`${home}–${away}`}</span>
-            <span className="mt-1 text-[10px] uppercase tracking-wider text-chalk-dim">from bracket · locked</span>
+          <span className="flex items-center gap-2">
+            <Stepper value={home} onDec={() => step(setHome, -1)} onInc={() => step(setHome, 1)} />
+            <span className="text-chalk-dim">–</span>
+            <Stepper value={away} onDec={() => step(setAway, -1)} onInc={() => step(setAway, 1)} />
           </span>
         )}
 
