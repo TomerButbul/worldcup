@@ -138,7 +138,7 @@ export default function Leaderboard({
       </div>
 
       <div className="glass-strong overflow-hidden rounded-2xl">
-        <div className="grid grid-cols-[1.25rem_1fr_2rem_2rem_2.5rem] items-center gap-1.5 border-b border-night/10 px-3 py-2.5 text-xs uppercase tracking-wider text-chalk-dim sm:grid-cols-[2.5rem_1fr_3.5rem_3.5rem_4rem] sm:gap-2 sm:px-4">
+        <div className="grid grid-cols-[1.25rem_1fr_2rem_2rem_2.5rem] items-center gap-1.5 border-b border-night/10 px-3 py-2.5 text-xs uppercase tracking-wider text-chalk-dim sm:grid-cols-[2.5rem_1fr_3.5rem_3.5rem_4rem] sm:gap-2 sm:px-4 lg:grid-cols-[3rem_1fr_5rem_5rem_6rem] lg:px-6 lg:py-3.5 lg:text-sm">
           <span>#</span>
           <span>Player</span>
           <span className={`flex justify-end ${tab === "upfront" ? "text-grass" : ""}`}><Upfront size={14} /></span>
@@ -170,11 +170,11 @@ export default function Leaderboard({
                         ? { x: { duration: 0.6, repeat: Infinity, repeatDelay: 2.5 }, layout: { type: "spring", stiffness: 500, damping: 40 } }
                         : { type: "spring", stiffness: 500, damping: 40 }
                     }
-                    className={`grid grid-cols-[1.25rem_1fr_2rem_2rem_2.5rem] items-center gap-1.5 border-b border-night/5 px-3 py-3 text-sm sm:grid-cols-[2.5rem_1fr_3.5rem_3.5rem_4rem] sm:gap-2 sm:px-4 ${
+                    className={`grid grid-cols-[1.25rem_1fr_2rem_2rem_2.5rem] items-center gap-1.5 border-b border-night/5 px-3 py-3 text-sm sm:grid-cols-[2.5rem_1fr_3.5rem_3.5rem_4rem] sm:gap-2 sm:px-4 lg:grid-cols-[3rem_1fr_5rem_5rem_6rem] lg:px-6 lg:py-4 lg:text-[15px] ${
                       isWinner ? "animate-pulse-glow bg-gold/15" : isLoser ? "bg-red-500/5" : ""
                     } ${isMe ? "ring-1 ring-inset ring-grass/50" : ""}`}
                   >
-                    <span className="flex items-center justify-center text-sm font-bold tabular-nums">
+                    <span className="flex items-center justify-center text-sm font-bold tabular-nums lg:text-lg">
                       {isWinner ? (
                         <Trophy size={18} className="text-gold" />
                       ) : (
@@ -186,8 +186,8 @@ export default function Leaderboard({
                         href={`/leagues/${leagueId}/players/${r.user_id}`}
                         className="flex min-w-0 flex-1 items-center gap-1.5 hover:opacity-80"
                       >
-                        <Avatar url={r.avatarUrl} name={r.name} size={22} />
-                        {r.favTeamId && <Flag teamId={r.favTeamId} size={16} />}
+                        <Avatar url={r.avatarUrl} name={r.name} size={26} />
+                        {r.favTeamId && <Flag teamId={r.favTeamId} size={18} />}
                         <span className="min-w-0 flex-1 truncate font-semibold text-chalk">{r.name}</span>
                       </Link>
                       {isMe && (
@@ -217,7 +217,7 @@ export default function Leaderboard({
                       initial={{ scale: 1.4, color: "#ffd970" }}
                       animate={{ scale: 1, color: "#eaf3ee" }}
                       transition={{ duration: 0.4 }}
-                      className="text-right font-display text-base tabular-nums"
+                      className="text-right font-display text-base tabular-nums lg:text-2xl"
                     >
                       {r.total}
                     </motion.span>

@@ -81,7 +81,7 @@ export default async function AwardsPage({ params }: { params: Promise<{ id: str
   const initial = (pred?.awards ?? {}) as Record<string, number>;
 
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 space-y-4 p-4 sm:p-6 lg:max-w-4xl">
+    <main className="mx-auto w-full max-w-2xl flex-1 space-y-4 p-4 sm:p-6 lg:max-w-5xl lg:p-8">
       <div className="glass-strong rounded-3xl p-5 sm:p-6">
         <Link href={`/leagues/${id}`} className="text-sm text-chalk-dim hover:text-chalk">
           &larr; Back to league

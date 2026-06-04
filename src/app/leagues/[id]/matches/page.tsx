@@ -71,7 +71,7 @@ export default async function MatchesPage({
   }
 
   return (
-    <main className="mx-auto w-full max-w-2xl lg:max-w-6xl flex-1 space-y-4 p-4 sm:space-y-6 sm:p-6">
+    <main className="mx-auto w-full max-w-2xl lg:max-w-[1600px] flex-1 space-y-4 p-4 sm:space-y-6 sm:p-6 lg:p-8">
       <AutoRefresh enabled={now >= KICKOFF_MS} />
       <div className="glass-strong rounded-3xl p-4 sm:p-6">
         <Link href={`/leagues/${id}`} className="text-sm text-chalk-dim hover:text-chalk">

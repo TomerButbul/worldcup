@@ -122,7 +122,7 @@ export default async function DashboardPage({
     "w-full rounded-xl border border-night/10 bg-white px-3 py-2.5 text-sm text-chalk outline-none placeholder:text-chalk-dim focus:border-grass focus:ring-2 focus:ring-grass/30";
 
   return (
-    <main className="mx-auto w-full max-w-2xl lg:max-w-6xl flex-1 space-y-4 p-4 sm:space-y-6 sm:p-6">
+    <main className="mx-auto w-full max-w-2xl lg:max-w-[1600px] flex-1 space-y-4 p-4 sm:space-y-6 sm:p-6 lg:p-8">
       <AutoRefresh enabled={nowMs() >= KICKOFF_MS} />
       <Reveal>
         <header className="flex items-center justify-between gap-3">

@@ -373,7 +373,7 @@ export default async function LeaguePage({
   const myRank = myIndex >= 0 ? myIndex + 1 : null;
 
   return (
-    <main className="mx-auto w-full max-w-2xl lg:max-w-6xl flex-1 space-y-4 p-4 sm:space-y-6 sm:p-6">
+    <main className="mx-auto w-full max-w-2xl lg:max-w-[1600px] flex-1 space-y-4 p-4 sm:space-y-6 sm:p-6 lg:p-8">
       <AutoRefresh enabled={nowMs() >= KICKOFF_MS} />
       <LeagueIntro />
       {/* Header — always full-width */}
@@ -426,7 +426,7 @@ export default async function LeaguePage({
       </Reveal>
 
       {/* Desktop: leaderboard (main) + awards nudge / secondary (aside) */}
-      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-6 lg:items-start">
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-8 lg:items-start">
         {/* Main column — leaderboard */}
         <Reveal index={2}>
           <section>
@@ -454,7 +454,7 @@ export default async function LeaguePage({
                 Your standing
               </h3>
               <div className="flex items-baseline gap-2">
-                <span className="font-display text-3xl text-gradient-gold">
+                <span className="font-display text-4xl text-gradient-gold">
                   {myRank ? `#${myRank}` : "—"}
                 </span>
                 <span className="text-sm text-chalk-dim">of {rows.length}</span>

@@ -1,6 +1,6 @@
 export default function LeagueLoading() {
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 space-y-6 p-4 sm:space-y-8 sm:p-6">
+    <main className="mx-auto w-full max-w-2xl lg:max-w-[1600px] flex-1 space-y-6 p-4 sm:space-y-8 sm:p-6 lg:p-8">
       <div className="glass-strong rounded-3xl p-5 sm:p-6">
         <div className="skeleton h-3 w-24" />
         <div className="skeleton mt-3 h-8 w-48" />

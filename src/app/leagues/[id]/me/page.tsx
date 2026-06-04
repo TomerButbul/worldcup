@@ -154,7 +154,7 @@ export default async function MyPredictionsPage({
   const hasChampion = championId != null;
 
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 space-y-4 p-4 sm:p-6 lg:max-w-5xl">
+    <main className="mx-auto w-full max-w-2xl flex-1 space-y-4 p-4 sm:p-6 lg:max-w-6xl lg:p-8">
       <Link href={`/leagues/${id}`} className="text-sm text-chalk-dim hover:text-chalk">
         &larr; {league.name}
       </Link>

@@ -35,26 +35,27 @@ function Bar({ tabs }: { tabs: Tab[] }): JSX.Element {
         </div>
       </nav>
 
-      {/* Desktop: horizontal top nav bar (sits just below the flag garland). */}
-      <nav className="fixed inset-x-0 top-[calc(env(safe-area-inset-top)+2.25rem)] z-20 hidden border-b border-night/10 bg-white/85 backdrop-blur lg:block">
-        <div className="mx-auto flex h-14 max-w-6xl items-center gap-2 px-6">
+      {/* Desktop: horizontal top nav bar — replaces the bottom tabs AND the
+          flag bunting (which is lg:hidden) for a clean single top bar. */}
+      <nav className="fixed inset-x-0 top-[env(safe-area-inset-top)] z-30 hidden border-b border-night/10 bg-white/90 backdrop-blur lg:block">
+        <div className="mx-auto flex h-16 max-w-[1600px] items-center gap-3 px-8">
           <Link
             href="/dashboard"
-            className="mr-2 flex items-center gap-2 font-display text-lg text-gradient-gold"
+            className="mr-4 flex items-center gap-2.5 font-display text-2xl text-gradient-gold"
           >
-            <NavIcon name="ball" size={20} /> World Cup
+            <NavIcon name="ball" size={26} /> World Cup
           </Link>
-          <div className="flex flex-1 items-center justify-end gap-1">
+          <div className="flex flex-1 items-center justify-end gap-1.5">
             {tabs.map((t) => (
               <Link
                 key={t.href}
                 href={t.href}
                 aria-current={t.active ? "page" : undefined}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-[15px] font-semibold transition ${
                   t.active ? "bg-gold/10 text-gold" : "text-chalk-dim hover:bg-night/5 hover:text-chalk"
                 }`}
               >
-                <NavIcon name={t.icon} size={18} /> {t.label}
+                <NavIcon name={t.icon} size={20} /> {t.label}
               </Link>
             ))}
           </div>

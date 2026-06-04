@@ -124,7 +124,7 @@ export default async function ManagerProfilePage({
   for (const t of teams) bracketTeams[t.id] = { id: t.id, name: t.name, code: t.code, logo_url: t.logo_url };
 
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 space-y-4 p-4 sm:p-6 lg:max-w-5xl">
+    <main className="mx-auto w-full max-w-2xl flex-1 space-y-4 p-4 sm:p-6 lg:max-w-6xl lg:p-8">
       <Link href={`/leagues/${id}`} className="text-sm text-chalk-dim hover:text-chalk">
         &larr; Leaderboard
       </Link>
