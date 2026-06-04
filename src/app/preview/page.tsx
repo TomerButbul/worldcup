@@ -15,6 +15,10 @@ import { btnClass, GOLD_GRADIENT } from "@/components/buttonStyles";
 import { burst, celebrate } from "@/lib/confetti";
 import { goalCelebration } from "@/lib/goal";
 import type { FavTeamStatus } from "@/lib/favoriteStatus";
+import { Upfront, Live, Trophy } from "@/components/icons";
+
+// Top-3 rank-number tint: gold / silver / bronze (mirrors Leaderboard.tsx).
+const RANK_COLOR = ["text-gold", "text-slate-300", "text-amber-600"];
 
 // Real flags from a public CDN so the preview shows the true vibe (no backend).
 const f = (iso: string) => `https://flagcdn.com/w80/${iso}.png`;
@@ -145,32 +149,33 @@ export default function PreviewPage() {
         <section>
           <SectionTitle>Leaderboard</SectionTitle>
           <div className="mb-3 flex gap-1.5">
-            {([["total", "👑 Total"], ["up", "🎯 Upfront"], ["live", "⚡ Live"]] as const).map(
-              ([k, label]) => (
-                <button
-                  key={k}
-                  onClick={() => setTab(k)}
-                  className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
-                    tab === k ? "bg-grass text-night" : "glass text-chalk-dim hover:text-chalk"
-                  }`}
-                >
-                  {label}
-                </button>
-              ),
-            )}
+            {([
+              { key: "total" as const, label: "Total",   Icon: Trophy  },
+              { key: "up"    as const, label: "Upfront", Icon: Upfront },
+              { key: "live"  as const, label: "Live",    Icon: Live    },
+            ]).map(({ key: k, label, Icon }) => (
+              <button
+                key={k}
+                onClick={() => setTab(k)}
+                className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                  tab === k ? "bg-grass text-night" : "glass text-chalk-dim hover:text-chalk"
+                }`}
+              >
+                <Icon size={13} /> {label}
+              </button>
+            ))}
           </div>
           <div className="glass-strong overflow-hidden rounded-2xl">
             <div className="grid grid-cols-[1.25rem_1fr_2rem_2rem_2.5rem] items-center gap-1.5 border-b border-night/10 px-3 py-2.5 text-xs uppercase tracking-wider text-chalk-dim sm:grid-cols-[2.5rem_1fr_3.5rem_3.5rem_4rem] sm:gap-2 sm:px-4">
               <span>#</span>
               <span>Player</span>
-              <span className={`text-right ${tab === "up" ? "text-grass" : ""}`}>🎯</span>
-              <span className={`text-right ${tab === "live" ? "text-grass" : ""}`}>⚡</span>
-              <span className={`text-right ${tab === "total" ? "text-grass" : ""}`}>👑</span>
+              <span className={`flex justify-end ${tab === "up" ? "text-grass" : ""}`}><Upfront size={14} /></span>
+              <span className={`flex justify-end ${tab === "live" ? "text-grass" : ""}`}><Live size={14} /></span>
+              <span className={`flex justify-end ${tab === "total" ? "text-grass" : ""}`}><Trophy size={14} /></span>
             </div>
             {rows.map((r, i) => {
               const isWinner = i === 0;
               const isLoser = i === rows.length - 1;
-              const medals = ["🥇", "🥈", "🥉"];
               return (
                 <motion.div
                   key={r.name}
@@ -181,7 +186,13 @@ export default function PreviewPage() {
                     isWinner ? "animate-pulse-glow bg-gold/15" : isLoser ? "bg-red-500/5" : ""
                   } ${r.me ? "ring-1 ring-inset ring-grass/50" : ""}`}
                 >
-                  <span className="text-lg">{isWinner ? "👑" : medals[i] ?? <span className="text-chalk-dim">{i + 1}</span>}</span>
+                  <span className="flex items-center justify-center text-sm font-bold tabular-nums">
+                    {isWinner ? (
+                      <Trophy size={18} className="text-gold" />
+                    ) : (
+                      <span className={RANK_COLOR[i] ?? "text-chalk-dim"}>{i + 1}</span>
+                    )}
+                  </span>
                   <span className="flex min-w-0 items-center gap-1.5">
                     <Avatar url={null} name={r.name} size={22} />
                     <Flag logoUrl={r.team.logo_url} name={r.team.name} size={16} />
@@ -258,7 +269,7 @@ export default function PreviewPage() {
           </div>
 
           <div className="mt-3 glass-strong rounded-2xl p-5 text-center">
-            <p className="mb-3 font-display text-lg text-gradient-gold">Champion 🏆</p>
+            <p className="mb-3 inline-flex items-center gap-1.5 font-display text-lg text-gradient-gold">Champion <Trophy size={16} /></p>
             <div className="flex flex-wrap justify-center gap-3">
               {[T.bra, T.fra].map((t) => (
                 <motion.button
@@ -274,7 +285,7 @@ export default function PreviewPage() {
                     champ === t.id ? "border-gold bg-gold/15 text-gold glow-gold" : "border-night/10 text-chalk hover:bg-night/5"
                   }`}
                 >
-                  {champ === t.id && "👑"}
+                  {champ === t.id && <Trophy size={16} className="text-gold" />}
                   <Flag logoUrl={t.logo_url} name={t.name} size={26} />
                   {t.name}
                 </motion.button>

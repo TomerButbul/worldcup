@@ -6,6 +6,7 @@ import type { Team } from "@/lib/types";
 import Flag from "@/components/Flag";
 import { saveFavoriteTeam } from "@/app/dashboard/actions";
 import { playPop } from "@/lib/sound";
+import { Star } from "@/components/icons";
 
 export default function FavoriteTeamPicker({
   teams,
@@ -32,7 +33,7 @@ export default function FavoriteTeamPicker({
   if (teams.length === 0) {
     return (
       <div className="glass rounded-2xl p-4 text-sm text-chalk-dim">
-        ⭐ Favorite team picker unlocks once teams are synced.
+        <span className="inline-flex items-center gap-1.5"><Star size={14} /> Favorite team picker unlocks once teams are synced.</span>
       </div>
     );
   }
@@ -48,7 +49,7 @@ export default function FavoriteTeamPicker({
               <span className="truncate">{currentTeam.name}</span>
             </span>
           ) : (
-            <span className="text-chalk-dim">none yet ⭐</span>
+            <span className="inline-flex items-center gap-1.5 text-chalk-dim">none yet <Star size={13} /></span>
           )}
         </div>
         <button

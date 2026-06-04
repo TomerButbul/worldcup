@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { Bell } from "@/components/icons";
 
 function urlB64ToUint8Array(base64: string) {
   const padding = "=".repeat((4 - (base64.length % 4)) % 4);
@@ -100,7 +101,7 @@ export default function NotificationToggle({ placement = "top" }: { placement?: 
     if (state !== "granted") return null;
     return (
       <div className="glass flex items-center justify-between gap-3 rounded-2xl p-3">
-        <span className="text-xs text-chalk-dim">🔔 Match &amp; lock reminders are on.</span>
+        <span className="inline-flex items-center gap-1.5 text-xs text-chalk-dim"><Bell size={13} /> Match &amp; lock reminders are on.</span>
         <button
           onClick={disable}
           className="text-xs text-chalk-dim underline underline-offset-2 hover:text-chalk"
@@ -133,7 +134,7 @@ export default function NotificationToggle({ placement = "top" }: { placement?: 
               disabled={state === "working"}
               className="rounded-xl bg-gold px-3 py-2 text-sm font-semibold text-night transition hover:brightness-110 disabled:opacity-50"
             >
-              {state === "working" ? "Enabling…" : "🔔 Turn on reminders"}
+              {state === "working" ? "Enabling…" : <span className="inline-flex items-center gap-1.5"><Bell size={14} /> Turn on reminders</span>}
             </button>
             {state === "denied" && (
               <span className="text-xs text-red-600">

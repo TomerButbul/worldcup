@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { nowMs } from "@/lib/clock";
 import AwardsPicker, { type AwardPlayer } from "./AwardsPicker";
 import Ball from "@/components/art/Ball";
+import { Star } from "@/components/icons";
 
 export default async function AwardsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -86,9 +87,9 @@ export default async function AwardsPage({ params }: { params: Promise<{ id: str
           &larr; Back to league
         </Link>
         <h1 className="mt-1 font-display text-3xl text-gradient-gold">Individual awards</h1>
-        <p className="text-sm text-chalk-dim">
+        <p className="inline-flex items-center gap-1.5 text-sm text-chalk-dim">
           Predict the tournament&apos;s individual award winners — they score into your Upfront total.{" "}
-          {locked ? "🔒 Locked." : "Locks with your bracket at kickoff."} ⭐
+          {locked ? "🔒 Locked." : "Locks with your bracket at kickoff."} <Star size={14} />
         </p>
       </div>
 

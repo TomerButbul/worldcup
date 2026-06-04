@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { Upfront, Live, Trophy, Bell } from "@/components/icons";
+import type { ComponentType } from "react";
 
 export const metadata = { title: "How it works" };
 
@@ -32,10 +34,11 @@ const LIVE_POINTS = [
   ["Calling the penalty-shootout winner", "2"],
 ];
 
-const CROWNS = [
-  ["🎯", "Upfront", "bracket + awards"],
-  ["⚡", "Live", "in-running match picks"],
-  ["👑", "Total", "the two combined"],
+type CrownEntry = { Icon: ComponentType<{ size?: number }>; name: string; desc: string };
+const CROWNS: CrownEntry[] = [
+  { Icon: Upfront, name: "Upfront", desc: "bracket + awards" },
+  { Icon: Live, name: "Live", desc: "in-running match picks" },
+  { Icon: Trophy, name: "Total", desc: "the two combined" },
 ];
 
 function ScoreRow({ label, points, grass = false }: { label: string; points: string; grass?: boolean }) {
@@ -88,7 +91,7 @@ export default function HowItWorksPage() {
         {/* Upfront */}
         <div className="mt-4">
           <div className="flex items-center gap-2">
-            <span className="text-lg">🎯</span>
+            <span className="inline-flex items-center gap-1.5 text-gold"><Upfront size={16} /></span>
             <h3 className="font-display text-lg text-gold">Upfront</h3>
           </div>
           <p className="mt-0.5 text-xs text-chalk-dim">
@@ -135,7 +138,7 @@ export default function HowItWorksPage() {
         {/* Live */}
         <div className="mt-5 border-t border-night/5 pt-4">
           <div className="flex items-center gap-2">
-            <span className="text-lg">⚡</span>
+            <span className="inline-flex items-center gap-1.5 text-grass"><Live size={16} /></span>
             <h3 className="font-display text-lg text-grass">Live</h3>
           </div>
           <p className="mt-0.5 text-xs text-chalk-dim">Per match, as games play — group games score lighter than knockouts.</p>
@@ -151,9 +154,9 @@ export default function HowItWorksPage() {
       <section className="glass rounded-3xl p-5 sm:p-6">
         <h2 className="font-display text-2xl text-chalk">Three crowns</h2>
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
-          {CROWNS.map(([icon, name, desc]) => (
+          {CROWNS.map(({ Icon, name, desc }) => (
             <div key={name} className="rounded-2xl bg-night/[0.03] p-3 text-center">
-              <div className="text-2xl">{icon}</div>
+              <div className="flex justify-center text-chalk"><Icon size={24} /></div>
               <div className="mt-1 font-display text-lg text-chalk">{name}</div>
               <div className="text-xs text-chalk-dim">{desc}</div>
             </div>
@@ -170,7 +173,8 @@ export default function HowItWorksPage() {
         <h2 className="font-display text-2xl text-chalk">Stay on top</h2>
         <p className="mt-2 text-sm text-chalk-dim sm:text-base">
           Enable <span className="text-chalk">notifications</span> on your dashboard to get pinged
-          before picks lock and before each kickoff. 🔔
+          before picks lock and before each kickoff.{" "}
+          <span className="inline-flex items-center gap-1.5"><Bell size={14} /></span>
         </p>
       </section>
     </main>

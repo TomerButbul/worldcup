@@ -9,15 +9,17 @@ import Ball from "@/components/art/Ball";
 import Trophy from "@/components/art/Trophy";
 import KnockoutBracket from "@/components/KnockoutBracket";
 import { predictedBracketRounds } from "@/lib/bracket-core";
+import { Upfront, Live, Boot, Glove, Star, Medal } from "@/components/icons";
+import type { ComponentType, ReactNode } from "react";
 
 // A "Manager" = a human participant in this league (NOT a football player).
 // Their predictions stay hidden until the bracket locks, so peeking can't
 // influence anyone's own picks — fair play before kickoff.
 
-function StatChip({ icon, label, value }: { icon: string; label: string; value: number }) {
+function StatChip({ icon, label, value }: { icon: ReactNode; label: string; value: number }) {
   return (
     <div className="flex flex-col items-center rounded-2xl bg-night/5 px-3 py-2">
-      <span className="text-base">{icon}</span>
+      <span className="flex items-center justify-center text-chalk-dim">{icon}</span>
       <span className="font-display text-lg tabular-nums text-chalk">{value}</span>
       <span className="text-[10px] uppercase tracking-wider text-chalk-dim">{label}</span>
     </div>
@@ -88,11 +90,11 @@ export default async function ManagerProfilePage({
   const champTeam = championId != null ? teamById.get(championId) : null;
 
   const awards = (prediction?.awards ?? {}) as Record<string, number | null>;
-  const awardEntries: { key: string; label: string; id: number | null }[] = [
-    { key: "golden_boot", label: "🥇 Golden Boot", id: awards.golden_boot ?? null },
-    { key: "golden_ball", label: "🎖️ Golden Ball", id: awards.golden_ball ?? null },
-    { key: "golden_glove", label: "🧤 Golden Glove", id: awards.golden_glove ?? null },
-    { key: "young_player", label: "⭐ Young Player", id: awards.young_player ?? null },
+  const awardEntries: { key: string; label: string; Icon: ComponentType<{ size?: number; className?: string }>; id: number | null }[] = [
+    { key: "golden_boot", label: "Golden Boot", Icon: Boot, id: awards.golden_boot ?? null },
+    { key: "golden_ball", label: "Golden Ball", Icon: Medal, id: awards.golden_ball ?? null },
+    { key: "golden_glove", label: "Golden Glove", Icon: Glove, id: awards.golden_glove ?? null },
+    { key: "young_player", label: "Young Player", Icon: Star, id: awards.young_player ?? null },
   ];
   const awardIds = awardEntries.map((a) => a.id).filter((v): v is number => v != null);
   let awardNames = new Map<number, string>();
@@ -148,9 +150,9 @@ export default async function ManagerProfilePage({
           </div>
         </div>
         <div className="mt-4 grid grid-cols-3 gap-2">
-          <StatChip icon="🎯" label="Upfront" value={score?.upfront_points ?? 0} />
-          <StatChip icon="⚡" label="Live" value={score?.live_points ?? 0} />
-          <StatChip icon="👑" label="Total" value={score?.total_points ?? 0} />
+          <StatChip icon={<Upfront size={20} />} label="Upfront" value={score?.upfront_points ?? 0} />
+          <StatChip icon={<Live size={20} />} label="Live" value={score?.live_points ?? 0} />
+          <StatChip icon={<Trophy size={20} />} label="Total" value={score?.total_points ?? 0} />
         </div>
       </div>
 
@@ -204,14 +206,16 @@ export default async function ManagerProfilePage({
 
           {/* Awards */}
           <section className="glass rounded-2xl p-5">
-            <h2 className="mb-3 font-display text-lg text-chalk">🏅 Awards</h2>
+            <h2 className="mb-3 flex items-center gap-1.5 font-display text-lg text-chalk"><Medal size={18} />Awards</h2>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {awardEntries.map((a) => (
                 <div
                   key={a.key}
                   className="flex items-center justify-between gap-2 rounded-xl bg-night/5 px-3 py-2"
                 >
-                  <span className="text-xs text-chalk-dim">{a.label}</span>
+                  <span className="inline-flex items-center gap-1.5 text-xs text-chalk-dim">
+                    <a.Icon size={13} />{a.label}
+                  </span>
                   <span className="min-w-0 truncate text-right text-sm font-semibold text-chalk">
                     {a.id != null ? (awardNames.get(a.id) ?? "—") : "—"}
                   </span>

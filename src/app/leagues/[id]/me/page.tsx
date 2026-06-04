@@ -9,6 +9,8 @@ import Trophy from "@/components/art/Trophy";
 import ShareButton from "./ShareButton";
 import KnockoutBracket from "@/components/KnockoutBracket";
 import { predictedBracketRounds } from "@/lib/bracket-core";
+import { Boot, Glove, Star, Medal } from "@/components/icons";
+import type { ComponentType } from "react";
 
 // The signed-in user's OWN predictions recap for one league. Unlike the manager
 // profile page (which hides OTHER people's picks until the bracket locks), this
@@ -69,11 +71,11 @@ export default async function MyPredictionsPage({
 
   // ----- Awards ---------------------------------------------------------------
   const awards = (prediction?.awards ?? {}) as Record<string, number | null>;
-  const awardEntries: { key: string; label: string; id: number | null }[] = [
-    { key: "golden_boot", label: "🥇 Golden Boot", id: awards.golden_boot ?? null },
-    { key: "golden_ball", label: "🎖️ Golden Ball", id: awards.golden_ball ?? null },
-    { key: "golden_glove", label: "🧤 Golden Glove", id: awards.golden_glove ?? null },
-    { key: "young_player", label: "⭐ Young Player", id: awards.young_player ?? null },
+  const awardEntries: { key: string; label: string; Icon: ComponentType<{ size?: number; className?: string }>; id: number | null }[] = [
+    { key: "golden_boot", label: "Golden Boot", Icon: Boot, id: awards.golden_boot ?? null },
+    { key: "golden_ball", label: "Golden Ball", Icon: Medal, id: awards.golden_ball ?? null },
+    { key: "golden_glove", label: "Golden Glove", Icon: Glove, id: awards.golden_glove ?? null },
+    { key: "young_player", label: "Young Player", Icon: Star, id: awards.young_player ?? null },
   ];
   const awardIds = awardEntries.map((a) => a.id).filter((v): v is number => v != null);
 
@@ -169,8 +171,8 @@ export default async function MyPredictionsPage({
               🔒 Locked
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 rounded-full bg-grass/15 px-2.5 py-1 text-xs font-semibold text-grass">
-              🟢 Open
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-grass/15 px-2.5 py-1 text-xs font-semibold text-grass">
+              <span className="inline-block size-2 rounded-full bg-grass" /> Open
             </span>
           )}
         </div>
@@ -232,14 +234,16 @@ export default async function MyPredictionsPage({
 
       {/* Awards */}
       <section className="glass rounded-2xl p-5">
-        <h2 className="mb-3 font-display text-lg text-chalk">🏅 Awards</h2>
+        <h2 className="mb-3 flex items-center gap-1.5 font-display text-lg text-chalk"><Medal size={18} />Awards</h2>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {awardEntries.map((a) => (
             <div
               key={a.key}
               className="flex items-center justify-between gap-2 rounded-xl bg-night/5 px-3 py-2"
             >
-              <span className="text-xs text-chalk-dim">{a.label}</span>
+              <span className="inline-flex items-center gap-1.5 text-xs text-chalk-dim">
+                <a.Icon size={13} />{a.label}
+              </span>
               <span className="min-w-0 truncate text-right text-sm font-semibold text-chalk">
                 {a.id != null ? (playerNames.get(a.id) ?? "—") : "—"}
               </span>

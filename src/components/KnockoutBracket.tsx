@@ -2,6 +2,7 @@
 
 import { useState, type JSX } from "react";
 import Flag from "@/components/Flag";
+import { Trophy } from "@/components/icons";
 
 // A single team as it appears in the bracket. Mirrors the shape the consumer
 // already has on hand (id + display name + crest code/logo for <Flag>).
@@ -323,7 +324,7 @@ export default function KnockoutBracket({
               <div className="flex w-[70px] flex-col px-0.5">
                 <div className="mb-1 text-center font-display text-[9px] uppercase tracking-wide text-gold">Final</div>
                 <div className="flex flex-1 flex-col items-center justify-center gap-1">
-                  {championTeamId != null && <span className="text-sm leading-none">👑</span>}
+                  {championTeamId != null && <Trophy size={14} className="text-gold" />}
                   <div className="w-full rounded-md ring-1 ring-gold">{treeCard(mget(104))}</div>
                   <span className="font-display text-[10px] leading-none text-gold">
                     {championTeamId != null ? codeOf(championTeamId) : "Champion"}
@@ -398,14 +399,14 @@ export default function KnockoutBracket({
             <div className="pt-1">
               {champTeam ? (
                 <div className="glass-strong mx-auto flex max-w-sm flex-col items-center gap-1.5 rounded-2xl border border-gold bg-gold/15 p-4 text-center text-gold glow-gold">
-                  <span className="text-xl leading-none">👑</span>
+                  <Trophy size={20} className="text-gold" />
                   <Flag teamId={champTeam.id} logoUrl={champTeam.logo_url} code={champTeam.code} name={champTeam.name} size={32} />
                   <span className="font-display text-lg leading-tight">{champTeam.name}</span>
                   <span className="text-[11px] uppercase tracking-wide text-gold/80">Champion</span>
                 </div>
               ) : (
                 <div className="glass mx-auto flex max-w-sm flex-col items-center gap-1 rounded-2xl border border-dashed border-gold/40 p-4 text-center">
-                  <span className="text-xl leading-none opacity-60">🏆</span>
+                  <Trophy size={20} className="text-gold opacity-60" />
                   <span className="font-display text-xs uppercase tracking-wide text-chalk-dim">
                     Win the Final to crown a champion
                   </span>

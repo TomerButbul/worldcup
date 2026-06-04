@@ -1,29 +1,32 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { ComponentType } from "react";
 import Link from "next/link";
+import { Upfront, Live, Trophy } from "@/components/icons";
 
 // First-open tutorial: shows once (per device) the first time someone opens a
 // league, so even existing players get the rundown. Tracked in localStorage so
 // it never nags after "Got it". Bump the key to re-show after a big rules change.
 const SEEN_KEY = "wc_seen_intro_v1";
 
-const STEPS: [string, string, string][] = [
-  [
-    "🎯",
-    "Predict upfront",
-    "Set the group scorelines — your knockout bracket builds itself — then crown a champion and call the 4 awards.",
-  ],
-  [
-    "⚡",
-    "Play live",
-    "As matches kick off, pick each game's goal scorers; for knockouts, the exact score + who wins on penalties.",
-  ],
-  [
-    "👑",
-    "Win 3 crowns",
-    "Climb three leaderboards — Upfront, Live and Total. Everything auto-saves and locks at kickoff (Jun 11).",
-  ],
+type Step = { Icon: ComponentType<{ size?: number }>; title: string; body: string };
+const STEPS: Step[] = [
+  {
+    Icon: Upfront,
+    title: "Predict upfront",
+    body: "Set the group scorelines — your knockout bracket builds itself — then crown a champion and call the 4 awards.",
+  },
+  {
+    Icon: Live,
+    title: "Play live",
+    body: "As matches kick off, pick each game's goal scorers; for knockouts, the exact score + who wins on penalties.",
+  },
+  {
+    Icon: Trophy,
+    title: "Win 3 crowns",
+    body: "Climb three leaderboards — Upfront, Live and Total. Everything auto-saves and locks at kickoff (Jun 11).",
+  },
 ];
 
 export default function LeagueIntro() {
@@ -55,9 +58,9 @@ export default function LeagueIntro() {
         <p className="mt-1 text-sm text-chalk-dim">Three ways to score — here&apos;s the gist.</p>
 
         <ul className="mt-4 space-y-3">
-          {STEPS.map(([icon, title, body]) => (
+          {STEPS.map(({ Icon, title, body }) => (
             <li key={title} className="flex gap-3">
-              <span className="text-2xl leading-none">{icon}</span>
+              <span className="mt-0.5 shrink-0 text-chalk"><Icon size={22} /></span>
               <span className="min-w-0">
                 <span className="block font-semibold text-chalk">{title}</span>
                 <span className="block text-xs text-chalk-dim sm:text-sm">{body}</span>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ShareIcon, LinkIcon } from "@/components/icons";
 
 // Share an INVITE link (the dashboard), never the predictions URL — a teammate
 // must not be able to open someone's picks before the bracket locks.
@@ -33,7 +34,11 @@ export default function ShareButton() {
       onClick={onShare}
       className="shrink-0 rounded-full bg-gold px-3 py-1.5 text-xs font-semibold text-night transition hover:opacity-90"
     >
-      {copied ? "Copied!" : "🔗 Share"}
+      {copied ? (
+        <span className="inline-flex items-center gap-1.5"><LinkIcon size={13} />Copied!</span>
+      ) : (
+        <span className="inline-flex items-center gap-1.5"><ShareIcon size={13} />Share</span>
+      )}
     </button>
   );
 }

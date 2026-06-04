@@ -6,7 +6,8 @@ import { getCachedTeams } from "@/lib/tournamentData";
 import Avatar from "@/components/Avatar";
 import Flag from "@/components/Flag";
 
-const MEDALS = ["🥇", "🥈", "🥉"];
+// Top-3 rank-number tint: gold / silver / bronze (mirrors Leaderboard.tsx).
+const RANK_COLOR = ["text-gold", "text-slate-300", "text-amber-600"];
 
 export default async function RankingsPage() {
   const supabase = await createClient();
@@ -49,8 +50,8 @@ export default async function RankingsPage() {
                   isMe ? "bg-gold/15 ring-1 ring-inset ring-gold/50" : ""
                 }`}
               >
-                <span className="w-7 shrink-0 text-center text-lg tabular-nums">
-                  {MEDALS[i] ?? <span className="text-sm text-chalk-dim">#{i + 1}</span>}
+                <span className="w-7 shrink-0 text-center font-bold tabular-nums">
+                  <span className={RANK_COLOR[i] ?? "text-chalk-dim"}>{i + 1}</span>
                 </span>
                 <Avatar url={r.avatarUrl} name={r.name} size={40} />
                 {r.favTeamId && (

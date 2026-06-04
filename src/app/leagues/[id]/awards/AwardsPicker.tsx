@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import type { ComponentType } from "react";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import { saveAwards } from "./actions";
 import { useAutosave } from "@/lib/useAutosave";
 import SaveStatus from "@/components/SaveStatus";
+import { Boot, Medal, Glove, Star } from "@/components/icons";
 
 export interface AwardPlayer {
   id: number;
@@ -18,12 +20,20 @@ export interface AwardPlayer {
   nationality: string | null;
 }
 
-const AWARDS = [
-  { key: "golden_boot", emoji: "🥇", label: "Golden Boot", hint: "Top scorer", gkOnly: false },
-  { key: "golden_ball", emoji: "⚽", label: "Golden Ball", hint: "Best player", gkOnly: false },
-  { key: "golden_glove", emoji: "🧤", label: "Golden Glove", hint: "Best goalkeeper", gkOnly: true },
-  { key: "young_player", emoji: "🌟", label: "Young Player", hint: "Best young player", gkOnly: false },
-] as const;
+type IconComponent = ComponentType<{ size?: number; className?: string }>;
+
+const AWARDS: {
+  key: string;
+  Icon: IconComponent;
+  label: string;
+  hint: string;
+  gkOnly: boolean;
+}[] = [
+  { key: "golden_boot", Icon: Boot, label: "Golden Boot", hint: "Top scorer", gkOnly: false },
+  { key: "golden_ball", Icon: Medal, label: "Golden Ball", hint: "Best player", gkOnly: false },
+  { key: "golden_glove", Icon: Glove, label: "Golden Glove", hint: "Best goalkeeper", gkOnly: true },
+  { key: "young_player", Icon: Star, label: "Young Player", hint: "Best young player", gkOnly: false },
+];
 
 // Accent/diacritic-insensitive fold so "Mbappe" finds "Mbappé", "Muller" → "Müller".
 const fold = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
@@ -108,8 +118,8 @@ export default function AwardsPicker({
         return (
           <div key={a.key} className="glass rounded-2xl p-4">
             <div className="flex items-center justify-between">
-              <p className="font-display text-chalk">
-                <span className="mr-1.5">{a.emoji}</span>
+              <p className="inline-flex items-center gap-1.5 font-display text-chalk">
+                <a.Icon size={16} />
                 {a.label}
               </p>
               <span className="text-xs text-chalk-dim">{a.hint}</span>

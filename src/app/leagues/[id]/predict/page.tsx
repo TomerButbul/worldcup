@@ -155,7 +155,7 @@ export default async function PredictPage({
         </Link>
         <h1 className="mt-1 font-display text-3xl text-gradient-gold">Match predictions</h1>
         <p className="text-sm text-chalk-dim">
-          Predict the score and goal scorers. Each match locks at kickoff. ⚡
+          Predict the score and goal scorers. Each match locks at kickoff.
         </p>
       </div>
 

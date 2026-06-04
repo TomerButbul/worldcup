@@ -6,6 +6,7 @@ import type { Team } from "@/lib/types";
 import BracketEditor, { type EditorTeam } from "./BracketEditor";
 import { nowMs } from "@/lib/clock";
 import Ball from "@/components/art/Ball";
+import { Medal } from "@/components/icons";
 
 export default async function BracketPage({
   params,
@@ -78,7 +79,7 @@ export default async function BracketPage({
           href={`/leagues/${id}/awards`}
           className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-gold/10 px-3 py-1.5 text-sm font-semibold text-gold transition hover:bg-gold/20"
         >
-          🏅 Predict individual awards →
+          <span className="inline-flex items-center gap-1.5"><Medal size={15} /> Predict individual awards →</span>
         </Link>
       </div>
 
