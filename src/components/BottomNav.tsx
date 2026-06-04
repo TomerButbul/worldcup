@@ -15,23 +15,52 @@ type Tab = { href: string; label: string; icon: IconName; active: boolean };
 
 function Bar({ tabs }: { tabs: Tab[] }): JSX.Element {
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-night/10 bg-white/90 backdrop-blur pb-[env(safe-area-inset-bottom)]">
-      <div className="mx-auto flex max-w-2xl items-stretch">
-        {tabs.map((t) => (
+    <>
+      {/* Mobile: thumb-reachable bottom tab bar (hidden on desktop). */}
+      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-night/10 bg-white/90 backdrop-blur pb-[env(safe-area-inset-bottom)] lg:hidden">
+        <div className="mx-auto flex max-w-2xl items-stretch">
+          {tabs.map((t) => (
+            <Link
+              key={t.href}
+              href={t.href}
+              aria-current={t.active ? "page" : undefined}
+              className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-semibold transition ${
+                t.active ? "text-gold" : "text-chalk-dim hover:text-chalk"
+              }`}
+            >
+              <NavIcon name={t.icon} />
+              <span className="leading-none">{t.label}</span>
+            </Link>
+          ))}
+        </div>
+      </nav>
+
+      {/* Desktop: horizontal top nav bar (sits just below the flag garland). */}
+      <nav className="fixed inset-x-0 top-[calc(env(safe-area-inset-top)+2.25rem)] z-20 hidden border-b border-night/10 bg-white/85 backdrop-blur lg:block">
+        <div className="mx-auto flex h-14 max-w-6xl items-center gap-2 px-6">
           <Link
-            key={t.href}
-            href={t.href}
-            aria-current={t.active ? "page" : undefined}
-            className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-semibold transition ${
-              t.active ? "text-gold" : "text-chalk-dim hover:text-chalk"
-            }`}
+            href="/dashboard"
+            className="mr-2 flex items-center gap-2 font-display text-lg text-gradient-gold"
           >
-            <NavIcon name={t.icon} />
-            <span className="leading-none">{t.label}</span>
+            <NavIcon name="ball" size={20} /> World Cup
           </Link>
-        ))}
-      </div>
-    </nav>
+          <div className="flex flex-1 items-center justify-end gap-1">
+            {tabs.map((t) => (
+              <Link
+                key={t.href}
+                href={t.href}
+                aria-current={t.active ? "page" : undefined}
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                  t.active ? "bg-gold/10 text-gold" : "text-chalk-dim hover:bg-night/5 hover:text-chalk"
+                }`}
+              >
+                <NavIcon name={t.icon} size={18} /> {t.label}
+              </Link>
+            ))}
+          </div>
+        </div>
+      </nav>
+    </>
   );
 }
 
@@ -89,10 +118,10 @@ export function LeagueNav({ leagueId, kind }: { leagueId: string; kind: string }
 // --- Icons (inline SVG, currentColor — no emoji) ----------------------------
 type IconName = "home" | "globe" | "help" | "trophy" | "bracket" | "ball" | "target" | "grid" | "calendar";
 
-function NavIcon({ name }: { name: IconName }): JSX.Element {
+function NavIcon({ name, size = 22 }: { name: IconName; size?: number }): JSX.Element {
   const p = {
-    width: 22,
-    height: 22,
+    width: size,
+    height: size,
     viewBox: "0 0 24 24",
     fill: "none",
     stroke: "currentColor",

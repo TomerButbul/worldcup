@@ -80,7 +80,9 @@ export default async function RootLayout({
         </div>
         <div
           className={`relative z-10 flex min-h-screen flex-col pt-[calc(env(safe-area-inset-top)+2.25rem)] ${
-            user ? "pb-[calc(env(safe-area-inset-bottom)+3.75rem)]" : ""
+            user
+              ? "pb-[calc(env(safe-area-inset-bottom)+3.75rem)] lg:pb-10 lg:pt-[calc(env(safe-area-inset-top)+5.75rem)]"
+              : ""
           }`}
         >
           {children}
