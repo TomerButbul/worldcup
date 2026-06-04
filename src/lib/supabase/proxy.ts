@@ -50,6 +50,10 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith("/reset-password") ||
     pathname.startsWith("/how-it-works") ||
     pathname.startsWith("/install") ||
+    // Invite links must reach logged-out visitors: the /join route handler stashes
+    // the invite_code cookie and *then* sends them to sign up. If we gated it here,
+    // the proxy would redirect to /signup first and the code would be lost.
+    pathname.startsWith("/join") ||
     isAuthRoute ||
     isApi;
 
