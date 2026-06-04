@@ -8,7 +8,7 @@ import { savePrediction } from "./actions";
 import { useAutosave } from "@/lib/useAutosave";
 import SaveStatus from "@/components/SaveStatus";
 import Flag from "@/components/Flag";
-import { TeamCardButton } from "@/components/TeamCard";
+import { TeamCardButton, openTeamCard } from "@/components/TeamCard";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import { PlayerCardButton, openPlayerCard } from "@/components/PlayerCard";
 import { useLongPress } from "@/lib/useLongPress";
@@ -68,8 +68,10 @@ export default function MatchCard({
   // player_id (string) -> predicted goals for that player.
   const [scorerGoals, setScorerGoals] = useState<Record<string, number>>(() => ({ ...(initial?.scorer_goals ?? {}) }));
   const [penWinner, setPenWinner] = useState<number | null>(initial?.pen_winner_team_id ?? null);
-  // Scorer picker shows ONE team at a time (toggle); default to the home side.
+  // Scorer picker shows ONE team at a time; default to the home side. The two
+  // teams in the score row double as the selector (tap a team to pick its scorers).
   const [activeTeam, setActiveTeam] = useState<"home" | "away">("home");
+  const teamLongPress = useLongPress();
 
   const kickoff = new Date(match.kickoff_at).toLocaleString(undefined, {
     weekday: "short",
@@ -101,8 +103,77 @@ export default function MatchCard({
     });
   }
 
-  function step(setter: (fn: (n: number) => number) => void, delta: number) {
-    setter((n) => Math.max(0, n + delta));
+  // Change a side's score. Lowering it (or zeroing it) prunes that team's scorer
+  // picks so you can never have more scorers than goals.
+  function changeScore(side: "home" | "away", delta: number) {
+    const cur = side === "home" ? home : away;
+    const v = Math.max(0, cur + delta);
+    if (side === "home") setHome(v);
+    else setAway(v);
+    if (delta < 0) {
+      const sidePlayers = side === "home" ? homePlayers : awayPlayers;
+      setScorerGoals((prev) => prunedToCap(prev, sidePlayers, v));
+    }
+  }
+
+  // Scorer picking is live only pre-kickoff once squads are loaded.
+  const picking = !locked && allPlayers.length > 0;
+
+  // One team "pill" in the score row. While picking it doubles as the squad
+  // selector: tap to switch which team's scorers you're editing (active = green),
+  // hold for the team card, with the scorer count shown beneath the name. Locked /
+  // no-squad / TBD falls back to a plain tap-for-team-card label.
+  function teamSide(side: "home" | "away") {
+    const isHome = side === "home";
+    const tName = isHome ? match.homeName : match.awayName;
+    const tId = isHome ? match.homeTeamId : match.awayTeamId;
+    const rowAlign = isHome ? "justify-end" : "justify-start";
+    const flag = <Flag teamId={tId} name={tName} size={26} className="shrink-0" />;
+    const nameEl = <span className="truncate">{tName}</span>;
+    const inner = isHome ? (<>{nameEl}{flag}</>) : (<>{flag}{nameEl}</>);
+
+    if (picking && tId != null) {
+      const tCap = isHome ? homeCap : awayCap;
+      const tSum = isHome ? sumFor(homePlayers) : sumFor(awayPlayers);
+      const need = tCap > 0 && tSum < tCap;
+      const isActive = activeTeam === side;
+      return (
+        <button
+          type="button"
+          onClick={() => setActiveTeam(side)}
+          {...teamLongPress(() => openTeamCard({ teamId: tId, name: tName }))}
+          aria-label={`Pick ${tName} scorers — hold for team details`}
+          className={`flex min-w-0 flex-1 select-none flex-col gap-0.5 rounded-xl border px-2 py-1.5 transition ${
+            isHome ? "items-end" : "items-start"
+          } ${isActive ? "border-grass bg-grass/15" : "border-transparent hover:bg-night/5"}`}
+        >
+          <span className={`flex w-full items-center gap-1.5 text-sm font-semibold text-chalk sm:text-base ${rowAlign}`}>
+            {inner}
+          </span>
+          <span className={`text-[11px] tabular-nums ${need ? "text-gold" : tCap > 0 ? "text-grass" : "text-chalk-dim"}`}>
+            {tSum}/{tCap}
+          </span>
+        </button>
+      );
+    }
+
+    if (tId != null) {
+      return (
+        <TeamCardButton
+          teamId={tId}
+          name={tName}
+          className={`flex min-w-0 flex-1 items-center gap-1.5 text-sm font-semibold text-chalk transition hover:opacity-80 sm:gap-2 sm:text-base ${rowAlign}`}
+        >
+          {inner}
+        </TeamCardButton>
+      );
+    }
+
+    return (
+      <span className={`flex min-w-0 flex-1 items-center gap-1.5 text-sm font-semibold text-chalk sm:gap-2 sm:text-base ${rowAlign}`}>
+        {inner}
+      </span>
+    );
   }
 
   const saveFn = useCallback(
@@ -146,21 +217,7 @@ export default function MatchCard({
       </div>
 
       <div className="flex items-center justify-center gap-2 text-center sm:gap-4">
-        {match.homeTeamId != null ? (
-          <TeamCardButton
-            teamId={match.homeTeamId}
-            name={match.homeName}
-            className="flex min-w-0 flex-1 items-center justify-end gap-1.5 text-sm font-semibold text-chalk transition hover:opacity-80 sm:gap-2 sm:text-base"
-          >
-            <span className="truncate">{match.homeName}</span>
-            <Flag teamId={match.homeTeamId} name={match.homeName} size={26} className="shrink-0" />
-          </TeamCardButton>
-        ) : (
-          <span className="flex min-w-0 flex-1 items-center justify-end gap-1.5 text-sm font-semibold text-chalk sm:gap-2 sm:text-base">
-            <span className="truncate">{match.homeName}</span>
-            <Flag teamId={match.homeTeamId} name={match.homeName} size={26} className="shrink-0" />
-          </span>
-        )}
+        {teamSide("home")}
 
         {locked ? (
           <span className="net rounded-xl bg-night/5 px-4 py-2 font-display text-xl text-chalk">
@@ -170,27 +227,13 @@ export default function MatchCard({
           </span>
         ) : (
           <span className="flex items-center gap-2">
-            <Stepper value={home} onDec={() => step(setHome, -1)} onInc={() => step(setHome, 1)} />
+            <Stepper value={home} onDec={() => changeScore("home", -1)} onInc={() => changeScore("home", 1)} />
             <span className="text-chalk-dim">–</span>
-            <Stepper value={away} onDec={() => step(setAway, -1)} onInc={() => step(setAway, 1)} />
+            <Stepper value={away} onDec={() => changeScore("away", -1)} onInc={() => changeScore("away", 1)} />
           </span>
         )}
 
-        {match.awayTeamId != null ? (
-          <TeamCardButton
-            teamId={match.awayTeamId}
-            name={match.awayName}
-            className="flex min-w-0 flex-1 items-center justify-start gap-1.5 text-sm font-semibold text-chalk transition hover:opacity-80 sm:gap-2 sm:text-base"
-          >
-            <Flag teamId={match.awayTeamId} name={match.awayName} size={26} className="shrink-0" />
-            <span className="truncate">{match.awayName}</span>
-          </TeamCardButton>
-        ) : (
-          <span className="flex min-w-0 flex-1 items-center justify-start gap-1.5 text-sm font-semibold text-chalk sm:gap-2 sm:text-base">
-            <Flag teamId={match.awayTeamId} name={match.awayName} size={26} className="shrink-0" />
-            <span className="truncate">{match.awayName}</span>
-          </span>
-        )}
+        {teamSide("away")}
       </div>
 
       {locked ? (
@@ -249,33 +292,6 @@ export default function MatchCard({
             <p className="mt-4 text-xs text-chalk-dim"><Ball size={14} className="mr-1 inline-block align-[-2px]" />Goal-scorer list loads once squads are synced.</p>
           ) : (
             <div className="mt-4 space-y-3">
-              {/* Pick scorers for one team at a time — toggle which squad. */}
-              <div className="flex gap-2">
-                {(["home", "away"] as const).map((side) => {
-                  const tName = side === "home" ? match.homeName : match.awayName;
-                  const tId = side === "home" ? match.homeTeamId : match.awayTeamId;
-                  const tCap = side === "home" ? homeCap : awayCap;
-                  const tSum = side === "home" ? sumFor(homePlayers) : sumFor(awayPlayers);
-                  const need = tCap > 0 && tSum < tCap;
-                  const isActive = activeTeam === side;
-                  return (
-                    <button
-                      key={side}
-                      type="button"
-                      onClick={() => setActiveTeam(side)}
-                      className={`flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl border px-2 py-2 text-sm font-semibold transition ${
-                        isActive ? "border-grass bg-grass/15 text-chalk" : "border-night/10 text-chalk-dim hover:bg-night/5"
-                      }`}
-                    >
-                      <Flag teamId={tId} name={tName} size={18} className="shrink-0" />
-                      <span className="truncate">{tName}</span>
-                      <span className={`shrink-0 text-xs tabular-nums ${need ? "text-gold" : tCap > 0 ? "text-grass" : "text-chalk-dim"}`}>
-                        {tSum}/{tCap}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
               {activeTeam === "home" ? (
                 <TeamScorers
                   label={match.homeName}
@@ -306,6 +322,25 @@ export default function MatchCard({
       )}
     </motion.div>
   );
+}
+
+// Drop a side's scorer picks down to fit a (reduced) score, removing from the end
+// of the squad list — so lowering or zeroing a team's goals never leaves more
+// scorers than goals.
+function prunedToCap(scorerGoals: Record<string, number>, players: Player[], cap: number): Record<string, number> {
+  const ids = players.map((p) => String(p.id));
+  let sum = ids.reduce((s, id) => s + (scorerGoals[id] ?? 0), 0);
+  if (sum <= cap) return scorerGoals;
+  const out = { ...scorerGoals };
+  for (let i = ids.length - 1; i >= 0 && sum > cap; i--) {
+    const id = ids[i];
+    while ((out[id] ?? 0) > 0 && sum > cap) {
+      out[id] = (out[id] ?? 0) - 1;
+      sum--;
+      if (out[id] === 0) delete out[id];
+    }
+  }
+  return out;
 }
 
 const POS_SHORT: Record<string, string> = { Goalkeeper: "GK", Defender: "DF", Midfielder: "MF", Attacker: "FW" };
