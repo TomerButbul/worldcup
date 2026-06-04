@@ -79,7 +79,7 @@ function subscribe(l: () => void) {
 function getSnapshot() {
   return current;
 }
-function openPlayerCard(req: CardReq) {
+export function openPlayerCard(req: CardReq) {
   current = req;
   emit();
 }

@@ -10,7 +10,8 @@ import SaveStatus from "@/components/SaveStatus";
 import Flag from "@/components/Flag";
 import { TeamCardButton } from "@/components/TeamCard";
 import PlayerAvatar from "@/components/PlayerAvatar";
-import { PlayerCardButton } from "@/components/PlayerCard";
+import { PlayerCardButton, openPlayerCard } from "@/components/PlayerCard";
+import { useLongPress } from "@/lib/useLongPress";
 import Ball from "@/components/art/Ball";
 import MatchCountdown from "@/components/MatchCountdown";
 import { nowMs } from "@/lib/clock";
@@ -64,6 +65,8 @@ export default function MatchCard({
   // player_id (string) -> predicted goals for that player.
   const [scorerGoals, setScorerGoals] = useState<Record<string, number>>(() => ({ ...(initial?.scorer_goals ?? {}) }));
   const [penWinner, setPenWinner] = useState<number | null>(initial?.pen_winner_team_id ?? null);
+  // Scorer picker shows ONE team at a time (toggle); default to the home side.
+  const [activeTeam, setActiveTeam] = useState<"home" | "away">("home");
 
   const kickoff = new Date(match.kickoff_at).toLocaleString(undefined, {
     weekday: "short",
@@ -243,24 +246,54 @@ export default function MatchCard({
             <p className="mt-4 text-xs text-chalk-dim"><Ball size={14} className="mr-1 inline-block align-[-2px]" />Goal-scorer list loads once squads are synced.</p>
           ) : (
             <div className="mt-4 space-y-3">
-              <TeamScorers
-                label={match.homeName}
-                players={homePlayers}
-                cap={homeCap}
-                sum={sumFor(homePlayers)}
-                scorerGoals={scorerGoals}
-                lineup={homeLineup}
-                onAdjust={(pid, d) => adjust(pid, d, homePlayers, homeCap)}
-              />
-              <TeamScorers
-                label={match.awayName}
-                players={awayPlayers}
-                cap={awayCap}
-                sum={sumFor(awayPlayers)}
-                scorerGoals={scorerGoals}
-                lineup={awayLineup}
-                onAdjust={(pid, d) => adjust(pid, d, awayPlayers, awayCap)}
-              />
+              {/* Pick scorers for one team at a time — toggle which squad. */}
+              <div className="flex gap-2">
+                {(["home", "away"] as const).map((side) => {
+                  const tName = side === "home" ? match.homeName : match.awayName;
+                  const tId = side === "home" ? match.homeTeamId : match.awayTeamId;
+                  const tCap = side === "home" ? homeCap : awayCap;
+                  const tSum = side === "home" ? sumFor(homePlayers) : sumFor(awayPlayers);
+                  const need = tCap > 0 && tSum < tCap;
+                  const isActive = activeTeam === side;
+                  return (
+                    <button
+                      key={side}
+                      type="button"
+                      onClick={() => setActiveTeam(side)}
+                      className={`flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl border px-2 py-2 text-sm font-semibold transition ${
+                        isActive ? "border-grass bg-grass/15 text-chalk" : "border-night/10 text-chalk-dim hover:bg-night/5"
+                      }`}
+                    >
+                      <Flag teamId={tId} name={tName} size={18} className="shrink-0" />
+                      <span className="truncate">{tName}</span>
+                      <span className={`shrink-0 text-xs tabular-nums ${need ? "text-gold" : tCap > 0 ? "text-grass" : "text-chalk-dim"}`}>
+                        {tSum}/{tCap}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              {activeTeam === "home" ? (
+                <TeamScorers
+                  label={match.homeName}
+                  players={homePlayers}
+                  cap={homeCap}
+                  sum={sumFor(homePlayers)}
+                  scorerGoals={scorerGoals}
+                  lineup={homeLineup}
+                  onAdjust={(pid, d) => adjust(pid, d, homePlayers, homeCap)}
+                />
+              ) : (
+                <TeamScorers
+                  label={match.awayName}
+                  players={awayPlayers}
+                  cap={awayCap}
+                  sum={sumFor(awayPlayers)}
+                  scorerGoals={scorerGoals}
+                  lineup={awayLineup}
+                  onAdjust={(pid, d) => adjust(pid, d, awayPlayers, awayCap)}
+                />
+              )}
             </div>
           )}
           <div className="mt-4 flex items-center justify-end">
@@ -305,6 +338,7 @@ function TeamScorers({
   const [collapsed, setCollapsed] = useState(false);
   const [query, setQuery] = useState("");
   const [showAll, setShowAll] = useState(false);
+  const longPress = useLongPress();
   const atCap = sum >= cap;
   const starters = new Set(lineup?.starters ?? []);
   const subs = new Set(lineup?.subs ?? []);
@@ -394,6 +428,79 @@ function TeamScorers({
     );
   };
 
+  // Pitch view of the starting XI — the primary picker (tap a player → add a
+  // goal, hold → their card), like the team-details lineup. Falls back to the
+  // search list when no XI is known yet.
+  const starterPlayers = (lineup?.starters ?? [])
+    .map((id) => players.find((p) => p.id === id))
+    .filter((p): p is Player => !!p);
+  const rowOf = (pos?: string | null) => {
+    const c = (pos ?? "M").charAt(0).toUpperCase();
+    return c === "G" ? 0 : c === "D" ? 1 : c === "M" ? 2 : 3; // 0 GK (bottom) … 3 FWD (top)
+  };
+  const pitchRows: Player[][] = [[], [], [], []];
+  for (const p of starterPlayers) pitchRows[rowOf(p.position)].push(p);
+  const pitchNodes = pitchRows.flatMap((rowPlayers, r) => {
+    const frac = r / 3;
+    return rowPlayers.map((p, i) => ({ p, x: ((i + 0.5) / rowPlayers.length) * 100, y: 86 - frac * 72 }));
+  });
+  const pitchNode = ({ p, x, y }: { p: Player; x: number; y: number }) => {
+    const count = scorerGoals[String(p.id)] ?? 0;
+    return (
+      <button
+        key={p.id}
+        type="button"
+        onClick={() => onAdjust(p.id, 1)}
+        {...longPress(() => openPlayerCard({ playerId: p.id, name: p.name }))}
+        style={{ left: `${x}%`, top: `${y}%` }}
+        aria-label={`Add a goal for ${p.name} — hold for details`}
+        className={`absolute flex w-16 -translate-x-1/2 -translate-y-1/2 select-none flex-col items-center gap-0.5 ${atCap && count === 0 ? "opacity-50" : ""}`}
+      >
+        <span className="relative">
+          <PlayerAvatar
+            playerId={p.id}
+            name={p.name}
+            size={34}
+            className={`border-2 shadow ${count > 0 ? "border-grass" : "border-white/80"}`}
+          />
+          {count > 0 && (
+            <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full border-2 border-white bg-grass px-0.5 text-[10px] font-bold leading-none text-night">
+              {count}
+            </span>
+          )}
+        </span>
+        <span className="max-w-[4rem] truncate rounded bg-night/55 px-1 text-[9px] leading-tight text-white">
+          {p.name.split(" ").slice(-1)[0] ?? p.name}
+        </span>
+      </button>
+    );
+  };
+
+  const searchBlock = (
+    <>
+      <input
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder={`Search ${label} players…`}
+        aria-label={`Search ${label} players`}
+        className="w-full rounded-lg border border-night/10 bg-white px-3 py-2 text-sm text-chalk outline-none focus:border-grass focus:ring-2 focus:ring-grass/30"
+      />
+      <div className="max-h-72 space-y-1.5 overflow-y-auto">{candidates.map(row)}</div>
+      {moreAvailable && (
+        <button
+          type="button"
+          onClick={() => setShowAll(true)}
+          className="text-[11px] font-semibold text-chalk-dim transition hover:text-chalk"
+        >
+          ⬇ Show full squad ({unpicked.length - candidates.length} more)
+        </button>
+      )}
+      {q.length >= 1 && candidates.length === 0 && (
+        <p className="text-[11px] text-chalk-dim">No players match &ldquo;{query}&rdquo;.</p>
+      )}
+    </>
+  );
+
   const remaining = Math.max(0, cap - sum);
   const needsPicks = cap > 0 && sum < cap;
   const over = sum > cap;
@@ -448,26 +555,32 @@ function TeamScorers({
         </button>
       ) : (
         <div className="space-y-2">
-          {selected.length > 0 && <div className="space-y-1.5">{selected.map(row)}</div>}
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={`Search ${label} players…`}
-            aria-label={`Search ${label} players`}
-            className="w-full rounded-lg border border-night/10 bg-white px-3 py-2 text-sm text-chalk outline-none focus:border-grass focus:ring-2 focus:ring-grass/30"
-          />
-          <div className="max-h-80 space-y-1.5 overflow-y-auto">{candidates.map(row)}</div>
-          {moreAvailable && (
-            <button
-              type="button"
-              onClick={() => setShowAll(true)}
-              className="text-[11px] font-semibold text-chalk-dim transition hover:text-chalk"
-            >
-              ⬇ Show full squad ({unpicked.length - candidates.length} more)
-            </button>
+          {pitchNodes.length > 0 && (
+            <>
+              <p className="text-center text-[11px] text-chalk-dim">Tap a player to add a goal · hold for details</p>
+              <div className="relative mx-auto aspect-[5/6] w-full max-w-[320px] overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-grass/70 to-grass/55">
+                <div className="absolute bottom-0 left-1/2 h-12 w-28 -translate-x-1/2 border-x border-t border-white/25" />
+                <div className="absolute bottom-0 left-1/2 h-5 w-14 -translate-x-1/2 border-x border-t border-white/25" />
+                <div className="absolute -top-9 left-1/2 h-16 w-16 -translate-x-1/2 rounded-full border border-white/25" />
+                {pitchNodes.map(pitchNode)}
+              </div>
+            </>
           )}
-          {q.length >= 1 && candidates.length === 0 && (
-            <p className="text-[11px] text-chalk-dim">No players match &ldquo;{query}&rdquo;.</p>
+          {selected.length > 0 && (
+            <div className="space-y-1.5">
+              <p className="text-[11px] font-semibold text-chalk-dim">Your scorers</p>
+              {selected.map(row)}
+            </div>
+          )}
+          {pitchNodes.length > 0 ? (
+            <details>
+              <summary className="cursor-pointer list-none text-[11px] font-semibold text-chalk-dim transition hover:text-chalk">
+                🔍 Search / other players
+              </summary>
+              <div className="mt-2 space-y-2">{searchBlock}</div>
+            </details>
+          ) : (
+            searchBlock
           )}
         </div>
       )}
