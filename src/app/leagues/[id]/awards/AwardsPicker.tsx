@@ -28,12 +28,12 @@ const AWARDS: {
   label: string;
   hint: string;
   gkOnly: boolean;
-  underAge?: number; // only players younger than this may be picked
+  maxAge?: number; // only players this age or younger may be picked
 }[] = [
   { key: "golden_boot", Icon: Boot, label: "Golden Boot", hint: "Top scorer", gkOnly: false },
   { key: "golden_ball", Icon: Medal, label: "Golden Ball", hint: "Best player", gkOnly: false },
   { key: "golden_glove", Icon: Glove, label: "Golden Glove", hint: "Best goalkeeper", gkOnly: true },
-  { key: "young_player", Icon: Star, label: "Young Player", hint: "Under 21", gkOnly: false, underAge: 21 },
+  { key: "young_player", Icon: Star, label: "Young Player", hint: "21 & under", gkOnly: false, maxAge: 21 },
 ];
 
 // Accent/diacritic-insensitive fold so "Mbappe" finds "Mbappé", "Muller" → "Müller".
@@ -110,11 +110,11 @@ export default function AwardsPicker({
       {AWARDS.map((a) => {
         const sel = picks[a.key] ? byId.get(picks[a.key]) ?? null : null;
         const q = fold((query[a.key] ?? "").trim());
-        const ua = a.underAge;
+        const ma = a.maxAge;
         let pool = a.gkOnly
           ? players.filter((p) => (p.position ?? "").toLowerCase().includes("goal"))
           : players;
-        if (ua != null) pool = pool.filter((p) => p.age != null && p.age < ua); // Young Player: under 21 only
+        if (ma != null) pool = pool.filter((p) => p.age != null && p.age <= ma); // Young Player: 21 & under
         const results = q.length >= 2 ? pool.filter((p) => fold(p.name).includes(q)).slice(0, 15) : [];
         const selKey = `${a.key}-sel`;
 
@@ -157,7 +157,7 @@ export default function AwardsPicker({
                 <input
                   value={query[a.key] ?? ""}
                   onChange={(e) => setQuery((s) => ({ ...s, [a.key]: e.target.value }))}
-                  placeholder={ua != null ? `Search players under ${ua}…` : a.gkOnly ? "Search goalkeepers…" : "Search players…"}
+                  placeholder={ma != null ? `Search players ${ma} & under…` : a.gkOnly ? "Search goalkeepers…" : "Search players…"}
                   aria-label={`Search ${a.label} candidates`}
                   className="w-full rounded-xl border border-night/10 bg-white px-3 py-2 text-sm text-chalk outline-none focus:border-grass focus:ring-2 focus:ring-grass/30"
                 />
@@ -203,7 +203,7 @@ export default function AwardsPicker({
                 )}
                 {q.length >= 2 && results.length === 0 && (
                   <p className="mt-1 text-xs text-chalk-dim">
-                    No {a.gkOnly ? "goalkeepers" : ua != null ? `under-${ua} players` : "players"} match.
+                    No {a.gkOnly ? "goalkeepers" : ma != null ? `${ma}-&-under players` : "players"} match.
                   </p>
                 )}
               </div>
