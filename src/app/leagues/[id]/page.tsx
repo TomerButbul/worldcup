@@ -366,12 +366,19 @@ export default async function LeaguePage({
     : 0;
   const needAwards = !locked && awardCount === 0;
 
+  // Your standing, for the desktop aside (keeps the right column populated so it
+  // never sits empty; mobile already highlights "you" in the table itself).
+  const myIndex = rows.findIndex((r) => r.user_id === user.id);
+  const myRow = myIndex >= 0 ? rows[myIndex] : null;
+  const myRank = myIndex >= 0 ? myIndex + 1 : null;
+
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 space-y-6 p-4 sm:space-y-8 sm:p-6">
+    <main className="mx-auto w-full max-w-2xl lg:max-w-6xl flex-1 space-y-4 p-4 sm:space-y-6 sm:p-6">
       <AutoRefresh enabled={nowMs() >= KICKOFF_MS} />
       <LeagueIntro />
+      {/* Header — always full-width */}
       <Reveal>
-        <div className="glass-strong rounded-3xl p-5 sm:p-6">
+        <div className="glass-strong rounded-3xl p-4 sm:p-6">
           <Link href="/dashboard" className="text-sm text-chalk-dim hover:text-chalk">
             &larr; Home
           </Link>
@@ -418,40 +425,79 @@ export default async function LeaguePage({
         </div>
       </Reveal>
 
-      {needAwards && (
-        <Reveal index={1}>
-          <Link
-            href={`/leagues/${id}/awards`}
-            className="flex items-center gap-3 rounded-2xl border border-gold/30 bg-gold/10 p-4 transition hover:bg-gold/20"
-          >
-            <Medal size={26} className="text-gold" />
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-semibold text-chalk">Predict the tournament awards</span>
-              <span className="block text-xs text-chalk-dim">
-                Golden Boot, Ball, Glove &amp; Young Player — they count toward your Upfront score.
-              </span>
-            </span>
-            <span className="shrink-0 text-lg text-gold">&rarr;</span>
-          </Link>
+      {/* Desktop: leaderboard (main) + awards nudge / secondary (aside) */}
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-6 lg:items-start">
+        {/* Main column — leaderboard */}
+        <Reveal index={2}>
+          <section>
+            <h2 className="mb-3 font-display text-xl text-chalk">Leaderboard</h2>
+            <Leaderboard leagueId={id} initialRows={rows} meId={user.id} />
+            <p className="mt-2 text-xs text-chalk-dim">
+              Three crowns: top Upfront{" "}
+              <Upfront size={12} className="align-[-2px] text-gold" />, top Live{" "}
+              <Live size={12} className="align-[-2px] text-gold" />, top Total{" "}
+              <TrophyIcon size={12} className="align-[-2px] text-gold" />. Updates live. Ties break by Upfront
+              points, then name.{" "}
+              <Link href="/how-it-works" className="font-semibold text-gold hover:text-gold-bright">
+                How scoring works &rarr;
+              </Link>
+            </p>
+          </section>
         </Reveal>
-      )}
 
-      <Reveal index={2}>
-        <section>
-          <h2 className="mb-3 font-display text-xl text-chalk">Leaderboard</h2>
-          <Leaderboard leagueId={id} initialRows={rows} meId={user.id} />
-          <p className="mt-2 text-xs text-chalk-dim">
-            Three crowns: top Upfront{" "}
-            <Upfront size={12} className="align-[-2px] text-gold" />, top Live{" "}
-            <Live size={12} className="align-[-2px] text-gold" />, top Total{" "}
-            <TrophyIcon size={12} className="align-[-2px] text-gold" />. Updates live. Ties break by Upfront
-            points, then name.{" "}
-            <Link href="/how-it-works" className="font-semibold text-gold hover:text-gold-bright">
-              How scoring works &rarr;
-            </Link>
-          </p>
-        </section>
-      </Reveal>
+        {/* Aside — your standing (desktop) + awards nudge. Always populated on
+            desktop so the right column never sits empty. */}
+        <div className="mt-4 space-y-4 lg:mt-0">
+          {myRow && (
+            <div className="hidden glass-strong rounded-2xl p-4 lg:block">
+              <h3 className="mb-2 font-display text-xs uppercase tracking-wider text-chalk-dim">
+                Your standing
+              </h3>
+              <div className="flex items-baseline gap-2">
+                <span className="font-display text-3xl text-gradient-gold">
+                  {myRank ? `#${myRank}` : "—"}
+                </span>
+                <span className="text-sm text-chalk-dim">of {rows.length}</span>
+              </div>
+              <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                <div className="rounded-xl bg-night/5 py-2">
+                  <Upfront size={14} className="mx-auto text-gold" />
+                  <div className="mt-1 font-display tabular-nums text-chalk">{myRow.upfront}</div>
+                  <div className="text-[10px] text-chalk-dim">Upfront</div>
+                </div>
+                <div className="rounded-xl bg-night/5 py-2">
+                  <Live size={14} className="mx-auto text-gold" />
+                  <div className="mt-1 font-display tabular-nums text-chalk">{myRow.live}</div>
+                  <div className="text-[10px] text-chalk-dim">Live</div>
+                </div>
+                <div className="rounded-xl bg-night/5 py-2">
+                  <TrophyIcon size={14} className="mx-auto text-gold" />
+                  <div className="mt-1 font-display tabular-nums text-chalk">{myRow.total}</div>
+                  <div className="text-[10px] text-chalk-dim">Total</div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {needAwards && (
+            <Reveal index={1}>
+              <Link
+                href={`/leagues/${id}/awards`}
+                className="flex items-center gap-3 rounded-2xl border border-gold/30 bg-gold/10 p-4 transition hover:bg-gold/20"
+              >
+                <Medal size={26} className="text-gold" />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-semibold text-chalk">Predict the tournament awards</span>
+                  <span className="block text-xs text-chalk-dim">
+                    Golden Boot, Ball, Glove &amp; Young Player — they count toward your Upfront score.
+                  </span>
+                </span>
+                <span className="shrink-0 text-lg text-gold">&rarr;</span>
+              </Link>
+            </Reveal>
+          )}
+        </div>
+      </div>
     </main>
   );
 }

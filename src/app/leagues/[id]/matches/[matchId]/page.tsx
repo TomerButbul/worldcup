@@ -453,7 +453,7 @@ export default async function MatchSummaryPage({
     );
 
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 p-4 sm:space-y-8 sm:p-6">
+    <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 p-4 sm:space-y-8 sm:p-6 lg:max-w-5xl">
       <AutoRefresh enabled={nowMs() >= KICKOFF_MS} />
       <div className="glass-strong rounded-3xl p-5 sm:p-6">
         <Link href={`/leagues/${id}/matches`} className="text-sm text-chalk-dim hover:text-chalk">

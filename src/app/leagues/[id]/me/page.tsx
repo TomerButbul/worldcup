@@ -154,7 +154,7 @@ export default async function MyPredictionsPage({
   const hasChampion = championId != null;
 
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 p-4 sm:p-6">
+    <main className="mx-auto w-full max-w-2xl flex-1 space-y-4 p-4 sm:p-6 lg:max-w-6xl">
       <Link href={`/leagues/${id}`} className="text-sm text-chalk-dim hover:text-chalk">
         &larr; {league.name}
       </Link>
@@ -199,135 +199,143 @@ export default async function MyPredictionsPage({
         </section>
       )}
 
-      {/* Completeness */}
-      <section className="glass rounded-2xl p-5">
-        <p className="text-sm text-chalk-dim">
-          <span className="font-semibold text-chalk">Groups ordered</span>{" "}
-          <span className="font-display tabular-nums text-chalk">{groupsOrdered}/12</span>
-          {" · "}
-          <span className="font-semibold text-chalk">Awards</span>{" "}
-          <span className="font-display tabular-nums text-chalk">{awardsFilled}/4</span>
-          {" · "}
-          <span className="font-semibold text-chalk">Champion</span>{" "}
-          <span className="font-display text-chalk">{hasChampion ? "✓" : "—"}</span>
-        </p>
-      </section>
+      {/* Desktop 2-column grid: left col = completeness + champion + awards + match picks; right col = group order */}
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start lg:gap-6">
+        {/* Left column */}
+        <div className="space-y-4">
+          {/* Completeness */}
+          <section className="glass rounded-2xl p-4">
+            <p className="text-sm text-chalk-dim">
+              <span className="font-semibold text-chalk">Groups ordered</span>{" "}
+              <span className="font-display tabular-nums text-chalk">{groupsOrdered}/12</span>
+              {" · "}
+              <span className="font-semibold text-chalk">Awards</span>{" "}
+              <span className="font-display tabular-nums text-chalk">{awardsFilled}/4</span>
+              {" · "}
+              <span className="font-semibold text-chalk">Champion</span>{" "}
+              <span className="font-display text-chalk">{hasChampion ? "✓" : "—"}</span>
+            </p>
+          </section>
 
-      {/* Champion */}
-      <section className="glass rounded-2xl p-5">
-        <h2 className="mb-2 flex items-center gap-1.5 font-display text-lg text-chalk"><Trophy size={18} />Champion</h2>
-        {champTeam ? (
-          <p className="flex items-center gap-2 text-chalk">
-            <Flag
-              teamId={champTeam.id}
-              logoUrl={champTeam.logo_url}
-              code={champTeam.code}
-              name={champTeam.name}
-              size={22}
-            />
-            <span className="font-semibold">{champTeam.name}</span>
-          </p>
-        ) : (
-          <p className="text-sm text-chalk-dim">—</p>
-        )}
-      </section>
+          {/* Champion */}
+          <section className="glass rounded-2xl p-4">
+            <h2 className="mb-2 flex items-center gap-1.5 font-display text-lg text-chalk"><Trophy size={18} />Champion</h2>
+            {champTeam ? (
+              <p className="flex items-center gap-2 text-chalk">
+                <Flag
+                  teamId={champTeam.id}
+                  logoUrl={champTeam.logo_url}
+                  code={champTeam.code}
+                  name={champTeam.name}
+                  size={22}
+                />
+                <span className="font-semibold">{champTeam.name}</span>
+              </p>
+            ) : (
+              <p className="text-sm text-chalk-dim">—</p>
+            )}
+          </section>
 
-      {/* Awards */}
-      <section className="glass rounded-2xl p-5">
-        <h2 className="mb-3 flex items-center gap-1.5 font-display text-lg text-chalk"><Medal size={18} />Awards</h2>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          {awardEntries.map((a) => (
-            <div
-              key={a.key}
-              className="flex items-center justify-between gap-2 rounded-xl bg-night/5 px-3 py-2"
-            >
-              <span className="inline-flex items-center gap-1.5 text-xs text-chalk-dim">
-                <a.Icon size={13} />{a.label}
-              </span>
-              <span className="min-w-0 truncate text-right text-sm font-semibold text-chalk">
-                {a.id != null ? (playerNames.get(a.id) ?? "—") : "—"}
-              </span>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Predicted group order */}
-      <section className="glass rounded-2xl p-5">
-        <h2 className="mb-3 flex items-center gap-1.5 font-display text-lg text-chalk"><Ball size={16} />Group order</h2>
-        {orderedGroups.length === 0 ? (
-          <p className="text-sm text-chalk-dim">No group order predicted yet.</p>
-        ) : (
-          <div className="space-y-2">
-            {orderedGroups.map(([group, ids]) => (
-              <details key={group} className="group rounded-xl bg-night/5 px-3 py-2">
-                <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-semibold text-chalk">
-                  Group {group}
-                  <span className="text-chalk-dim transition group-open:rotate-180">▾</span>
-                </summary>
-                <ol className="mt-2 space-y-1">
-                  {ids.map((tid, i) => {
-                    const t = teamById.get(tid);
-                    return (
-                      <li
-                        key={tid}
-                        className={`flex items-center gap-2 rounded px-1.5 py-1 text-xs ${i < 2 ? "bg-grass/15" : i === 2 ? "bg-gold/10" : ""}`}
-                      >
-                        <span className="w-3 shrink-0 text-center text-chalk-dim">{i + 1}</span>
-                        {t && <Flag teamId={t.id} logoUrl={t.logo_url} code={t.code} name={t.name} size={14} />}
-                        <span className="min-w-0 flex-1 truncate text-chalk">{t?.name ?? teamName(tid)}</span>
-                        {i < 2 && <span className="shrink-0 text-grass">✓</span>}
-                        {i === 2 && <span className="shrink-0 text-[10px] text-gold">3rd</span>}
-                      </li>
-                    );
-                  })}
-                </ol>
-              </details>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* Knockout match picks — usually empty pre-tournament (fixtures TBD). */}
-      {knockoutPicks.length > 0 && (
-        <section className="glass rounded-2xl p-5">
-          <h2 className="mb-3 font-display text-lg text-chalk">⚔️ Match score picks</h2>
-          <ul className="space-y-2">
-            {knockoutPicks.map((p) => {
-              const m = matchById.get(p.match_id);
-              const scorers = scorerLabels(p.scorer_goals);
-              const penTeam =
-                p.pen_winner_team_id != null ? teamName(p.pen_winner_team_id) : null;
-              return (
-                <li
-                  key={p.match_id}
-                  className="rounded-xl bg-night/5 px-3 py-2 text-xs text-chalk-dim"
+          {/* Awards */}
+          <section className="glass rounded-2xl p-4">
+            <h2 className="mb-3 flex items-center gap-1.5 font-display text-lg text-chalk"><Medal size={18} />Awards</h2>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {awardEntries.map((a) => (
+                <div
+                  key={a.key}
+                  className="flex items-center justify-between gap-2 rounded-xl bg-night/5 px-3 py-2"
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="min-w-0 flex-1 truncate text-right">
-                      {teamName(m?.home_team_id)}
-                    </span>
-                    <span className="shrink-0 font-display tabular-nums text-chalk">
-                      {p.home_goals != null ? `${p.home_goals}–${p.away_goals}` : "—"}
-                    </span>
-                    <span className="min-w-0 flex-1 truncate">
-                      {teamName(m?.away_team_id)}
-                    </span>
-                  </div>
-                  {penTeam && (
-                    <p className="mt-1 text-[11px] text-chalk-dim">🥅 Shootout: {penTeam}</p>
-                  )}
-                  {scorers.length > 0 && (
-                    <p className="mt-1 truncate text-[11px] text-chalk-dim">
-                      <Ball size={13} className="mr-1 inline-block align-[-2px]" />{scorers.join(", ")}
-                    </p>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      )}
+                  <span className="inline-flex items-center gap-1.5 text-xs text-chalk-dim">
+                    <a.Icon size={13} />{a.label}
+                  </span>
+                  <span className="min-w-0 truncate text-right text-sm font-semibold text-chalk">
+                    {a.id != null ? (playerNames.get(a.id) ?? "—") : "—"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Knockout match picks — usually empty pre-tournament (fixtures TBD). */}
+          {knockoutPicks.length > 0 && (
+            <section className="glass rounded-2xl p-4">
+              <h2 className="mb-3 font-display text-lg text-chalk">⚔️ Match score picks</h2>
+              <ul className="space-y-2">
+                {knockoutPicks.map((p) => {
+                  const m = matchById.get(p.match_id);
+                  const scorers = scorerLabels(p.scorer_goals);
+                  const penTeam =
+                    p.pen_winner_team_id != null ? teamName(p.pen_winner_team_id) : null;
+                  return (
+                    <li
+                      key={p.match_id}
+                      className="rounded-xl bg-night/5 px-3 py-2 text-xs text-chalk-dim"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="min-w-0 flex-1 truncate text-right">
+                          {teamName(m?.home_team_id)}
+                        </span>
+                        <span className="shrink-0 font-display tabular-nums text-chalk">
+                          {p.home_goals != null ? `${p.home_goals}–${p.away_goals}` : "—"}
+                        </span>
+                        <span className="min-w-0 flex-1 truncate">
+                          {teamName(m?.away_team_id)}
+                        </span>
+                      </div>
+                      {penTeam && (
+                        <p className="mt-1 text-[11px] text-chalk-dim">🥅 Shootout: {penTeam}</p>
+                      )}
+                      {scorers.length > 0 && (
+                        <p className="mt-1 truncate text-[11px] text-chalk-dim">
+                          <Ball size={13} className="mr-1 inline-block align-[-2px]" />{scorers.join(", ")}
+                        </p>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          )}
+        </div>
+
+        {/* Right column: group order */}
+        <div className="mt-4 lg:mt-0">
+          <section className="glass rounded-2xl p-4">
+            <h2 className="mb-3 flex items-center gap-1.5 font-display text-lg text-chalk"><Ball size={16} />Group order</h2>
+            {orderedGroups.length === 0 ? (
+              <p className="text-sm text-chalk-dim">No group order predicted yet.</p>
+            ) : (
+              <div className="space-y-2">
+                {orderedGroups.map(([group, ids]) => (
+                  <details key={group} className="group rounded-xl bg-night/5 px-3 py-2">
+                    <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-semibold text-chalk">
+                      Group {group}
+                      <span className="text-chalk-dim transition group-open:rotate-180">▾</span>
+                    </summary>
+                    <ol className="mt-2 space-y-1">
+                      {ids.map((tid, i) => {
+                        const t = teamById.get(tid);
+                        return (
+                          <li
+                            key={tid}
+                            className={`flex items-center gap-2 rounded px-1.5 py-1 text-xs ${i < 2 ? "bg-grass/15" : i === 2 ? "bg-gold/10" : ""}`}
+                          >
+                            <span className="w-3 shrink-0 text-center text-chalk-dim">{i + 1}</span>
+                            {t && <Flag teamId={t.id} logoUrl={t.logo_url} code={t.code} name={t.name} size={14} />}
+                            <span className="min-w-0 flex-1 truncate text-chalk">{t?.name ?? teamName(tid)}</span>
+                            {i < 2 && <span className="shrink-0 text-grass">✓</span>}
+                            {i === 2 && <span className="shrink-0 text-[10px] text-gold">3rd</span>}
+                          </li>
+                        );
+                      })}
+                    </ol>
+                  </details>
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
+      </div>
     </main>
   );
 }

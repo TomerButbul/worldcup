@@ -122,7 +122,7 @@ export default async function DashboardPage({
     "w-full rounded-xl border border-night/10 bg-white px-3 py-2.5 text-sm text-chalk outline-none placeholder:text-chalk-dim focus:border-grass focus:ring-2 focus:ring-grass/30";
 
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 p-4 sm:space-y-8 sm:p-6">
+    <main className="mx-auto w-full max-w-2xl lg:max-w-6xl flex-1 space-y-4 p-4 sm:space-y-6 sm:p-6">
       <AutoRefresh enabled={nowMs() >= KICKOFF_MS} />
       <Reveal>
         <header className="flex items-center justify-between gap-3">
@@ -148,123 +148,132 @@ export default async function DashboardPage({
         </header>
       </Reveal>
 
-      <Reveal>
-        <div className="glass-strong rounded-3xl p-5 sm:p-6">
-          <Countdown />
-        </div>
-      </Reveal>
+      {/* Desktop: two-column layout — primary content left, secondary sidebar right */}
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-6 lg:items-start">
+        {/* Primary column */}
+        <div className="space-y-4 sm:space-y-6">
+          <Reveal>
+            <div className="glass-strong rounded-3xl p-4 sm:p-6">
+              <Countdown />
+            </div>
+          </Reveal>
 
-      <Reveal>
-        <NotificationToggle placement="top" />
-      </Reveal>
+          <Reveal>
+            <NotificationToggle placement="top" />
+          </Reveal>
 
-      {nextMatchData && (
-        <Reveal>
-          <section className="space-y-3">
-            <h2 className="font-display text-lg text-chalk">Up next</h2>
-            <NextMatchCard match={nextMatchData} predictions={nextPredictions} />
+          {nextMatchData && (
+            <Reveal>
+              <section className="space-y-2">
+                <h2 className="font-display text-lg text-chalk">Up next</h2>
+                <NextMatchCard match={nextMatchData} predictions={nextPredictions} />
+              </section>
+            </Reveal>
+          )}
+
+          {error && (
+            <p className="rounded-lg bg-red-500/15 px-3 py-2 text-sm text-red-600">{error}</p>
+          )}
+
+          <section className="space-y-2">
+            <h2 className="font-display text-lg text-chalk">Your Leagues</h2>
+            {leagues.length === 0 ? (
+              <p className="glass rounded-2xl p-5 text-center text-sm text-chalk-dim">
+                No leagues yet. Create one or join with a code below.
+              </p>
+            ) : (
+              <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {leagues.map((l, i) => (
+                  <Reveal key={l.id} index={i}>
+                    <Link
+                      href={`/leagues/${l.id}`}
+                      className="group flex items-center justify-between rounded-2xl glass p-3.5 transition hover:border-grass/50 hover:bg-night/5"
+                    >
+                      <span className="flex min-w-0 items-center gap-2.5">
+                        <Trophy size={22} />
+                        <span className="truncate font-semibold text-chalk">{l.name}</span>
+                      </span>
+                      <span className="ml-2 shrink-0 rounded-lg bg-night/5 px-2 py-1 font-mono text-xs text-gold">
+                        {l.join_code}
+                      </span>
+                    </Link>
+                  </Reveal>
+                ))}
+              </ul>
+            )}
           </section>
-        </Reveal>
-      )}
 
-      {error && (
-        <p className="rounded-lg bg-red-500/15 px-3 py-2 text-sm text-red-600">{error}</p>
-      )}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Reveal index={1}>
+              <form action={createLeague} className="glass-strong space-y-3 rounded-2xl p-4">
+                <h2 className="font-display text-chalk">Create a league</h2>
+                <input name="name" required placeholder="League name" aria-label="League name" className={inputClass} />
+                <GameButton type="submit" variant="primary" className="w-full">
+                  Create
+                </GameButton>
+              </form>
+            </Reveal>
 
-      <section className="space-y-3">
-        <h2 className="font-display text-lg text-chalk">Your Leagues</h2>
-        {leagues.length === 0 ? (
-          <p className="glass rounded-2xl p-6 text-center text-sm text-chalk-dim">
-            No leagues yet. Create one or join with a code below.
-          </p>
-        ) : (
-          <ul className="space-y-2">
-            {leagues.map((l, i) => (
-              <Reveal key={l.id} index={i}>
-                <Link
-                  href={`/leagues/${l.id}`}
-                  className="group flex items-center justify-between rounded-2xl glass p-4 transition hover:border-grass/50 hover:bg-night/5"
-                >
-                  <span className="flex items-center gap-3">
-                    <Trophy size={26} />
-                    <span className="font-semibold text-chalk">{l.name}</span>
-                  </span>
-                  <span className="rounded-lg bg-night/5 px-2 py-1 font-mono text-xs text-gold">
-                    {l.join_code}
-                  </span>
-                </Link>
-              </Reveal>
-            ))}
-          </ul>
-        )}
-      </section>
+            <Reveal index={2}>
+              <form action={joinLeague} className="glass-strong space-y-3 rounded-2xl p-4">
+                <h2 className="font-display text-chalk">Join a league</h2>
+                <input
+                  name="join_code"
+                  required
+                  placeholder="JOIN CODE"
+                  aria-label="Join code"
+                  className={`${inputClass} font-mono uppercase tracking-widest`}
+                />
+                <GameButton type="submit" variant="gold" className="w-full">
+                  Join
+                </GameButton>
+              </form>
+            </Reveal>
+          </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Reveal index={1}>
-          <form action={createLeague} className="glass-strong space-y-3 rounded-2xl p-5">
-            <h2 className="font-display text-chalk">Create a league</h2>
-            <input name="name" required placeholder="League name" aria-label="League name" className={inputClass} />
-            <GameButton type="submit" variant="primary" className="w-full">
-              Create
-            </GameButton>
-          </form>
-        </Reveal>
+          <Reveal>
+            <Link
+              href="/rankings"
+              className="group flex items-center justify-between rounded-2xl glass-strong p-4 transition hover:border-gold/50 hover:bg-night/5"
+            >
+              <span className="flex items-center gap-3">
+                <span className="text-2xl">🌍</span>
+                <span>
+                  <span className="block font-semibold text-chalk">Global rankings</span>
+                  <span className="block text-xs text-chalk-dim">See how you stack up against every player</span>
+                </span>
+              </span>
+              <span className="text-gold transition group-hover:translate-x-0.5">→</span>
+            </Link>
+          </Reveal>
+        </div>
 
-        <Reveal index={2}>
-          <form action={joinLeague} className="glass-strong space-y-3 rounded-2xl p-5">
-            <h2 className="font-display text-chalk">Join a league</h2>
-            <input
-              name="join_code"
-              required
-              placeholder="JOIN CODE"
-              aria-label="Join code"
-              className={`${inputClass} font-mono uppercase tracking-widest`}
+        {/* Secondary / aside column */}
+        <div className="mt-4 space-y-4 lg:mt-0 lg:space-y-4">
+          {favStatus && (
+            <Reveal>
+              <FavoriteTeamStatus status={favStatus} />
+            </Reveal>
+          )}
+
+          <Reveal>
+            <FavoriteTeamPicker teams={teams} current={favId} />
+          </Reveal>
+
+          <Reveal>
+            <ProfileEditor
+              userId={user.id}
+              displayName={displayName}
+              teamName={profile?.team_name ?? null}
+              avatarUrl={profile?.avatar_url ?? null}
             />
-            <GameButton type="submit" variant="gold" className="w-full">
-              Join
-            </GameButton>
-          </form>
-        </Reveal>
+          </Reveal>
+
+          <Reveal>
+            <NotificationToggle placement="bottom" />
+          </Reveal>
+        </div>
       </div>
-
-      <Reveal>
-        <Link
-          href="/rankings"
-          className="group flex items-center justify-between rounded-2xl glass-strong p-4 transition hover:border-gold/50 hover:bg-night/5"
-        >
-          <span className="flex items-center gap-3">
-            <span className="text-2xl">🌍</span>
-            <span>
-              <span className="block font-semibold text-chalk">Global rankings</span>
-              <span className="block text-xs text-chalk-dim">See how you stack up against every player</span>
-            </span>
-          </span>
-          <span className="text-gold transition group-hover:translate-x-0.5">→</span>
-        </Link>
-      </Reveal>
-
-      {favStatus && (
-        <Reveal>
-          <FavoriteTeamStatus status={favStatus} />
-        </Reveal>
-      )}
-
-      <Reveal>
-        <FavoriteTeamPicker teams={teams} current={favId} />
-      </Reveal>
-
-      <Reveal>
-        <ProfileEditor
-          userId={user.id}
-          displayName={displayName}
-          teamName={profile?.team_name ?? null}
-          avatarUrl={profile?.avatar_url ?? null}
-        />
-      </Reveal>
-
-      <Reveal>
-        <NotificationToggle placement="bottom" />
-      </Reveal>
 
       <p className="pt-2 text-center text-xs text-chalk-dim">
         <Link href="/how-it-works" className="hover:text-chalk">

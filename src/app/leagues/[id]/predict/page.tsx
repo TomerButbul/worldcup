@@ -147,7 +147,7 @@ export default async function PredictPage({
   }
 
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 p-4 sm:space-y-8 sm:p-6">
+    <main className="mx-auto w-full max-w-2xl flex-1 space-y-4 p-4 sm:space-y-6 sm:p-6 lg:max-w-6xl">
       <AutoRefresh enabled={now >= KICKOFF_MS} />
       <div className="glass-strong rounded-3xl p-5 sm:p-6">
         <Link href={`/leagues/${id}`} className="text-sm text-chalk-dim hover:text-chalk">
@@ -171,7 +171,9 @@ export default async function PredictPage({
                 <span className="inline-block h-2.5 w-2.5 animate-pulse rounded-full bg-red-600" />
                 Live now
               </h2>
-              {live.map(renderCard)}
+              <div className="grid gap-4 lg:grid-cols-2">
+                {live.map(renderCard)}
+              </div>
             </section>
           )}
 
@@ -186,7 +188,9 @@ export default async function PredictPage({
                 <h2 className="font-display text-xl text-chalk">
                   Upcoming · <span className="text-chalk-dim">{firstDay?.day}</span>
                 </h2>
-                {(firstDay?.matches ?? []).map(renderCard)}
+                <div className="grid gap-4 lg:grid-cols-2">
+                  {(firstDay?.matches ?? []).map(renderCard)}
+                </div>
               </section>
 
               {laterDays.length > 0 && (
@@ -199,7 +203,9 @@ export default async function PredictPage({
                     {laterDays.map((d) => (
                       <section key={d.day} className="space-y-3">
                         <h3 className="font-display text-base text-chalk-dim">{d.day}</h3>
-                        {d.matches.map(renderCard)}
+                        <div className="grid gap-4 lg:grid-cols-2">
+                          {d.matches.map(renderCard)}
+                        </div>
                       </section>
                     ))}
                   </div>
@@ -211,7 +217,9 @@ export default async function PredictPage({
           {past.length > 0 && (
             <section className="space-y-3">
               <h2 className="font-display text-xl text-chalk">Played</h2>
-              {past.map(renderCard)}
+              <div className="grid gap-4 lg:grid-cols-2">
+                {past.map(renderCard)}
+              </div>
             </section>
           )}
         </>

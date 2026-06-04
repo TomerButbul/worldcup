@@ -71,9 +71,9 @@ export default async function MatchesPage({
   }
 
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 p-4 sm:space-y-8 sm:p-6">
+    <main className="mx-auto w-full max-w-2xl lg:max-w-6xl flex-1 space-y-4 p-4 sm:space-y-6 sm:p-6">
       <AutoRefresh enabled={now >= KICKOFF_MS} />
-      <div className="glass-strong rounded-3xl p-5 sm:p-6">
+      <div className="glass-strong rounded-3xl p-4 sm:p-6">
         <Link href={`/leagues/${id}`} className="text-sm text-chalk-dim hover:text-chalk">
           &larr; {league.name}
         </Link>
@@ -96,7 +96,7 @@ export default async function MatchesPage({
                 <span className="inline-block h-2.5 w-2.5 animate-pulse rounded-full bg-red-600" />
                 Live now
               </h2>
-              <div className="space-y-2">
+              <div className="grid gap-2 lg:grid-cols-2">
                 {live.map((m) => (
                   <Link
                     key={m.id}
@@ -135,9 +135,9 @@ export default async function MatchesPage({
           {/* Full schedule — every fixture grouped by day. Upcoming rows show
               kickoff time, finished rows show the result; each taps through to
               its match card. */}
-          <section className="glass rounded-2xl p-4">
+          <section className="glass rounded-2xl p-4 sm:p-5">
             <h2 className="font-display text-chalk">Full schedule</h2>
-            <p className="mb-2 mt-1 text-[11px] text-chalk-dim">
+            <p className="mb-3 mt-1 text-[11px] text-chalk-dim">
               Every fixture, grouped by day — tap any game to open its match card.
             </p>
             <FixturesList leagueId={id} days={scheduleDays} />

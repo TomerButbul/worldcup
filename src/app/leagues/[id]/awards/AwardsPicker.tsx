@@ -105,7 +105,7 @@ export default function AwardsPicker({
   const sub = (p: AwardPlayer) => [p.team, posShort(p.position)].filter(Boolean).join(" · ");
 
   return (
-    <div className="space-y-4">
+    <div className="grid gap-4 sm:grid-cols-2">
       {AWARDS.map((a) => {
         const sel = picks[a.key] ? byId.get(picks[a.key]) ?? null : null;
         const q = fold((query[a.key] ?? "").trim());
@@ -210,7 +210,7 @@ export default function AwardsPicker({
       })}
 
       {!locked && (
-        <div className="flex items-center justify-end">
+        <div className="flex items-center justify-end sm:col-span-2">
           <SaveStatus state={saveState} error={saveErr} />
         </div>
       )}

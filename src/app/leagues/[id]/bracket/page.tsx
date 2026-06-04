@@ -64,7 +64,7 @@ export default async function BracketPage({
   const hasGroups = Object.keys(groups).length > 0;
 
   return (
-    <main className="mx-auto w-full max-w-4xl flex-1 space-y-6 p-4 sm:p-6">
+    <main className="mx-auto w-full max-w-4xl flex-1 space-y-6 p-4 sm:p-6 lg:max-w-6xl">
       <div className="glass-strong rounded-3xl p-5 sm:p-6">
         <Link href={`/leagues/${id}`} className="text-sm text-chalk-dim hover:text-chalk">
           &larr; {league.name}
