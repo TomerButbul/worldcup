@@ -10,6 +10,9 @@ export default function Flag({
   name,
   code,
   size = 22,
+  w,
+  h,
+  fit = "contain",
   className = "",
 }: {
   teamId?: number | null;
@@ -17,9 +20,16 @@ export default function Flag({
   name?: string;
   code?: string | null;
   size?: number;
+  /** Explicit width/height for a non-square (e.g. 3:2 flag) render. */
+  w?: number;
+  h?: number;
+  /** `cover` fills the box (good when w/h match the flag's ~3:2 ratio). */
+  fit?: "contain" | "cover";
   className?: string;
 }) {
   const [failed, setFailed] = useState(false);
+  const width = w ?? size;
+  const height = h ?? size;
   const src =
     logoUrl ||
     (teamId ? `https://media.api-sports.io/football/teams/${teamId}.png` : null);
@@ -28,7 +38,7 @@ export default function Flag({
     return (
       <span
         className={`inline-flex shrink-0 items-center justify-center rounded-sm bg-night/10 text-[8px] font-bold text-chalk-dim ${className}`}
-        style={{ width: size, height: size }}
+        style={{ width, height }}
         title={name}
       >
         {code ?? <Ball size={14} />}
@@ -41,11 +51,11 @@ export default function Flag({
     <img
       src={src}
       alt={name ?? "flag"}
-      width={size}
-      height={size}
+      width={width}
+      height={height}
       onError={() => setFailed(true)}
-      className={`inline-block shrink-0 rounded-sm object-contain ${className}`}
-      style={{ width: size, height: size }}
+      className={`inline-block shrink-0 rounded-sm ${fit === "cover" ? "object-cover" : "object-contain"} ${className}`}
+      style={{ width, height }}
     />
   );
 }

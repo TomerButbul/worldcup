@@ -150,14 +150,17 @@ function TeamCardModal({ req, onClose }: { req: CardReq; onClose: () => void }) 
         </div>
 
         <div className="flex flex-col items-center text-center">
-          <Flag
-            teamId={teamId}
-            logoUrl={t?.logo_url}
-            code={t?.code}
-            name={name}
-            size={72}
-            className="border-2 border-white/80 shadow-lg"
-          />
+          <div className="overflow-hidden rounded-xl border-2 border-white/80 shadow-lg">
+            <Flag
+              teamId={teamId}
+              logoUrl={t?.logo_url}
+              code={t?.code}
+              name={name}
+              w={96}
+              h={64}
+              fit="cover"
+            />
+          </div>
           <p className="mt-3 font-display text-2xl text-chalk">{name}</p>
           <div className="mt-2 flex flex-wrap items-center justify-center gap-2 text-sm text-chalk-dim">
             {t?.group_label && (

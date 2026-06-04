@@ -86,7 +86,7 @@ export default function TeamFormation({ lineup, teamName }: { lineup: TeamLineup
             >
               <PlayerAvatar playerId={p.player_id} name={p.name} size={30} className="border-2 border-white/80 shadow" />
               {label && (
-                <span className="rounded bg-gold/25 px-1 text-[7px] font-bold uppercase leading-tight text-gold">
+                <span className="rounded bg-night/70 px-1 text-[8px] font-bold uppercase leading-tight text-gold">
                   {label}
                 </span>
               )}
