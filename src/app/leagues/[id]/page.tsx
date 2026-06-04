@@ -17,6 +17,7 @@ import { btnClass, GOLD_GRADIENT } from "@/components/buttonStyles";
 import Reveal from "@/components/Reveal";
 import Ball from "@/components/art/Ball";
 import Trophy from "@/components/art/Trophy";
+import { Upfront, Live, Trophy as TrophyIcon, Medal } from "@/components/icons";
 import AutoRefresh from "@/components/AutoRefresh";
 import LeagueIntro from "@/components/LeagueIntro";
 import { nowMs, KICKOFF_MS } from "@/lib/clock";
@@ -384,8 +385,9 @@ export default async function LeaguePage({
               <p className="mt-1 text-sm text-chalk-dim">
                 Code <span className="rounded bg-night/5 px-2 py-0.5 font-mono text-gold">{league.join_code}</span>
                 {"  ·  "}
-                <span className={locked ? "text-red-600" : "text-grass"}>
-                  {locked ? "🔒 Bracket locked" : "🟢 Bracket open"}
+                <span className={`inline-flex items-center gap-1.5 ${locked ? "text-red-600" : "text-grass"}`}>
+                  <span className={`inline-block size-2 rounded-full ${locked ? "bg-red-500" : "bg-grass"}`} />
+                  {locked ? "Bracket locked" : "Bracket open"}
                 </span>
               </p>
               {league.join_code && (
@@ -399,10 +401,10 @@ export default async function LeaguePage({
                 <span className="inline-flex items-center justify-center gap-1.5"><Ball size={15} /> Matches</span>
               </Link>
               <Link href={`/leagues/${id}/awards`} className={`${btnClass("ghost")} flex-1 text-center sm:flex-none`}>
-                🥇 Awards
+                <span className="inline-flex items-center justify-center gap-1.5"><Medal size={15} /> Awards</span>
               </Link>
               <Link href={`/leagues/${id}/me`} className={`${btnClass("ghost")} flex-1 text-center sm:flex-none`}>
-                📋 My picks
+                <span className="inline-flex items-center justify-center gap-1.5"><Upfront size={15} /> My picks</span>
               </Link>
               <Link
                 href={`/leagues/${id}/bracket`}
@@ -422,7 +424,7 @@ export default async function LeaguePage({
             href={`/leagues/${id}/awards`}
             className="flex items-center gap-3 rounded-2xl border border-gold/30 bg-gold/10 p-4 transition hover:bg-gold/20"
           >
-            <span className="text-2xl">🥇</span>
+            <Medal size={26} className="text-gold" />
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-semibold text-chalk">Predict the tournament awards</span>
               <span className="block text-xs text-chalk-dim">
@@ -439,7 +441,10 @@ export default async function LeaguePage({
           <h2 className="mb-3 font-display text-xl text-chalk">Leaderboard</h2>
           <Leaderboard leagueId={id} initialRows={rows} meId={user.id} />
           <p className="mt-2 text-xs text-chalk-dim">
-            Three crowns: top Upfront 🎯, top Live ⚡, top Total 👑. Updates live. Ties break by Upfront
+            Three crowns: top Upfront{" "}
+            <Upfront size={12} className="align-[-2px] text-gold" />, top Live{" "}
+            <Live size={12} className="align-[-2px] text-gold" />, top Total{" "}
+            <TrophyIcon size={12} className="align-[-2px] text-gold" />. Updates live. Ties break by Upfront
             points, then name.{" "}
             <Link href="/how-it-works" className="font-semibold text-gold hover:text-gold-bright">
               How scoring works &rarr;

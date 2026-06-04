@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Flag from "@/components/Flag";
 import MatchCountdown from "@/components/MatchCountdown";
+import { Upfront } from "@/components/icons";
 import { stageLabel } from "@/lib/stages";
 
 export interface NextMatchData {
@@ -75,7 +76,7 @@ export default function NextMatchCard({
 
       {predictions.length > 0 ? (
         <div className="mt-4 space-y-1.5">
-          <p className="text-xs font-medium text-chalk-dim">🎯 Your prediction</p>
+          <p className="inline-flex items-center gap-1.5 text-xs font-medium text-chalk-dim"><Upfront size={13} /> Your prediction</p>
           {predictions.map((p) => (
             <div key={p.leagueId} className="flex items-center justify-between gap-2 text-sm">
               <span className="min-w-0 truncate text-chalk-dim">{p.leagueName}</span>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { LinkIcon, ShareIcon } from "@/components/icons";
 import { playPop } from "@/lib/sound";
 
 // Robust clipboard copy: prefer the async Clipboard API, fall back to a hidden
@@ -81,7 +82,13 @@ export default function ShareInvite({ code }: { code: string }) {
         className={`${base} text-night shine hover:brightness-105`}
         aria-label="Copy invite link"
       >
-        {copied === "link" ? "✓ Link copied!" : "🔗 Copy invite link"}
+        {copied === "link" ? (
+          "✓ Link copied!"
+        ) : (
+          <span className="inline-flex items-center gap-1.5">
+            <LinkIcon size={14} /> Copy invite link
+          </span>
+        )}
       </button>
       <button
         type="button"
@@ -98,7 +105,9 @@ export default function ShareInvite({ code }: { code: string }) {
           className={`${base} glass text-chalk hover:bg-night/5`}
           aria-label="Share invite link"
         >
-          ↗ Share
+          <span className="inline-flex items-center gap-1.5">
+            <ShareIcon size={14} /> Share
+          </span>
         </button>
       )}
     </div>

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { renameLeague } from "./actions";
+import { PencilIcon } from "@/components/icons";
 import { playPop } from "@/lib/sound";
 
 export default function LeagueNameEditor({
@@ -57,7 +58,7 @@ export default function LeagueNameEditor({
             title="Rename league"
             aria-label="Rename league"
           >
-            ✏️ Rename
+            <span className="inline-flex items-center gap-1"><PencilIcon size={12} /> Rename</span>
           </button>
         )}
       </h1>

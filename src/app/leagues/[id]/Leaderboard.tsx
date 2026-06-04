@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import Flag from "@/components/Flag";
 import Avatar from "@/components/Avatar";
 import EmojiRain from "@/components/EmojiRain";
+import { Upfront, Live, Trophy } from "@/components/icons";
 import { playWomp } from "@/lib/sound";
 
 export interface LeaderboardRow {
@@ -19,7 +20,8 @@ export interface LeaderboardRow {
   total: number;
 }
 
-const MEDALS = ["🥇", "🥈", "🥉"];
+// Top-3 rank-number tint: gold / silver / bronze (replaces the medal emoji).
+const RANK_COLOR = ["text-gold", "text-slate-300", "text-amber-600"];
 
 export default function Leaderboard({
   leagueId,
@@ -100,9 +102,9 @@ export default function Leaderboard({
   const lastIndex = sorted.length - 1;
 
   const TABS = [
-    { key: "total" as const, label: "👑 Total" },
-    { key: "upfront" as const, label: "🎯 Upfront" },
-    { key: "live" as const, label: "⚡ Live" },
+    { key: "total" as const, label: "Total", Icon: Trophy },
+    { key: "upfront" as const, label: "Upfront", Icon: Upfront },
+    { key: "live" as const, label: "Live", Icon: Live },
   ];
 
   function troll() {
@@ -117,28 +119,31 @@ export default function Leaderboard({
       {rain && <EmojiRain key={rain} />}
 
       <div className="mb-3 flex gap-1.5">
-        {TABS.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
-              tab === t.key
-                ? "bg-grass text-night"
-                : "glass text-chalk-dim hover:text-chalk"
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
+        {TABS.map((t) => {
+          const Icon = t.Icon;
+          return (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                tab === t.key
+                  ? "bg-grass text-night"
+                  : "glass text-chalk-dim hover:text-chalk"
+              }`}
+            >
+              <Icon size={13} /> {t.label}
+            </button>
+          );
+        })}
       </div>
 
       <div className="glass-strong overflow-hidden rounded-2xl">
         <div className="grid grid-cols-[1.25rem_1fr_2rem_2rem_2.5rem] items-center gap-1.5 border-b border-night/10 px-3 py-2.5 text-xs uppercase tracking-wider text-chalk-dim sm:grid-cols-[2.5rem_1fr_3.5rem_3.5rem_4rem] sm:gap-2 sm:px-4">
           <span>#</span>
           <span>Player</span>
-          <span className={`text-right ${tab === "upfront" ? "text-grass" : ""}`}>🎯</span>
-          <span className={`text-right ${tab === "live" ? "text-grass" : ""}`}>⚡</span>
-          <span className={`text-right ${tab === "total" ? "text-grass" : ""}`}>👑</span>
+          <span className={`flex justify-end ${tab === "upfront" ? "text-grass" : ""}`}><Upfront size={14} /></span>
+          <span className={`flex justify-end ${tab === "live" ? "text-grass" : ""}`}><Live size={14} /></span>
+          <span className={`flex justify-end ${tab === "total" ? "text-grass" : ""}`}><Trophy size={14} /></span>
         </div>
 
         {sorted.length === 0 ? (
@@ -169,8 +174,12 @@ export default function Leaderboard({
                       isWinner ? "animate-pulse-glow bg-gold/15" : isLoser ? "bg-red-500/5" : ""
                     } ${isMe ? "ring-1 ring-inset ring-grass/50" : ""}`}
                   >
-                    <span className="text-lg">
-                      {isWinner ? "👑" : MEDALS[i] ?? <span className="text-chalk-dim">{i + 1}</span>}
+                    <span className="flex items-center justify-center text-sm font-bold tabular-nums">
+                      {isWinner ? (
+                        <Trophy size={18} className="text-gold" />
+                      ) : (
+                        <span className={RANK_COLOR[i] ?? "text-chalk-dim"}>{i + 1}</span>
+                      )}
                     </span>
                     <span className="flex min-w-0 items-center gap-1.5">
                       <Link
