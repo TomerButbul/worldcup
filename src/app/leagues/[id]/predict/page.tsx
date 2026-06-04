@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCachedTeams, getCachedPlayers } from "@/lib/tournamentData";
 import type { Player } from "@/lib/types";
-import MatchCard, { type MatchCardData } from "../matches/MatchCard";
+import MatchCard, { type MatchCardData, type Lineup } from "../matches/MatchCard";
 import AutoRefresh from "@/components/AutoRefresh";
 import MatchClock from "@/components/art/MatchClock";
 import Ball from "@/components/art/Ball";
@@ -68,7 +68,7 @@ export default async function PredictPage({
 
   // Pull official lineups for matches kicking off within ~75 min so the scorer
   // picker can show the real XI + subs (falls back to full squad otherwise).
-  const lineupByMatch = new Map<number, Record<number, { starters: number[]; subs: number[] }>>();
+  const lineupByMatch = new Map<number, Record<number, Lineup>>();
   const imminent = (upcoming ?? []).filter((m) => {
     const k = new Date(m.kickoff_at).getTime();
     return k > now && k <= now + 75 * 60 * 1000;
@@ -78,11 +78,17 @@ export default async function PredictPage({
       try {
         const ls = await fetchLineups(m.id);
         if (!ls.length) return;
-        const byTeam: Record<number, { starters: number[]; subs: number[] }> = {};
+        const byTeam: Record<number, Lineup> = {};
         for (const l of ls) {
           byTeam[l.team.id] = {
             starters: l.startXI.map((x) => x.player.id),
             subs: l.substitutes.map((x) => x.player.id),
+            xi: l.startXI.map((x) => ({
+              player_id: x.player.id,
+              name: x.player.name,
+              pos: x.player.pos,
+              grid: x.player.grid,
+            })),
           };
         }
         lineupByMatch.set(m.id, byTeam);
@@ -96,10 +102,17 @@ export default async function PredictPage({
   // picker defaults to ~11 players (not the whole 28-man squad) before official
   // lineups drop. Official lineups (above) still win when posted.
   const { data: teamLineups } = await supabase.from("team_lineups").select("team_id, xi");
-  const lastXIByTeam = new Map<number, { starters: number[]; subs: number[] }>();
+  const lastXIByTeam = new Map<number, Lineup>();
   for (const tl of teamLineups ?? []) {
-    const ids = ((tl.xi ?? []) as { player_id: number }[]).map((x) => x.player_id).filter(Boolean);
-    if (ids.length) lastXIByTeam.set(tl.team_id, { starters: ids, subs: [] });
+    const xiRaw = (tl.xi ?? []) as { player_id: number; name?: string | null; pos?: string | null; grid?: string | null }[];
+    const ids = xiRaw.map((x) => x.player_id).filter(Boolean);
+    if (ids.length) {
+      lastXIByTeam.set(tl.team_id, {
+        starters: ids,
+        subs: [],
+        xi: xiRaw.map((x) => ({ player_id: x.player_id, name: x.name ?? null, pos: x.pos ?? null, grid: x.grid ?? null })),
+      });
+    }
   }
 
   // Group upcoming by matchday so the page isn't a wall of cards: show the next

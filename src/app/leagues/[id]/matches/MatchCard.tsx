@@ -33,6 +33,9 @@ export interface MatchCardData {
 export interface Lineup {
   starters: number[]; // player ids in the starting XI
   subs: number[]; // player ids on the bench
+  // The starting XI with real grid coords ("row:col"), so the picker draws the
+  // true formation (like team details). Falls back to role rows when absent.
+  xi?: { player_id: number; name?: string | null; pos?: string | null; grid?: string | null }[];
 }
 
 interface Props {
@@ -335,7 +338,6 @@ function TeamScorers({
   lineup?: Lineup | null;
   onAdjust: (playerId: number, delta: number) => void;
 }) {
-  const [collapsed, setCollapsed] = useState(false);
   const [query, setQuery] = useState("");
   const [showAll, setShowAll] = useState(false);
   const longPress = useLongPress();
@@ -431,19 +433,38 @@ function TeamScorers({
   // Pitch view of the starting XI — the primary picker (tap a player → add a
   // goal, hold → their card), like the team-details lineup. Falls back to the
   // search list when no XI is known yet.
-  const starterPlayers = (lineup?.starters ?? [])
-    .map((id) => players.find((p) => p.id === id))
-    .filter((p): p is Player => !!p);
-  const rowOf = (pos?: string | null) => {
-    const c = (pos ?? "M").charAt(0).toUpperCase();
-    return c === "G" ? 0 : c === "D" ? 1 : c === "M" ? 2 : 3; // 0 GK (bottom) … 3 FWD (top)
-  };
-  const pitchRows: Player[][] = [[], [], [], []];
-  for (const p of starterPlayers) pitchRows[rowOf(p.position)].push(p);
-  const pitchNodes = pitchRows.flatMap((rowPlayers, r) => {
-    const frac = r / 3;
-    return rowPlayers.map((p, i) => ({ p, x: ((i + 0.5) / rowPlayers.length) * 100, y: 86 - frac * 72 }));
+  // Lay the XI out by REAL grid coords ("row:col") when we have them → the true
+  // formation, exactly like the team-details pitch (row 1 = keeper at the bottom).
+  // Otherwise fall back to broad role rows (GK→FWD).
+  const POS_ROW: Record<string, number> = { G: 1, D: 2, M: 3, F: 4, A: 4 };
+  const byIdAll = new Map(players.map((p) => [p.id, p]));
+  const xiSource = (
+    lineup?.xi && lineup.xi.length > 0
+      ? lineup.xi.map((x) => ({ p: byIdAll.get(x.player_id), pos: x.pos ?? null, grid: x.grid ?? null }))
+      : (lineup?.starters ?? []).map((id) => ({ p: byIdAll.get(id), pos: byIdAll.get(id)?.position ?? null, grid: null as string | null }))
+  ).filter((s): s is { p: Player; pos: string | null; grid: string | null } => !!s.p);
+  const useGrid = xiSource.some((s) => !!s.grid && s.grid.includes(":"));
+  const parsedNodes = xiSource.map((s, i) => {
+    if (useGrid && s.grid && s.grid.includes(":")) {
+      const [r, c] = s.grid.split(":").map((n) => parseInt(n, 10) || 1);
+      return { p: s.p, r, c };
+    }
+    return { p: s.p, r: POS_ROW[(s.pos ?? "M").charAt(0).toUpperCase()] ?? 3, c: i };
   });
+  const maxRow = Math.max(1, ...parsedNodes.map((n) => n.r));
+  const rowGroups = new Map<number, typeof parsedNodes>();
+  for (const n of parsedNodes) {
+    if (!rowGroups.has(n.r)) rowGroups.set(n.r, []);
+    rowGroups.get(n.r)!.push(n);
+  }
+  const pitchNodes: { p: Player; x: number; y: number }[] = [];
+  for (const [, items] of rowGroups) {
+    const sorted = [...items].sort((a, b) => a.c - b.c);
+    const frac = maxRow > 1 ? (sorted[0].r - 1) / (maxRow - 1) : 0;
+    sorted.forEach((n, i) =>
+      pitchNodes.push({ p: n.p, x: ((i + 0.5) / sorted.length) * 100, y: 88 - frac * 74 }),
+    );
+  }
   const pitchNode = ({ p, x, y }: { p: Player; x: number; y: number }) => {
     const count = scorerGoals[String(p.id)] ?? 0;
     return (
@@ -501,58 +522,10 @@ function TeamScorers({
     </>
   );
 
-  const remaining = Math.max(0, cap - sum);
-  const needsPicks = cap > 0 && sum < cap;
-  const over = sum > cap;
-  const collapsible = cap > 0;
-  const countClass = over ? "text-red-600" : needsPicks ? "text-gold" : cap > 0 ? "text-grass" : "";
-
-  const headerInner = (
-    <>
-      <span className="flex min-w-0 items-center gap-1 truncate">
-        {collapsible && <span className="text-[10px] text-chalk-dim">{collapsed ? "▸" : "▾"}</span>}
-        <Ball size={14} /> {label}
-        {hasLineup && (
-          <span className="rounded bg-grass/15 px-1 text-[9px] font-bold uppercase text-grass">lineup</span>
-        )}
-      </span>
-      <span className={`shrink-0 ${countClass}`}>
-        {sum}/{cap} goals
-      </span>
-    </>
-  );
-  const headerClass = "mb-1.5 flex w-full items-center justify-between gap-2 text-left text-xs font-medium text-chalk-dim";
-
   return (
     <div>
-      {collapsible ? (
-        <button
-          type="button"
-          onClick={() => setCollapsed((prev) => !prev)}
-          aria-expanded={!collapsed}
-          className={`${headerClass} cursor-pointer transition hover:text-chalk`}
-        >
-          {headerInner}
-        </button>
-      ) : (
-        <p className={headerClass}>{headerInner}</p>
-      )}
       {cap === 0 ? (
-        <p className="text-[11px] text-chalk-dim">Predict a goal for {label} to assign scorers.</p>
-      ) : collapsed ? (
-        // Collapsed: hide the chips but make it unmistakable whether scorers are
-        // still owed for this team, so a hidden section never reads as "done".
-        <button
-          type="button"
-          onClick={() => setCollapsed(false)}
-          className={`text-left text-[11px] font-semibold ${needsPicks ? "text-gold" : over ? "text-red-600" : "text-grass"}`}
-        >
-          {needsPicks
-            ? `⚠ Still need ${remaining} scorer${remaining > 1 ? "s" : ""} — tap to choose`
-            : over
-              ? `⚠ ${sum}/${cap} — too many, tap to fix`
-              : `✓ ${cap} scorer${cap > 1 ? "s" : ""} chosen — tap to edit`}
-        </button>
+        <p className="text-[11px] text-chalk-dim">Predict a goal first to pick scorers for this team.</p>
       ) : (
         <div className="space-y-2">
           {pitchNodes.length > 0 && (
