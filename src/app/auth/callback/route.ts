@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { safeRelativePath } from "@/lib/safe-redirect";
-import { joinByCode } from "@/app/dashboard/actions";
+import { consumePendingInvite } from "@/app/dashboard/actions";
 
 // OAuth providers (e.g. Google) redirect here with a `code` after the user
 // authorizes. We exchange it for a session, which @supabase/ssr writes to
@@ -39,18 +38,8 @@ export async function GET(request: Request) {
   // Best-effort and fully isolated — a bad/expired invite must never break the
   // normal sign-in redirect.
   try {
-    const cookieStore = await cookies();
-    const inviteCode = cookieStore.get("invite_code")?.value;
-    if (inviteCode) {
-      cookieStore.delete("invite_code");
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (user) {
-        const r = await joinByCode(inviteCode);
-        if (r.leagueId) return NextResponse.redirect(`${base}/leagues/${r.leagueId}`);
-      }
-    }
+    const invitedLeagueId = await consumePendingInvite();
+    if (invitedLeagueId) return NextResponse.redirect(`${base}/leagues/${invitedLeagueId}`);
   } catch {
     // ignore — fall through to the default redirect below
   }

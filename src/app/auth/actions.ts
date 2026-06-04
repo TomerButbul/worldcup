@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { consumePendingInvite } from "@/app/dashboard/actions";
 
 export async function signup(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim();
@@ -30,7 +31,10 @@ export async function signup(formData: FormData) {
     redirect("/login?info=Check+your+email+to+confirm+your+account");
   }
 
-  redirect("/dashboard");
+  // Auto-join a pending invite (from a /join/<code> link) now that we have a
+  // session; otherwise land on the dashboard.
+  const invitedLeagueId = await consumePendingInvite();
+  redirect(invitedLeagueId ? `/leagues/${invitedLeagueId}` : "/dashboard");
 }
 
 export async function login(formData: FormData) {
@@ -43,7 +47,9 @@ export async function login(formData: FormData) {
   if (error) {
     redirect(`/login?error=${encodeURIComponent(error.message)}`);
   }
-  redirect("/dashboard");
+  // Existing user who arrived via an invite link gets auto-joined on login too.
+  const invitedLeagueId = await consumePendingInvite();
+  redirect(invitedLeagueId ? `/leagues/${invitedLeagueId}` : "/dashboard");
 }
 
 export async function signInWithGoogle() {

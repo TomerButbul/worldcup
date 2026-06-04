@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { userPredictionLeagueIds } from "@/lib/predictionSync";
@@ -124,6 +125,27 @@ export async function joinByCode(
   }
 
   return { leagueId: newLeagueId };
+}
+
+// Finish a pending league invite after a session is established. The /join/<code>
+// link stashes the code in the `invite_code` cookie before sending a logged-out
+// visitor to sign up; this reads it back, joins that league, and returns its id.
+// Called from EVERY auth entry point that creates a session — email/password
+// signup + login AND the OAuth callback — so the invite is honored no matter how
+// the user authenticates (previously only the OAuth callback consumed it, so
+// email/password sign-ups silently failed to auto-join). The cookie is cleared
+// only on a successful join, so a transient failure can retry on the next auth.
+export async function consumePendingInvite(): Promise<string | null> {
+  const cookieStore = await cookies();
+  const code = cookieStore.get("invite_code")?.value;
+  if (!code) return null;
+
+  const { leagueId } = await joinByCode(code);
+  if (leagueId) {
+    cookieStore.delete("invite_code");
+    return leagueId;
+  }
+  return null;
 }
 
 export async function joinLeague(formData: FormData) {
