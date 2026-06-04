@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { isAuthPath, isPublicPath } from "@/lib/routeAccess";
 
 // Refreshes the Supabase auth session on every request and gates protected routes.
 export async function updateSession(request: NextRequest) {
@@ -39,32 +40,15 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
-  const isAuthRoute = pathname.startsWith("/login") || pathname.startsWith("/signup");
-  // API routes self-authenticate (e.g. /api/sync via SYNC_SECRET) and must return
-  // JSON, never an HTML redirect to /login — otherwise the cron silently 307s.
-  const isApi = pathname.startsWith("/api");
-  const isPublic =
-    pathname === "/" ||
-    pathname.startsWith("/preview") ||
-    pathname.startsWith("/forgot-password") ||
-    pathname.startsWith("/reset-password") ||
-    pathname.startsWith("/how-it-works") ||
-    pathname.startsWith("/install") ||
-    // Invite links must reach logged-out visitors: the /join route handler stashes
-    // the invite_code cookie and *then* sends them to sign up. If we gated it here,
-    // the proxy would redirect to /signup first and the code would be lost.
-    pathname.startsWith("/join") ||
-    isAuthRoute ||
-    isApi;
 
-  if (!user && !isPublic) {
+  if (!user && !isPublicPath(pathname)) {
     // Not signed in on a protected route (e.g. a shared /leagues/<id> link) →
     // send to sign-up. New folks get an account; existing users tap "Log in".
     const url = request.nextUrl.clone();
     url.pathname = "/signup";
     return NextResponse.redirect(url);
   }
-  if (user && isAuthRoute) {
+  if (user && isAuthPath(pathname)) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);
