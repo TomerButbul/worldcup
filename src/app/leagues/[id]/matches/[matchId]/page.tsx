@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import Flag from "@/components/Flag";
+import { TeamCardButton } from "@/components/TeamCard";
 import Ball from "@/components/art/Ball";
 import Pitch, { type EventRow, type LineupRow } from "./Pitch";
 import MatchPredictions from "./MatchPredictions";
@@ -471,17 +472,39 @@ export default async function MatchSummaryPage({
         </div>
 
         <div className="mt-4 flex items-center justify-center gap-3 text-center sm:gap-5">
-          <span className="flex min-w-0 flex-1 flex-col items-center gap-1.5">
-            <Flag teamId={match.home_team_id} logoUrl={home?.logo_url} code={home?.code} name={homeName} size={44} />
-            <span className="text-sm font-semibold text-chalk sm:text-base">{homeName}</span>
-          </span>
+          {match.home_team_id != null ? (
+            <TeamCardButton
+              teamId={match.home_team_id}
+              name={homeName}
+              className="flex min-w-0 flex-1 flex-col items-center gap-1.5 transition hover:opacity-80"
+            >
+              <Flag teamId={match.home_team_id} logoUrl={home?.logo_url} code={home?.code} name={homeName} size={44} />
+              <span className="text-sm font-semibold text-chalk sm:text-base">{homeName}</span>
+            </TeamCardButton>
+          ) : (
+            <span className="flex min-w-0 flex-1 flex-col items-center gap-1.5">
+              <Flag teamId={match.home_team_id} logoUrl={home?.logo_url} code={home?.code} name={homeName} size={44} />
+              <span className="text-sm font-semibold text-chalk sm:text-base">{homeName}</span>
+            </span>
+          )}
           <span className="net shrink-0 rounded-2xl bg-night/5 px-5 py-3 font-display text-3xl text-chalk">
             {finished || live ? `${match.home_goals ?? 0} – ${match.away_goals ?? 0}` : "vs"}
           </span>
-          <span className="flex min-w-0 flex-1 flex-col items-center gap-1.5">
-            <Flag teamId={match.away_team_id} logoUrl={away?.logo_url} code={away?.code} name={awayName} size={44} />
-            <span className="text-sm font-semibold text-chalk sm:text-base">{awayName}</span>
-          </span>
+          {match.away_team_id != null ? (
+            <TeamCardButton
+              teamId={match.away_team_id}
+              name={awayName}
+              className="flex min-w-0 flex-1 flex-col items-center gap-1.5 transition hover:opacity-80"
+            >
+              <Flag teamId={match.away_team_id} logoUrl={away?.logo_url} code={away?.code} name={awayName} size={44} />
+              <span className="text-sm font-semibold text-chalk sm:text-base">{awayName}</span>
+            </TeamCardButton>
+          ) : (
+            <span className="flex min-w-0 flex-1 flex-col items-center gap-1.5">
+              <Flag teamId={match.away_team_id} logoUrl={away?.logo_url} code={away?.code} name={awayName} size={44} />
+              <span className="text-sm font-semibold text-chalk sm:text-base">{awayName}</span>
+            </span>
+          )}
         </div>
       </div>
 

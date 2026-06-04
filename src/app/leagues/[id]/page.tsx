@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import Leaderboard from "./Leaderboard";
 import LeagueNameEditor from "./LeagueNameEditor";
+import ShareInvite from "@/components/ShareInvite";
 import DraftRoom from "./DraftRoom";
 import type { FixtureDay } from "./DraftFixtures";
 import type { GroupStageGroup } from "./DraftGroupStage";
@@ -387,6 +388,11 @@ export default async function LeaguePage({
                   {locked ? "🔒 Bracket locked" : "🟢 Bracket open"}
                 </span>
               </p>
+              {league.join_code && (
+                <div className="mt-3">
+                  <ShareInvite code={league.join_code} />
+                </div>
+              )}
             </div>
             <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:shrink-0">
               <Link href={`/leagues/${id}/matches`} className={`${btnClass("ghost")} flex-1 text-center sm:flex-none`}>

@@ -8,6 +8,7 @@ import { savePrediction } from "./actions";
 import { useAutosave } from "@/lib/useAutosave";
 import SaveStatus from "@/components/SaveStatus";
 import Flag from "@/components/Flag";
+import { TeamCardButton } from "@/components/TeamCard";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import { PlayerCardButton } from "@/components/PlayerCard";
 import Ball from "@/components/art/Ball";
@@ -139,10 +140,21 @@ export default function MatchCard({
       </div>
 
       <div className="flex items-center justify-center gap-2 text-center sm:gap-4">
-        <span className="flex min-w-0 flex-1 items-center justify-end gap-1.5 text-sm font-semibold text-chalk sm:gap-2 sm:text-base">
-          <span className="truncate">{match.homeName}</span>
-          <Flag teamId={match.homeTeamId} name={match.homeName} size={26} className="shrink-0" />
-        </span>
+        {match.homeTeamId != null ? (
+          <TeamCardButton
+            teamId={match.homeTeamId}
+            name={match.homeName}
+            className="flex min-w-0 flex-1 items-center justify-end gap-1.5 text-sm font-semibold text-chalk transition hover:opacity-80 sm:gap-2 sm:text-base"
+          >
+            <span className="truncate">{match.homeName}</span>
+            <Flag teamId={match.homeTeamId} name={match.homeName} size={26} className="shrink-0" />
+          </TeamCardButton>
+        ) : (
+          <span className="flex min-w-0 flex-1 items-center justify-end gap-1.5 text-sm font-semibold text-chalk sm:gap-2 sm:text-base">
+            <span className="truncate">{match.homeName}</span>
+            <Flag teamId={match.homeTeamId} name={match.homeName} size={26} className="shrink-0" />
+          </span>
+        )}
 
         {locked ? (
           <span className="net rounded-xl bg-night/5 px-4 py-2 font-display text-xl text-chalk">
@@ -158,10 +170,21 @@ export default function MatchCard({
           </span>
         )}
 
-        <span className="flex min-w-0 flex-1 items-center justify-start gap-1.5 text-sm font-semibold text-chalk sm:gap-2 sm:text-base">
-          <Flag teamId={match.awayTeamId} name={match.awayName} size={26} className="shrink-0" />
-          <span className="truncate">{match.awayName}</span>
-        </span>
+        {match.awayTeamId != null ? (
+          <TeamCardButton
+            teamId={match.awayTeamId}
+            name={match.awayName}
+            className="flex min-w-0 flex-1 items-center justify-start gap-1.5 text-sm font-semibold text-chalk transition hover:opacity-80 sm:gap-2 sm:text-base"
+          >
+            <Flag teamId={match.awayTeamId} name={match.awayName} size={26} className="shrink-0" />
+            <span className="truncate">{match.awayName}</span>
+          </TeamCardButton>
+        ) : (
+          <span className="flex min-w-0 flex-1 items-center justify-start gap-1.5 text-sm font-semibold text-chalk sm:gap-2 sm:text-base">
+            <Flag teamId={match.awayTeamId} name={match.awayName} size={26} className="shrink-0" />
+            <span className="truncate">{match.awayName}</span>
+          </span>
+        )}
       </div>
 
       {locked ? (

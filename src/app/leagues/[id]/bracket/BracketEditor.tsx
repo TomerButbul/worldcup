@@ -8,6 +8,7 @@ import { saveBracket } from "./actions";
 import { celebrate } from "@/lib/confetti";
 import { goalCelebration } from "@/lib/goal";
 import Flag from "@/components/Flag";
+import { TeamCardButton } from "@/components/TeamCard";
 import Ball from "@/components/art/Ball";
 import Trophy from "@/components/art/Trophy";
 import KnockoutBracket, { type BracketRound, type BracketTeam } from "@/components/KnockoutBracket";
@@ -404,11 +405,18 @@ export default function BracketEditor({
                         }`}
                       >
                         <span className="w-4 shrink-0 text-center font-display text-sm text-chalk-dim">{i + 1}</span>
-                        <Flag teamId={t.id} logoUrl={t.logo_url} code={t.code} name={t.name} size={18} />
-                        <span className="flex min-w-0 flex-1 items-center gap-1 truncate text-sm text-chalk">
+                        <TeamCardButton
+                          teamId={t.id}
+                          name={t.name}
+                          className="flex min-w-0 flex-1 items-center gap-1 truncate text-left text-sm text-chalk transition hover:opacity-80"
+                        >
+                          <Flag teamId={t.id} logoUrl={t.logo_url} code={t.code} name={t.name} size={18} />
                           <span className="truncate">{t.name}</span>
+                          {fifaRank[t.id] != null && (
+                            <span className="shrink-0 text-[10px] tabular-nums text-chalk-dim">#{fifaRank[t.id]}</span>
+                          )}
                           {isFav && <span className="shrink-0 text-[11px] text-gold" title="Your favorite">★</span>}
-                        </span>
+                        </TeamCardButton>
                         {i < 2 && (
                           <span className="shrink-0 rounded-full bg-grass/20 px-2 py-0.5 text-[10px] font-semibold text-grass">
                             advances

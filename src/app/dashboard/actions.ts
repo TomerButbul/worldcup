@@ -64,15 +64,23 @@ export async function createLeague(formData: FormData) {
   redirect(`/leagues/${data}`);
 }
 
-export async function joinLeague(formData: FormData) {
-  const code = String(formData.get("join_code") ?? "").trim();
-  if (!code) redirect("/dashboard?error=Join+code+required");
+// Join a league by its share/join code, then copy the user's account-level picks
+// into it. Returns the joined league id (or an error) WITHOUT redirecting, so it
+// can be reused from the dashboard join form, the /join/[code] link, and the
+// post-auth callback. Already-a-member is treated as success when the RPC still
+// resolves the league id; a hard duplicate error falls through as an error and
+// callers can decide what to do.
+export async function joinByCode(
+  code: string,
+): Promise<{ leagueId?: string; error?: string }> {
+  const trimmed = code.trim();
+  if (!trimmed) return { error: "Join code required" };
 
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("join_league_by_code", {
-    p_code: code,
+    p_code: trimmed,
   });
-  if (error) redirect(`/dashboard?error=${encodeURIComponent(error.message)}`);
+  if (error) return { error: error.message };
 
   // Account-level picks: copy the user's existing bracket + match predictions into
   // the freshly-joined league so they're scored there too (predict once, count
@@ -115,5 +123,15 @@ export async function joinLeague(formData: FormData) {
     // best-effort; a copy failure should never block joining
   }
 
-  redirect(`/leagues/${newLeagueId}`);
+  return { leagueId: newLeagueId };
+}
+
+export async function joinLeague(formData: FormData) {
+  const code = String(formData.get("join_code") ?? "").trim();
+  if (!code) redirect("/dashboard?error=Join+code+required");
+
+  const { leagueId, error } = await joinByCode(code);
+  if (error) redirect(`/dashboard?error=${encodeURIComponent(error)}`);
+
+  redirect(`/leagues/${leagueId}`);
 }

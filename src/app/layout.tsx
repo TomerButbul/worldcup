@@ -4,6 +4,7 @@ import "./globals.css";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import FlagGarland from "@/components/FlagGarland";
 import { PlayerCardHost } from "@/components/PlayerCard";
+import { TeamCardHost } from "@/components/TeamCard";
 import { GlobalNav } from "@/components/BottomNav";
 import LiveScoresWidget from "@/components/LiveScoresWidget";
 import { getCachedMatchdayFlags } from "@/lib/tournamentData";
@@ -89,6 +90,7 @@ export default async function RootLayout({
         {user && <GlobalNav />}
         {user && <LiveScoresWidget />}
         <PlayerCardHost />
+        <TeamCardHost />
       </body>
     </html>
   );
