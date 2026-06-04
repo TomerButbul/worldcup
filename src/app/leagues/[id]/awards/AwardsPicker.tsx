@@ -28,11 +28,12 @@ const AWARDS: {
   label: string;
   hint: string;
   gkOnly: boolean;
+  underAge?: number; // only players younger than this may be picked
 }[] = [
   { key: "golden_boot", Icon: Boot, label: "Golden Boot", hint: "Top scorer", gkOnly: false },
   { key: "golden_ball", Icon: Medal, label: "Golden Ball", hint: "Best player", gkOnly: false },
   { key: "golden_glove", Icon: Glove, label: "Golden Glove", hint: "Best goalkeeper", gkOnly: true },
-  { key: "young_player", Icon: Star, label: "Young Player", hint: "Best young player", gkOnly: false },
+  { key: "young_player", Icon: Star, label: "Young Player", hint: "Under 21", gkOnly: false, underAge: 21 },
 ];
 
 // Accent/diacritic-insensitive fold so "Mbappe" finds "Mbappé", "Muller" → "Müller".
@@ -109,9 +110,11 @@ export default function AwardsPicker({
       {AWARDS.map((a) => {
         const sel = picks[a.key] ? byId.get(picks[a.key]) ?? null : null;
         const q = fold((query[a.key] ?? "").trim());
-        const pool = a.gkOnly
+        const ua = a.underAge;
+        let pool = a.gkOnly
           ? players.filter((p) => (p.position ?? "").toLowerCase().includes("goal"))
           : players;
+        if (ua != null) pool = pool.filter((p) => p.age != null && p.age < ua); // Young Player: under 21 only
         const results = q.length >= 2 ? pool.filter((p) => fold(p.name).includes(q)).slice(0, 15) : [];
         const selKey = `${a.key}-sel`;
 
@@ -154,7 +157,7 @@ export default function AwardsPicker({
                 <input
                   value={query[a.key] ?? ""}
                   onChange={(e) => setQuery((s) => ({ ...s, [a.key]: e.target.value }))}
-                  placeholder={a.gkOnly ? "Search goalkeepers…" : "Search players…"}
+                  placeholder={ua != null ? `Search players under ${ua}…` : a.gkOnly ? "Search goalkeepers…" : "Search players…"}
                   aria-label={`Search ${a.label} candidates`}
                   className="w-full rounded-xl border border-night/10 bg-white px-3 py-2 text-sm text-chalk outline-none focus:border-grass focus:ring-2 focus:ring-grass/30"
                 />
@@ -200,7 +203,7 @@ export default function AwardsPicker({
                 )}
                 {q.length >= 2 && results.length === 0 && (
                   <p className="mt-1 text-xs text-chalk-dim">
-                    No {a.gkOnly ? "goalkeepers" : "players"} match.
+                    No {a.gkOnly ? "goalkeepers" : ua != null ? `under-${ua} players` : "players"} match.
                   </p>
                 )}
               </div>

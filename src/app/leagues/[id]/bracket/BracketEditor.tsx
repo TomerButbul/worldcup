@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { motion } from "motion/react";
+import { motion, Reorder, useDragControls } from "motion/react";
 import type { MatchStage } from "@/lib/types";
 import { KNOCKOUT_TEMPLATE, stageOf, resolvePredictedBracket } from "@/lib/bracket-core";
 import { saveBracket } from "./actions";
@@ -38,6 +38,104 @@ const STAGE_LABELS: Record<string, string> = {
 const STAGE_ORDER: MatchStage[] = ["round_of_32", "round_of_16", "quarter", "semi", "final"];
 
 const MAX_THIRDS = 8;
+
+// One draggable team row in the group-order step. Tapping the flag/name
+// (TeamCardButton) opens the team card; the ⠿ handle starts a drag-to-reorder;
+// the ▲▼ buttons still nudge one place. Its own component so each row owns a
+// useDragControls instance (hooks can't run inside a .map callback).
+function GroupRow({
+  team,
+  index,
+  count,
+  group,
+  favorite,
+  fifaRank,
+  locked,
+  move,
+}: {
+  team: EditorTeam;
+  index: number;
+  count: number;
+  group: string;
+  favorite: boolean;
+  fifaRank: Record<number, number>;
+  locked: boolean;
+  move: (g: string, from: number, to: number) => void;
+}) {
+  const controls = useDragControls();
+  const i = index;
+  return (
+    <Reorder.Item
+      value={team.id}
+      dragListener={false}
+      dragControls={controls}
+      layout
+      className={`flex items-center gap-2 rounded-xl px-2 py-2 ${favorite ? "ring-1 ring-gold/70 " : ""}${
+        i < 2 ? "bg-grass/15" : i === 2 ? "bg-gold/10" : "bg-night/5"
+      }`}
+    >
+      <span
+        onPointerDown={(e) => {
+          if (!locked) controls.start(e);
+        }}
+        aria-label="Drag to reorder"
+        title="Drag to reorder"
+        className={`shrink-0 touch-none select-none px-0.5 text-base leading-none text-chalk-dim ${
+          locked ? "opacity-30" : "cursor-grab active:cursor-grabbing"
+        }`}
+      >
+        ⠿
+      </span>
+      <span className="w-4 shrink-0 text-center font-display text-sm text-chalk-dim">{i + 1}</span>
+      <TeamCardButton
+        teamId={team.id}
+        name={team.name}
+        className="flex min-w-0 flex-1 items-center gap-1 truncate text-left text-sm text-chalk transition hover:opacity-80"
+      >
+        <Flag teamId={team.id} logoUrl={team.logo_url} code={team.code} name={team.name} size={18} />
+        <span className="truncate">{team.name}</span>
+        {fifaRank[team.id] != null && (
+          <span className="shrink-0 text-[10px] tabular-nums text-chalk-dim">#{fifaRank[team.id]}</span>
+        )}
+        {favorite && (
+          <span className="shrink-0 text-[11px] text-gold" title="Your favorite">
+            ★
+          </span>
+        )}
+      </TeamCardButton>
+      {i < 2 && (
+        <span className="shrink-0 rounded-full bg-grass/20 px-2 py-0.5 text-[10px] font-semibold text-grass">
+          advances
+        </span>
+      )}
+      {i === 2 && (
+        <span className="shrink-0 rounded-full bg-gold/20 px-2 py-0.5 text-[10px] font-semibold text-gold">
+          3rd — playoff?
+        </span>
+      )}
+      <span className="flex shrink-0 flex-col gap-0.5">
+        <button
+          type="button"
+          disabled={locked || i === 0}
+          onClick={() => move(group, i, i - 1)}
+          aria-label={`Move ${team.name} up`}
+          className="flex h-5 w-7 items-center justify-center rounded bg-night/10 text-xs leading-none text-chalk transition hover:bg-night/20 disabled:opacity-30"
+        >
+          ▲
+        </button>
+        <button
+          type="button"
+          disabled={locked || i === count - 1}
+          onClick={() => move(group, i, i + 1)}
+          aria-label={`Move ${team.name} down`}
+          className="flex h-5 w-7 items-center justify-center rounded bg-night/10 text-xs leading-none text-chalk transition hover:bg-night/20 disabled:opacity-30"
+        >
+          ▼
+        </button>
+      </span>
+    </Reorder.Item>
+  );
+}
 
 export default function BracketEditor({
   leagueId,
@@ -252,6 +350,15 @@ export default function BracketEditor({
     [locked],
   );
 
+  // Drag-to-reorder: replace a group's whole order with the dragged result.
+  const reorder = useCallback(
+    (g: string, ids: number[]) => {
+      if (locked) return;
+      setOrder((prev) => ({ ...prev, [g]: ids }));
+    },
+    [locked],
+  );
+
   const toggleThird = useCallback(
     (g: string) => {
       if (locked) return;
@@ -393,66 +500,31 @@ export default function BracketEditor({
                   <span className="text-xs text-chalk-dim">Top 2 advance · 3rd may qualify</span>
                 </div>
 
-                <ol className="space-y-1.5">
+                <Reorder.Group
+                  as="ol"
+                  axis="y"
+                  values={list}
+                  onReorder={(ids) => reorder(g, ids as number[])}
+                  className="space-y-1.5"
+                >
                   {list.map((teamId, i) => {
                     const t = teamsById.get(teamId);
                     if (!t) return null;
-                    const isFav = teamId === favoriteTeamId;
                     return (
-                      <motion.li
+                      <GroupRow
                         key={teamId}
-                        layout
-                        className={`flex items-center gap-2 rounded-xl px-2 py-2 ${isFav ? "ring-1 ring-gold/70 " : ""}${
-                          i < 2 ? "bg-grass/15" : i === 2 ? "bg-gold/10" : "bg-night/5"
-                        }`}
-                      >
-                        <span className="w-4 shrink-0 text-center font-display text-sm text-chalk-dim">{i + 1}</span>
-                        <TeamCardButton
-                          teamId={t.id}
-                          name={t.name}
-                          className="flex min-w-0 flex-1 items-center gap-1 truncate text-left text-sm text-chalk transition hover:opacity-80"
-                        >
-                          <Flag teamId={t.id} logoUrl={t.logo_url} code={t.code} name={t.name} size={18} />
-                          <span className="truncate">{t.name}</span>
-                          {fifaRank[t.id] != null && (
-                            <span className="shrink-0 text-[10px] tabular-nums text-chalk-dim">#{fifaRank[t.id]}</span>
-                          )}
-                          {isFav && <span className="shrink-0 text-[11px] text-gold" title="Your favorite">★</span>}
-                        </TeamCardButton>
-                        {i < 2 && (
-                          <span className="shrink-0 rounded-full bg-grass/20 px-2 py-0.5 text-[10px] font-semibold text-grass">
-                            advances
-                          </span>
-                        )}
-                        {i === 2 && (
-                          <span className="shrink-0 rounded-full bg-gold/20 px-2 py-0.5 text-[10px] font-semibold text-gold">
-                            3rd — playoff?
-                          </span>
-                        )}
-                        <span className="flex shrink-0 flex-col gap-0.5">
-                          <button
-                            type="button"
-                            disabled={locked || i === 0}
-                            onClick={() => move(g, i, i - 1)}
-                            aria-label={`Move ${t.name} up`}
-                            className="flex h-5 w-7 items-center justify-center rounded bg-night/10 text-xs leading-none text-chalk transition hover:bg-night/20 disabled:opacity-30"
-                          >
-                            ▲
-                          </button>
-                          <button
-                            type="button"
-                            disabled={locked || i === list.length - 1}
-                            onClick={() => move(g, i, i + 1)}
-                            aria-label={`Move ${t.name} down`}
-                            className="flex h-5 w-7 items-center justify-center rounded bg-night/10 text-xs leading-none text-chalk transition hover:bg-night/20 disabled:opacity-30"
-                          >
-                            ▼
-                          </button>
-                        </span>
-                      </motion.li>
+                        team={t}
+                        index={i}
+                        count={list.length}
+                        group={g}
+                        favorite={teamId === favoriteTeamId}
+                        fifaRank={fifaRank}
+                        locked={locked}
+                        move={move}
+                      />
                     );
                   })}
-                </ol>
+                </Reorder.Group>
 
                 <div className="mt-3 flex items-center justify-between gap-2 text-sm">
                   <button
