@@ -52,7 +52,7 @@ export default function AnimatedBackground() {
         SPRITES.map((s, i) => (
           <motion.div
             key={i}
-            className="absolute hidden opacity-70 sm:block"
+            className="absolute hidden opacity-20 sm:block"
             style={{ left: s.left }}
             initial={{ y: "110vh", rotate: 0 }}
             animate={{ y: "-20vh", x: [0, s.drift, 0], rotate: [0, s.rotate, 0] }}

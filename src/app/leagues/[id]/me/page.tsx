@@ -154,7 +154,7 @@ export default async function MyPredictionsPage({
   const hasChampion = championId != null;
 
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 space-y-4 p-4 sm:p-6 lg:max-w-6xl">
+    <main className="mx-auto w-full max-w-2xl flex-1 space-y-4 p-4 sm:p-6 lg:max-w-5xl">
       <Link href={`/leagues/${id}`} className="text-sm text-chalk-dim hover:text-chalk">
         &larr; {league.name}
       </Link>
@@ -178,9 +178,10 @@ export default async function MyPredictionsPage({
         </div>
       </div>
 
-      {/* Predicted knockout bracket — the headline of your picks. */}
+      {/* Predicted knockout bracket — the headline of your picks. On desktop the
+          card hugs the bracket (centered) instead of floating in a wide empty box. */}
       {prediction && (
-        <section className="glass-strong rounded-3xl p-5">
+        <section className="glass-strong rounded-3xl p-4 sm:p-5 lg:mx-auto lg:w-fit lg:max-w-full">
           <h2 className="mb-1 flex items-center gap-1.5 font-display text-xl text-chalk">
             <Trophy size={20} />Your knockout bracket
           </h2>
@@ -259,7 +260,7 @@ export default async function MyPredictionsPage({
           {/* Knockout match picks — usually empty pre-tournament (fixtures TBD). */}
           {knockoutPicks.length > 0 && (
             <section className="glass rounded-2xl p-4">
-              <h2 className="mb-3 font-display text-lg text-chalk">⚔️ Match score picks</h2>
+              <h2 className="mb-3 flex items-center gap-1.5 font-display text-lg text-chalk"><Ball size={16} />Match score picks</h2>
               <ul className="space-y-2">
                 {knockoutPicks.map((p) => {
                   const m = matchById.get(p.match_id);

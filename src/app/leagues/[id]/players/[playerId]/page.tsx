@@ -167,7 +167,7 @@ export default async function ManagerProfilePage({
       ) : (
         <>
           {/* Predicted knockout bracket — the headline of their picks. */}
-          <section className="glass-strong rounded-3xl p-5">
+          <section className="glass-strong rounded-3xl p-4 sm:p-5 lg:mx-auto lg:w-fit lg:max-w-full">
             <h2 className="mb-1 flex items-center gap-1.5 font-display text-xl text-chalk">
               <Trophy size={20} />Knockout bracket
             </h2>
