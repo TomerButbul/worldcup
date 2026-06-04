@@ -36,7 +36,7 @@ export default async function MatchSummaryPage({
 
   const { data: league } = await supabase
     .from("leagues")
-    .select("id, name, scoring")
+    .select("id, name, scoring, kind")
     .eq("id", id)
     .maybeSingle();
   if (!league) redirect("/dashboard");
@@ -277,6 +277,7 @@ export default async function MatchSummaryPage({
     });
   }
   predRows.sort((a, b) => (b.points ?? 0) - (a.points ?? 0) || a.name.localeCompare(b.name));
+  const iHavePredicted = predRows.some((r) => r.isMe);
 
   // Chronological events timeline for the Summary tab. Each event picks a side
   // (home → left, away → right) and an icon; goals also show the assist.
@@ -434,23 +435,49 @@ export default async function MatchSummaryPage({
     </section>
   );
 
-  const predictionsTab =
-    predRows.length === 0 ? null : (
-      <section className="space-y-3">
-        <h2 className="font-display text-lg text-chalk">
-          {finished ? "How everyone predicted" : "Predictions"}
-        </h2>
-        {!locked ? (
+  // Always offer the Predictions tab pre-kickoff so a manager who hasn't picked
+  // can jump straight to making one. Picks are account-level, so the CTA links to
+  // the global /predict page (anchored to this match). Draft leagues don't predict.
+  const predictionsTab = league.kind === "draft" ? null : (
+    <section className="space-y-3">
+      <h2 className="font-display text-lg text-chalk">
+        {finished ? "How everyone predicted" : "Predictions"}
+      </h2>
+
+      {!locked && (
+        <Link
+          href={`/predict#match-${matchNum}`}
+          className="flex items-center justify-between gap-3 rounded-2xl border border-gold/30 bg-gold/10 p-4 transition hover:bg-gold/20"
+        >
+          <span className="min-w-0">
+            <span className="block text-sm font-semibold text-chalk">
+              {iHavePredicted ? "Edit your prediction" : "Make your prediction"}
+            </span>
+            <span className="block text-xs text-chalk-dim">
+              Pick the score &amp; goal scorers before kickoff — counts in every league.
+            </span>
+          </span>
+          <span className="shrink-0 text-lg text-gold">&rarr;</span>
+        </Link>
+      )}
+
+      {locked ? (
+        predRows.length === 0 ? (
           <p className="glass rounded-2xl p-6 text-center text-sm text-chalk-dim">
-            🔒 <span className="font-semibold text-chalk">{predRows.length}</span>{" "}
-            {predRows.length === 1 ? "manager has" : "managers have"} locked in a pick — everyone&apos;s
-            predictions are revealed the moment this match kicks off.
+            No predictions were made for this match.
           </p>
         ) : (
           <MatchPredictions home={home ?? null} away={away ?? null} rows={predRows} />
-        )}
-      </section>
-    );
+        )
+      ) : predRows.length > 0 ? (
+        <p className="glass rounded-2xl p-6 text-center text-sm text-chalk-dim">
+          🔒 <span className="font-semibold text-chalk">{predRows.length}</span>{" "}
+          {predRows.length === 1 ? "manager has" : "managers have"} locked in a pick — everyone&apos;s
+          predictions are revealed the moment this match kicks off.
+        </p>
+      ) : null}
+    </section>
+  );
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 p-4 sm:space-y-8 sm:p-6 lg:max-w-5xl">

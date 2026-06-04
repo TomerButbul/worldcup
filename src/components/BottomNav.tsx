@@ -73,8 +73,14 @@ export function GlobalNav(): JSX.Element | null {
   if (!pathname || pathname === "/" || GLOBAL_HIDE.some((p) => pathname.startsWith(p))) return null;
   const tabs: Tab[] = [
     { href: "/dashboard", label: "Home", icon: "home", active: pathname.startsWith("/dashboard") },
+    { href: "/predict", label: "Predict", icon: "target", active: pathname.startsWith("/predict") },
+    {
+      href: "/bracket",
+      label: "Bracket",
+      icon: "bracket",
+      active: pathname.startsWith("/bracket") || pathname.startsWith("/awards"),
+    },
     { href: "/rankings", label: "Rankings", icon: "globe", active: pathname.startsWith("/rankings") },
-    { href: "/how-it-works", label: "How to", icon: "help", active: pathname.startsWith("/how-it-works") },
   ];
   return <Bar tabs={tabs} />;
 }
@@ -96,7 +102,10 @@ export function LeagueNav({ leagueId, kind }: { leagueId: string; kind: string }
     return <Bar tabs={tabs} />;
   }
 
-  // Prediction league — real sub-routes. "My Picks" (/me) folds into Table.
+  // Prediction league = leaderboard ("Table", with /me + /players folded in) plus
+  // the shared "Matches" view. Picks are account-level now, so "Predict" and
+  // "Bracket" jump to the single global pages shared across all your leagues
+  // (active never highlights here — they navigate out to the top-level pages).
   const tabs: Tab[] = [
     {
       href: base,
@@ -104,13 +113,8 @@ export function LeagueNav({ leagueId, kind }: { leagueId: string; kind: string }
       icon: "trophy",
       active: pathname === base || pathname.startsWith(`${base}/players`) || pathname.startsWith(`${base}/me`),
     },
-    {
-      href: `${base}/bracket`,
-      label: "Bracket",
-      icon: "bracket",
-      active: pathname.startsWith(`${base}/bracket`) || pathname.startsWith(`${base}/awards`),
-    },
-    { href: `${base}/predict`, label: "Predict", icon: "target", active: pathname.startsWith(`${base}/predict`) },
+    { href: "/predict", label: "Predict", icon: "target", active: false },
+    { href: "/bracket", label: "Bracket", icon: "bracket", active: false },
     { href: `${base}/matches`, label: "Matches", icon: "ball", active: pathname.startsWith(`${base}/matches`) },
   ];
   return <Bar tabs={tabs} />;

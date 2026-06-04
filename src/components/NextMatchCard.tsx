@@ -17,18 +17,19 @@ export interface NextMatchData {
   awayLogoUrl: string | null;
 }
 
-export interface LeaguePrediction {
-  leagueId: string;
-  leagueName: string;
-  pred: { home: number; away: number } | null;
-}
-
+// Predictions are account-level (the same in every league), so we show ONE pick.
+// The whole card is a link to that match on the global /predict page (anchored by
+// id) so a tap takes you straight to its details + scorer picker.
 export default function NextMatchCard({
   match,
-  predictions,
+  matchId,
+  prediction,
+  canPredict,
 }: {
   match: NextMatchData;
-  predictions: LeaguePrediction[];
+  matchId: number;
+  prediction: { home: number; away: number } | null;
+  canPredict: boolean;
 }) {
   const kickoff = new Date(match.kickoff_at).toLocaleString(undefined, {
     weekday: "short",
@@ -39,7 +40,10 @@ export default function NextMatchCard({
   });
 
   return (
-    <div className="glass rounded-2xl p-4">
+    <Link
+      href={`/predict#match-${matchId}`}
+      className="block rounded-2xl glass p-4 transition hover:border-grass/50 hover:bg-night/5"
+    >
       <div className="mb-3 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs text-chalk-dim">
         <span className="font-display text-gold">{stageLabel(match.stage)}</span>
         <span className="flex shrink-0 items-center gap-2">
@@ -74,32 +78,22 @@ export default function NextMatchCard({
         </span>
       </div>
 
-      {predictions.length > 0 ? (
-        <div className="mt-4 space-y-1.5">
-          <p className="inline-flex items-center gap-1.5 text-xs font-medium text-chalk-dim"><Upfront size={13} /> Your prediction</p>
-          {predictions.map((p) => (
-            <div key={p.leagueId} className="flex items-center justify-between gap-2 text-sm">
-              <span className="min-w-0 truncate text-chalk-dim">{p.leagueName}</span>
-              {p.pred ? (
-                <span className="font-display text-chalk">
-                  {p.pred.home}–{p.pred.away}
-                </span>
-              ) : (
-                <Link
-                  href={`/leagues/${p.leagueId}/predict`}
-                  className="shrink-0 rounded-lg bg-grass/15 px-2.5 py-1 text-xs font-semibold text-grass transition hover:bg-grass/25"
-                >
-                  Predict →
-                </Link>
-              )}
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p className="mt-4 text-center text-xs text-chalk-dim">
-          Join a league below to predict this match.
+      <div className="mt-4 flex items-center justify-between gap-2 border-t border-night/5 pt-3">
+        <p className="inline-flex items-center gap-1.5 text-xs font-medium text-chalk-dim">
+          <Upfront size={13} /> Your prediction
         </p>
-      )}
-    </div>
+        {prediction ? (
+          <span className="font-display text-chalk">
+            {prediction.home}&ndash;{prediction.away}
+          </span>
+        ) : canPredict ? (
+          <span className="shrink-0 rounded-lg bg-grass/15 px-2.5 py-1 text-xs font-semibold text-grass">
+            Predict &rarr;
+          </span>
+        ) : (
+          <span className="text-xs text-chalk-dim">Join a league to predict</span>
+        )}
+      </div>
+    </Link>
   );
 }

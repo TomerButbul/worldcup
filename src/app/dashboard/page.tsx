@@ -13,7 +13,7 @@ import FavoriteTeamPicker from "@/components/FavoriteTeamPicker";
 import FavoriteTeamStatus from "@/components/FavoriteTeamStatus";
 import Countdown from "@/components/Countdown";
 import NotificationToggle from "@/components/NotificationToggle";
-import NextMatchCard, { type NextMatchData, type LeaguePrediction } from "@/components/NextMatchCard";
+import NextMatchCard, { type NextMatchData } from "@/components/NextMatchCard";
 import { computeFavStatus } from "@/lib/favoriteStatus";
 import AutoRefresh from "@/components/AutoRefresh";
 import { nowMs, KICKOFF_MS } from "@/lib/clock";
@@ -44,7 +44,7 @@ export default async function DashboardPage({
 
   const { data: memberships } = await supabase
     .from("league_members")
-    .select("role, leagues ( id, name, join_code, kind )")
+    .select("role, leagues ( id, name, join_code, kind, is_global )")
     .eq("user_id", user.id);
 
   const teams = (await getCachedTeams()) as Team[];
@@ -61,9 +61,13 @@ export default async function DashboardPage({
   const favTeam = teams.find((t) => t.id === favId) ?? null;
 
   const leagues = (memberships ?? [])
-    .map((m) => ({ role: m.role, ...(m.leagues as unknown as { id: string; name: string; join_code: string; kind: string }) }))
+    .map((m) => ({ role: m.role, ...(m.leagues as unknown as { id: string; name: string; join_code: string; kind: string; is_global?: boolean }) }))
     .filter((l) => l.id);
+  // The global "World" league is auto-joined for every account — hide it from the
+  // friends-league list (it's surfaced via Rankings instead).
+  const friendsLeagues = leagues.filter((l) => !l.is_global);
   // Draft leagues are a separate game — never prompt them for score predictions.
+  // Global counts as a prediction league, so everyone can always predict.
   const predictionLeagues = leagues.filter((l) => l.kind !== "draft");
 
   // Soonest match still open for prediction (kickoff in the future), tournament-wide.
@@ -80,7 +84,8 @@ export default async function DashboardPage({
   const nextMatch = nextMatchRows?.[0] ?? null;
 
   let nextMatchData: NextMatchData | null = null;
-  let nextPredictions: LeaguePrediction[] = [];
+  let nextPrediction: { home: number; away: number } | null = null;
+  const canPredict = predictionLeagues.length > 0;
   if (nextMatch) {
     const teamById = new Map(teams.map((t) => [t.id, t]));
     const home = nextMatch.home_team_id ? teamById.get(nextMatch.home_team_id) : null;
@@ -98,23 +103,17 @@ export default async function DashboardPage({
       awayLogoUrl: away?.logo_url ?? null,
     };
 
-    if (predictionLeagues.length > 0) {
-      // Every stage's scoreline now lives in match_predictions (the upfront
-      // bracket is table-order only), so one lookup covers group + knockout.
+    if (canPredict) {
+      // Picks are account-level (identical across every league), so grab any one.
       const { data: myPreds } = await supabase
         .from("match_predictions")
-        .select("league_id, home_goals, away_goals")
+        .select("home_goals, away_goals")
         .eq("user_id", user.id)
-        .eq("match_id", nextMatch.id);
-      const predByLeague = new Map((myPreds ?? []).map((p) => [p.league_id, p]));
-      nextPredictions = predictionLeagues.map((l) => {
-        const p = predByLeague.get(l.id);
-        return {
-          leagueId: l.id,
-          leagueName: l.name,
-          pred: p && p.home_goals != null ? { home: p.home_goals, away: p.away_goals } : null,
-        };
-      });
+        .eq("match_id", nextMatch.id)
+        .not("home_goals", "is", null)
+        .limit(1);
+      const p = myPreds?.[0];
+      if (p && p.home_goals != null) nextPrediction = { home: p.home_goals, away: p.away_goals ?? 0 };
     }
   }
 
@@ -162,11 +161,16 @@ export default async function DashboardPage({
             <NotificationToggle placement="top" />
           </Reveal>
 
-          {nextMatchData && (
+          {nextMatchData && nextMatch && (
             <Reveal>
               <section className="space-y-2">
                 <h2 className="font-display text-lg text-chalk">Up next</h2>
-                <NextMatchCard match={nextMatchData} predictions={nextPredictions} />
+                <NextMatchCard
+                  match={nextMatchData}
+                  matchId={nextMatch.id}
+                  prediction={nextPrediction}
+                  canPredict={canPredict}
+                />
               </section>
             </Reveal>
           )}
@@ -177,13 +181,14 @@ export default async function DashboardPage({
 
           <section className="space-y-2">
             <h2 className="font-display text-lg text-chalk">Your Leagues</h2>
-            {leagues.length === 0 ? (
+            {friendsLeagues.length === 0 ? (
               <p className="glass rounded-2xl p-5 text-center text-sm text-chalk-dim">
-                No leagues yet. Create one or join with a code below.
+                No leagues yet. Create one or join with a code below — or just make your
+                predictions, they count on the global rankings.
               </p>
             ) : (
               <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                {leagues.map((l, i) => (
+                {friendsLeagues.map((l, i) => (
                   <Reveal key={l.id} index={i}>
                     <Link
                       href={`/leagues/${l.id}`}

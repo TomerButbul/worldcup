@@ -146,11 +146,14 @@ export default async function LeaguePage({
 
   const { data: league } = await supabase
     .from("leagues")
-    .select("id, name, join_code, owner_id, bracket_lock_at, kind")
+    .select("id, name, join_code, owner_id, bracket_lock_at, kind, is_global")
     .eq("id", id)
     .maybeSingle();
   // Logged in but not a member (RLS hides the row) → their own dashboard, not a 404.
   if (!league) redirect("/dashboard");
+  // The global "World" league isn't a normal friends league — its leaderboard IS
+  // the worldwide board, so send anyone who lands on it to /rankings instead.
+  if (league.is_global) redirect("/rankings");
 
   if (league.kind === "draft") {
     const [stateRes, picksRes, membersRes] = await Promise.all([
@@ -397,6 +400,9 @@ export default async function LeaguePage({
                   {locked ? "Bracket locked" : "Bracket open"}
                 </span>
               </p>
+              <p className="mt-1 text-xs text-chalk-dim">
+                Your bracket, match scores &amp; awards are set once on your account and count in every league.
+              </p>
               {league.join_code && (
                 <div className="mt-3">
                   <ShareInvite code={league.join_code} />
@@ -407,18 +413,18 @@ export default async function LeaguePage({
               <Link href={`/leagues/${id}/matches`} className={`${btnClass("ghost")} flex-1 text-center sm:flex-none`}>
                 <span className="inline-flex items-center justify-center gap-1.5"><Ball size={15} /> Matches</span>
               </Link>
-              <Link href={`/leagues/${id}/awards`} className={`${btnClass("ghost")} flex-1 text-center sm:flex-none`}>
-                <span className="inline-flex items-center justify-center gap-1.5"><Medal size={15} /> Awards</span>
-              </Link>
               <Link href={`/leagues/${id}/me`} className={`${btnClass("ghost")} flex-1 text-center sm:flex-none`}>
                 <span className="inline-flex items-center justify-center gap-1.5"><Upfront size={15} /> My picks</span>
               </Link>
+              <Link href="/bracket" className={`${btnClass("ghost")} flex-1 text-center sm:flex-none`}>
+                <span className="inline-flex items-center justify-center gap-1.5"><Trophy size={15} /> Bracket</span>
+              </Link>
               <Link
-                href={`/leagues/${id}/bracket`}
+                href="/predict"
                 className={`${btnClass("gold")} w-full text-center sm:w-auto`}
                 style={{ background: GOLD_GRADIENT, boxShadow: "var(--shadow-glow-gold)" }}
               >
-                {locked ? "View bracket" : <span className="inline-flex items-center justify-center gap-1.5"><Trophy size={15} /> Make picks</span>}
+                {locked ? "View predictions" : <span className="inline-flex items-center justify-center gap-1.5"><Ball size={15} /> Edit predictions</span>}
               </Link>
             </div>
           </div>
@@ -482,7 +488,7 @@ export default async function LeaguePage({
           {needAwards && (
             <Reveal index={1}>
               <Link
-                href={`/leagues/${id}/awards`}
+                href="/awards"
                 className="flex items-center gap-3 rounded-2xl border border-gold/30 bg-gold/10 p-4 transition hover:bg-gold/20"
               >
                 <Medal size={26} className="text-gold" />
