@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { btnClass } from "@/components/buttonStyles";
 import Hero from "@/components/Hero";
 import InstallPrompt from "@/components/InstallPrompt";
+import GameButton from "@/components/GameButton";
+import { playAsGuest } from "@/app/auth/actions";
 
 export default async function Home() {
   const supabase = await createClient();
@@ -13,31 +14,31 @@ export default async function Home() {
   if (user) redirect("/dashboard");
 
   return (
-    <main className="flex flex-1 flex-col items-center justify-center gap-10 p-6 text-center">
+    <main className="flex flex-1 flex-col items-center justify-center gap-9 p-6 text-center">
       <Hero />
-      <div className="flex w-full max-w-xs flex-col items-stretch gap-3 sm:max-w-none sm:flex-row sm:items-center sm:justify-center">
-        <Link href="/signup" className={btnClass("gold")} style={{ background: "linear-gradient(90deg,#ffd970,#f6c453)" }}>
-          Get started
-        </Link>
-        <Link href="/login" className={btnClass("ghost")}>
-          Log in
-        </Link>
+
+      {/* Start instantly as a guest — no sign-up. (Falls back to /signup if guest
+          sessions aren't enabled yet.) Account creation stays one tap away. */}
+      <div className="flex flex-col items-center gap-2">
+        <form action={playAsGuest}>
+          <GameButton type="submit" variant="gold" className="px-10">
+            Start playing — free
+          </GameButton>
+        </form>
+        <p className="text-sm text-chalk-dim">
+          No sign-up to start.{" "}
+          <Link href="/login" className="font-semibold text-gold hover:underline">Log in</Link>
+          {" · "}
+          <Link href="/signup" className="font-semibold text-gold hover:underline">create an account</Link>
+        </p>
       </div>
 
-      <InstallPrompt />
-
-      <Link
-        href="/how-it-works"
-        className="text-sm text-chalk-dim underline-offset-2 hover:text-chalk hover:underline"
-      >
-        How it works &amp; scoring &rarr;
-      </Link>
-
+      {/* Depth tiers — everyone's welcome; you choose how far you go. */}
       <div className="grid max-w-2xl gap-3 sm:grid-cols-3">
         {[
-          { t: "Upfront Bracket", d: "Call all 12 groups + the full knockout to the champion." },
-          { t: "Live Predictions", d: "Score and goal-scorer picks for every match." },
-          { t: "3 Crowns", d: "Win upfront, win live, win overall." },
+          { t: "Keep it simple", d: "Just pick who you think wins each match." },
+          { t: "Go deeper", d: "Scorelines, goal scorers, the Golden Boot & the full bracket." },
+          { t: "Compete", d: "Climb live leaderboards with friends — and the world." },
         ].map((f) => (
           <div
             key={f.t}
@@ -48,6 +49,15 @@ export default async function Home() {
           </div>
         ))}
       </div>
+
+      <InstallPrompt />
+
+      <Link
+        href="/how-it-works"
+        className="text-sm text-chalk-dim underline-offset-2 hover:text-chalk hover:underline"
+      >
+        How it works &amp; scoring &rarr;
+      </Link>
     </main>
   );
 }

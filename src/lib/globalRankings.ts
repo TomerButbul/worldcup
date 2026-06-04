@@ -37,23 +37,27 @@ export const getCachedGlobalRankings = unstable_cache(
 
     const { data: profiles } = await s
       .from("profiles")
-      .select("id, display_name, team_name, avatar_url, favorite_team_id")
+      .select("id, display_name, team_name, avatar_url, favorite_team_id, is_guest")
       .in("id", ids);
 
     const profById = new Map(
       (profiles ?? []).map((p) => [p.id as string, p]),
     );
 
-    const ranks: GlobalRank[] = ids.map((id) => {
-      const p = profById.get(id);
-      return {
-        user_id: id,
-        name: p?.team_name || p?.display_name || "Player",
-        avatarUrl: p?.avatar_url ?? null,
-        favTeamId: p?.favorite_team_id ?? null,
-        best: bestByUser.get(id) ?? 0,
-      };
-    });
+    const ranks: GlobalRank[] = ids
+      .map((id) => {
+        const p = profById.get(id);
+        // Guests are hidden from the worldwide board until they create an account.
+        if (p?.is_guest) return null;
+        return {
+          user_id: id,
+          name: p?.team_name || p?.display_name || "Player",
+          avatarUrl: p?.avatar_url ?? null,
+          favTeamId: p?.favorite_team_id ?? null,
+          best: bestByUser.get(id) ?? 0,
+        };
+      })
+      .filter((r): r is GlobalRank => r !== null);
 
     ranks.sort((a, b) => b.best - a.best);
     return ranks;

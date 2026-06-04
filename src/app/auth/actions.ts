@@ -15,6 +15,30 @@ export async function signup(formData: FormData) {
   }
 
   const supabase = await createClient();
+
+  // If a guest is upgrading (currently signed in anonymously), attach the email +
+  // password to THAT account so all their existing picks carry over — don't make
+  // a brand-new user.
+  const {
+    data: { user: current },
+  } = await supabase.auth.getUser();
+  if (current?.is_anonymous) {
+    const { error: upErr } = await supabase.auth.updateUser({
+      email,
+      password,
+      data: { display_name: displayName },
+    });
+    if (upErr) {
+      redirect(`/signup?error=${encodeURIComponent(upErr.message)}`);
+    }
+    await supabase
+      .from("profiles")
+      .update({ is_guest: false, display_name: displayName })
+      .eq("id", current.id);
+    const invited = await consumePendingInvite();
+    redirect(invited ? `/leagues/${invited}` : "/dashboard");
+  }
+
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
@@ -50,6 +74,21 @@ export async function login(formData: FormData) {
   // Existing user who arrived via an invite link gets auto-joined on login too.
   const invitedLeagueId = await consumePendingInvite();
   redirect(invitedLeagueId ? `/leagues/${invitedLeagueId}` : "/dashboard");
+}
+
+// Start a guest session: an anonymous account so a visitor can play immediately,
+// then upgrade later (the signup form attaches an email to this same account,
+// keeping every pick). Degrades gracefully — if anonymous sign-ins aren't enabled
+// in Supabase yet, fall back to the signup page so the CTA always works.
+export async function playAsGuest() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user) redirect("/dashboard"); // already playing (guest or full) → resume
+  const { error } = await supabase.auth.signInAnonymously();
+  if (error) redirect("/signup");
+  redirect("/dashboard");
 }
 
 export async function signInWithGoogle() {

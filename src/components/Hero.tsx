@@ -28,19 +28,19 @@ export default function Hero() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.2 }}
       >
-        <span className="text-gradient-fifa">World</span>{" "}
-        <span className="text-gradient-gold">Cup</span>{" "}
-        <span className="text-grass">2026</span>
+        <span className="text-gradient-gold">Play the</span>{" "}
+        <span className="text-gradient-fifa">World Cup</span>
       </motion.h1>
 
       <motion.p
-        className="mx-auto max-w-md text-chalk-dim"
+        className="mx-auto max-w-lg text-chalk-dim"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.6, delay: 0.45 }}
       >
-        Predict the bracket, call every match, and battle your friends across three
-        leaderboards. Glory awaits.
+        Predict the 2026 tournament your way — pick winners in seconds, or go deep on
+        scorelines, goal scorers and the bracket. Casual fan or die-hard, you&apos;re
+        playing the same game.
       </motion.p>
 
       <motion.div

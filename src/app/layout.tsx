@@ -6,6 +6,7 @@ import FlagGarland from "@/components/FlagGarland";
 import { PlayerCardHost } from "@/components/PlayerCard";
 import { TeamCardHost } from "@/components/TeamCard";
 import { GlobalNav } from "@/components/BottomNav";
+import GuestBanner from "@/components/GuestBanner";
 import LiveScoresWidget from "@/components/LiveScoresWidget";
 import { getCachedMatchdayFlags } from "@/lib/tournamentData";
 import { createClient } from "@/lib/supabase/server";
@@ -86,6 +87,11 @@ export default async function RootLayout({
               : ""
           }`}
         >
+          {user?.is_anonymous && (
+            <div className="px-4 pt-1 sm:px-6 lg:px-8">
+              <GuestBanner />
+            </div>
+          )}
           {children}
         </div>
         {/* GlobalNav self-hides on auth/landing/league routes; LeagueNav (in the
