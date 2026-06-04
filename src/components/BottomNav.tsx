@@ -66,17 +66,22 @@ export function LeagueNav({ leagueId, kind }: { leagueId: string; kind: string }
     return <Bar tabs={tabs} />;
   }
 
-  // Prediction league — real sub-routes.
+  // Prediction league — real sub-routes. "My Picks" (/me) folds into Table.
   const tabs: Tab[] = [
-    { href: base, label: "Table", icon: "trophy", active: pathname === base || pathname.startsWith(`${base}/players`) },
+    {
+      href: base,
+      label: "Table",
+      icon: "trophy",
+      active: pathname === base || pathname.startsWith(`${base}/players`) || pathname.startsWith(`${base}/me`),
+    },
     {
       href: `${base}/bracket`,
       label: "Bracket",
       icon: "bracket",
       active: pathname.startsWith(`${base}/bracket`) || pathname.startsWith(`${base}/awards`),
     },
+    { href: `${base}/predict`, label: "Predict", icon: "target", active: pathname.startsWith(`${base}/predict`) },
     { href: `${base}/matches`, label: "Matches", icon: "ball", active: pathname.startsWith(`${base}/matches`) },
-    { href: `${base}/me`, label: "My Picks", icon: "target", active: pathname.startsWith(`${base}/me`) },
   ];
   return <Bar tabs={tabs} />;
 }

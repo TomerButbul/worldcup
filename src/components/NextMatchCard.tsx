@@ -85,10 +85,10 @@ export default function NextMatchCard({
                 </span>
               ) : (
                 <Link
-                  href={`/leagues/${p.leagueId}/${match.stage === "group" ? "bracket" : "matches"}`}
+                  href={`/leagues/${p.leagueId}/predict`}
                   className="shrink-0 rounded-lg bg-grass/15 px-2.5 py-1 text-xs font-semibold text-grass transition hover:bg-grass/25"
                 >
-                  {match.stage === "group" ? "Pick score →" : "Predict →"}
+                  Predict →
                 </Link>
               )}
             </div>
