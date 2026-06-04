@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { AWARD_KEYS } from "@/lib/scoring-core";
+import { userPredictionLeagueIds } from "@/lib/predictionSync";
 
 export async function saveAwards(leagueId: string, awards: Record<string, number>) {
   const supabase = await createClient();
@@ -31,32 +32,23 @@ export async function saveAwards(leagueId: string, awards: Record<string, number
   }
 
   const now = new Date().toISOString();
-  // Update only `awards` so we never clobber the user's group_scores/knockout.
-  const { data: existing } = await supabase
+  // Account-level picks: mirror awards to every prediction league the user is in.
+  // Upserting ONLY `awards` (+ updated_at) never clobbers each league's existing
+  // group_order/knockout on conflict; on a fresh insert the rest take DB defaults.
+  const leagueIds = await userPredictionLeagueIds(supabase, user.id);
+  const targets = leagueIds.length ? leagueIds : [leagueId];
+  const rows = targets.map((lid) => ({
+    league_id: lid,
+    user_id: user.id,
+    awards: clean,
+    updated_at: now,
+  }));
+  const { error } = await supabase
     .from("bracket_predictions")
-    .select("user_id")
-    .eq("league_id", leagueId)
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  const { error } = existing
-    ? await supabase
-        .from("bracket_predictions")
-        .update({ awards: clean, updated_at: now })
-        .eq("league_id", leagueId)
-        .eq("user_id", user.id)
-    : await supabase.from("bracket_predictions").insert({
-        league_id: leagueId,
-        user_id: user.id,
-        group_scores: {},
-        knockout: {},
-        champion_team_id: null,
-        awards: clean,
-        updated_at: now,
-      });
+    .upsert(rows, { onConflict: "league_id,user_id" });
 
   if (error) return { ok: false, error: error.message };
 
-  revalidatePath(`/leagues/${leagueId}`);
+  for (const lid of targets) revalidatePath(`/leagues/${lid}`);
   return { ok: true };
 }

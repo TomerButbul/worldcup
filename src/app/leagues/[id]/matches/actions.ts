@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { userPredictionLeagueIds } from "@/lib/predictionSync";
 
 export async function savePrediction(
   leagueId: string,
@@ -63,20 +64,26 @@ export async function savePrediction(
       ? penWinnerTeamId
       : null;
 
-  const { error } = await supabase.from("match_predictions").upsert(
-    {
-      league_id: leagueId,
-      user_id: user.id,
-      match_id: matchId,
-      home_goals: home,
-      away_goals: away,
-      scorer_goals: clean,
-      scorer_ids: Object.keys(clean).map(Number), // legacy column kept in sync
-      pen_winner_team_id: penWinner,
-      submitted_at: new Date().toISOString(),
-    },
-    { onConflict: "league_id,user_id,match_id" },
-  );
+  // Account-level picks: mirror this match prediction to every prediction league
+  // the user belongs to, so they predict once and it counts everywhere.
+  const now = new Date().toISOString();
+  const scorerIds = Object.keys(clean).map(Number); // legacy column kept in sync
+  const leagueIds = await userPredictionLeagueIds(supabase, user.id);
+  const targets = leagueIds.length ? leagueIds : [leagueId];
+  const rows = targets.map((lid) => ({
+    league_id: lid,
+    user_id: user.id,
+    match_id: matchId,
+    home_goals: home,
+    away_goals: away,
+    scorer_goals: clean,
+    scorer_ids: scorerIds,
+    pen_winner_team_id: penWinner,
+    submitted_at: now,
+  }));
+  const { error } = await supabase
+    .from("match_predictions")
+    .upsert(rows, { onConflict: "league_id,user_id,match_id" });
 
   if (error) return { ok: false, error: error.message };
   return { ok: true };

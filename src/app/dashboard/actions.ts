@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { userPredictionLeagueIds } from "@/lib/predictionSync";
 
 export async function saveProfile(fields: {
   display_name?: string;
@@ -73,5 +74,46 @@ export async function joinLeague(formData: FormData) {
   });
   if (error) redirect(`/dashboard?error=${encodeURIComponent(error.message)}`);
 
-  redirect(`/leagues/${data}`);
+  // Account-level picks: copy the user's existing bracket + match predictions into
+  // the freshly-joined league so they're scored there too (predict once, count
+  // everywhere). Best-effort — never blocks the join.
+  const newLeagueId = data as string;
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user) {
+      const src = (await userPredictionLeagueIds(supabase, user.id)).find((id) => id !== newLeagueId);
+      if (src) {
+        const now = new Date().toISOString();
+        const { data: br } = await supabase
+          .from("bracket_predictions")
+          .select("group_order, third_qualifiers, knockout, champion_team_id, awards, group_scores")
+          .eq("league_id", src)
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (br) {
+          await supabase
+            .from("bracket_predictions")
+            .upsert(
+              { league_id: newLeagueId, user_id: user.id, ...br, submitted_at: now, updated_at: now },
+              { onConflict: "league_id,user_id" },
+            );
+        }
+        const { data: mps } = await supabase
+          .from("match_predictions")
+          .select("match_id, home_goals, away_goals, scorer_goals, scorer_ids, pen_winner_team_id")
+          .eq("league_id", src)
+          .eq("user_id", user.id);
+        if (mps?.length) {
+          const rows = mps.map((m) => ({ ...m, league_id: newLeagueId, user_id: user.id, submitted_at: now }));
+          await supabase.from("match_predictions").upsert(rows, { onConflict: "league_id,user_id,match_id" });
+        }
+      }
+    }
+  } catch {
+    // best-effort; a copy failure should never block joining
+  }
+
+  redirect(`/leagues/${newLeagueId}`);
 }
