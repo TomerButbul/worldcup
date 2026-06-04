@@ -5,7 +5,7 @@ import PlayerAvatar from "@/components/PlayerAvatar";
 import { PlayerCardButton } from "@/components/PlayerCard";
 import { rowLabels } from "@/lib/positions";
 
-type LP = { player_id: number; name: string; number: number | null; pos: string | null; grid: string | null };
+type LP = { player_id: number; name: string; number: number | null; pos: string | null; grid: string | null; ovr?: number | null };
 export type TeamLineup = { formation: string | null; xi: LP[] };
 
 const POS_ROW: Record<string, number> = { G: 1, D: 2, M: 3, F: 4 };
@@ -84,7 +84,17 @@ export default function TeamFormation({ lineup, teamName }: { lineup: TeamLineup
               detailPos={label}
               className="flex w-full flex-col items-center gap-0.5"
             >
-              <PlayerAvatar playerId={p.player_id} name={p.name} size={30} className="border-2 border-white/80 shadow" />
+              <span className="relative inline-block">
+                <PlayerAvatar playerId={p.player_id} name={p.name} size={30} className="border-2 border-white/80 shadow" />
+                {p.ovr != null && (
+                  <span
+                    title="EA FC 26 overall"
+                    className="absolute -right-1.5 -top-1.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full border border-white/70 bg-gold px-0.5 text-[8px] font-bold leading-none text-night shadow"
+                  >
+                    {p.ovr}
+                  </span>
+                )}
+              </span>
               {label && (
                 <span className="rounded bg-night/70 px-1 text-[8px] font-bold uppercase leading-tight text-gold">
                   {label}

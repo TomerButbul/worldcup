@@ -73,6 +73,25 @@ const loadTeam = unstable_cache(
       }
     }
 
+    // Attach EA FC 26 OVR to each XI player so the pitch shows at-a-glance "who's
+    // better" gold badges. Null for players not in the FC 26 database.
+    if (lineup?.xi?.length) {
+      const ids = (lineup.xi as { player_id?: number }[])
+        .map((p) => p.player_id)
+        .filter((x): x is number => typeof x === "number");
+      if (ids.length) {
+        const { data: ovrRows } = await s.from("players").select("id, ovr").in("id", ids);
+        const ovrMap = new Map((ovrRows ?? []).map((r) => [r.id, r.ovr]));
+        lineup = {
+          ...lineup,
+          xi: (lineup.xi as { player_id?: number }[]).map((p) => ({
+            ...p,
+            ovr: p.player_id != null ? ovrMap.get(p.player_id) ?? null : null,
+          })),
+        };
+      }
+    }
+
     return {
       id: t.id,
       name: t.name,

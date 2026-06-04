@@ -17,6 +17,7 @@ export type PlayerProfile = {
   photo_url: string | null;
   height_cm: number | null;
   weight_kg: number | null;
+  ovr: number | null; // EA FC 26 overall rating (null when not in the FC 26 DB)
   team: { id: number; name: string; logo_url: string | null; code: string | null } | null;
   stats: {
     apps: number;
@@ -35,7 +36,7 @@ const loadPlayer = unstable_cache(
     const s = createServiceClient();
     const { data: p } = await s
       .from("players")
-      .select("id, team_id, name, position, number, age, photo_url, height_cm, weight_kg, nationality, birth_date")
+      .select("id, team_id, name, position, number, age, photo_url, height_cm, weight_kg, nationality, birth_date, ovr")
       .eq("id", id)
       .maybeSingle();
     if (!p) return null;
@@ -91,6 +92,7 @@ const loadPlayer = unstable_cache(
       photo_url: p.photo_url,
       height_cm: p.height_cm,
       weight_kg: p.weight_kg,
+      ovr: p.ovr ?? null,
       team: (teamRes.data as PlayerProfile["team"]) ?? null,
       stats: { apps, minutes, goals, assists, yellow, red, saves, cleanSheets },
     };

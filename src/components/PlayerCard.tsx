@@ -19,6 +19,7 @@ type Profile = {
   photo_url: string | null;
   height_cm: number | null;
   weight_kg: number | null;
+  ovr: number | null;
   team: { id: number; name: string; logo_url: string | null; code: string | null } | null;
   stats: {
     apps: number;
@@ -244,7 +245,18 @@ function PlayerCardModal({ req, onClose }: { req: CardReq; onClose: () => void }
         </div>
 
         <div className="flex flex-col items-center text-center">
-          <PlayerAvatar playerId={playerId} name={name} size={96} className="border-4 border-white/80 shadow-lg" />
+          <div className="relative">
+            <PlayerAvatar playerId={playerId} name={name} size={96} className="border-4 border-white/80 shadow-lg" />
+            {p?.ovr != null && (
+              <span
+                title="EA FC 26 overall rating"
+                className="absolute -right-1.5 -top-1.5 flex h-10 w-10 flex-col items-center justify-center rounded-full border-2 border-white/80 bg-gold font-display leading-none text-night shadow-md"
+              >
+                <span className="text-base font-bold tabular-nums">{p.ovr}</span>
+                <span className="text-[7px] font-semibold uppercase tracking-wide">OVR</span>
+              </span>
+            )}
+          </div>
           <p className="mt-3 font-display text-2xl text-chalk">{name}</p>
           <div className="mt-2 flex flex-wrap items-center justify-center gap-2 text-sm text-chalk-dim">
             {badge && <span className="rounded-lg bg-gold/20 px-2.5 py-1 font-semibold text-gold">{badge}</span>}
