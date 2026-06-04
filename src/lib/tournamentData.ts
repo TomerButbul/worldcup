@@ -40,7 +40,7 @@ export const getCachedPlayers = unstable_cache(
     for (let from = 0; from < 10000; from += 1000) {
       const { data } = await s
         .from("players")
-        .select("id, team_id, name, position, number, in_squad")
+        .select("id, team_id, name, position, number, in_squad, ovr")
         .eq("in_squad", true)
         .order("id")
         .range(from, from + 999);

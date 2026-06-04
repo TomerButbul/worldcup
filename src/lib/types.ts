@@ -29,6 +29,7 @@ export interface Player {
   weight_kg?: number | null;
   birth_date?: string | null;
   nationality?: string | null;
+  ovr?: number | null;
 }
 
 export interface Match {

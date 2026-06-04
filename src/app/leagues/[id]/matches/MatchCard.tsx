@@ -282,6 +282,9 @@ function posOrder(pos: string | null | undefined): number {
   return pos ? (POS_ORDER[pos] ?? 4) : 5;
 }
 
+// Accent-insensitive fold so "Jimenez" finds "Jiménez", "Muller" → "Müller".
+const fold = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+
 function TeamScorers({
   label,
   players,
@@ -300,79 +303,94 @@ function TeamScorers({
   onAdjust: (playerId: number, delta: number) => void;
 }) {
   const [collapsed, setCollapsed] = useState(false);
+  const [query, setQuery] = useState("");
+  const [showAll, setShowAll] = useState(false);
   const atCap = sum >= cap;
   const starters = new Set(lineup?.starters ?? []);
   const subs = new Set(lineup?.subs ?? []);
   const hasLineup = starters.size > 0 || subs.size > 0;
-  // With an official lineup, show only the matchday squad (XI + subs, plus any
-  // already-picked player), starters first. Otherwise show the full squad.
+  const picked = (id: number) => (scorerGoals[String(id)] ?? 0) > 0;
   const rank = (id: number) => (starters.has(id) ? 0 : subs.has(id) ? 1 : 2);
-  const inMain = (id: number) => starters.has(id) || subs.has(id) || (scorerGoals[String(id)] ?? 0) > 0;
   const byPos = (a: Player, b: Player) =>
     posOrder(a.position) - posOrder(b.position) || a.name.localeCompare(b.name);
-  // With a lineup (official XI or the team's last XI), show that XI up front,
-  // forwards first (likeliest scorers) down to the keeper, and tuck the rest of
-  // the squad into a collapsed "Full squad" section.
-  const list = hasLineup
-    ? players.filter((p) => inMain(p.id)).sort((a, b) => rank(a.id) - rank(b.id) || byPos(a, b))
-    : [...players].sort(byPos);
-  const bench = hasLineup ? players.filter((p) => !inMain(p.id)).sort(byPos) : [];
+  const byRankPos = (a: Player, b: Player) => rank(a.id) - rank(b.id) || byPos(a, b);
 
-  const renderChip = (p: Player) => {
+  // Your chosen scorers are always pinned at the top. Candidates to add are:
+  // searching → all name matches; otherwise the likely scorers (the XI, forwards
+  // first), with "Show full squad" to reveal the rest — so you're never scrolling
+  // 40+ names to find someone.
+  const selected = players.filter((p) => picked(p.id)).sort(byPos);
+  const q = fold(query.trim());
+  const unpicked = players.filter((p) => !picked(p.id));
+  let candidates: Player[];
+  if (q.length >= 1) {
+    candidates = unpicked.filter((p) => fold(p.name).includes(q)).sort(byRankPos).slice(0, 30);
+  } else if (hasLineup && !showAll) {
+    candidates = unpicked.filter((p) => starters.has(p.id) || subs.has(p.id)).sort(byRankPos);
+  } else if (!showAll) {
+    candidates = [...unpicked].sort(byRankPos).slice(0, 16);
+  } else {
+    candidates = [...unpicked].sort(byRankPos);
+  }
+  const moreAvailable = q.length === 0 && !showAll && candidates.length < unpicked.length;
+
+  // One full-width row: tap the name/avatar → player card (stats, OVR); the
+  // right side is a direct +Goal (or −count+ once picked) so adding is one tap,
+  // no modal.
+  const row = (p: Player) => {
     const count = scorerGoals[String(p.id)] ?? 0;
     const pos = posShort(p.position);
-    const starter = starters.has(p.id);
-    const badgeEl = pos ? (
-      <span className={`ml-0.5 rounded px-1 text-[9px] font-bold uppercase ${starter ? "bg-grass/20 text-grass" : "bg-night/10 text-chalk-dim"}`}>
-        {pos}
-      </span>
-    ) : null;
-    if (count === 0) {
-      // Tap the whole chip → player card (info) with a "Pick as scorer" button,
-      // so you decide with their stats up. No instant add — that's deliberate.
-      return (
-        <PlayerCardButton
-          key={p.id}
-          playerId={p.id}
-          name={p.name}
-          action={atCap ? undefined : { label: `➕ Pick ${p.name} as scorer`, run: () => onAdjust(p.id, 1) }}
-          className={`flex items-center gap-1 rounded-full border border-night/10 py-1 pl-0.5 pr-2.5 text-xs text-chalk transition hover:bg-night/5 ${atCap ? "opacity-40" : ""}`}
-        >
-          <PlayerAvatar playerId={p.id} name={p.name} size={20} />
-          {p.name}
-          {badgeEl}
-        </PlayerCardButton>
-      );
-    }
+    const sel = count > 0;
     return (
-      <span key={p.id} className="flex items-center gap-1 rounded-full border border-grass bg-grass/15 py-0.5 pl-0.5 pr-1 text-xs text-chalk">
+      <div
+        key={p.id}
+        className={`flex items-center gap-2 rounded-lg border px-2 py-1.5 ${sel ? "border-grass bg-grass/10" : "border-night/10"}`}
+      >
         <PlayerCardButton
           playerId={p.id}
           name={p.name}
-          action={atCap ? undefined : { label: `➕ Another goal for ${p.name}`, run: () => onAdjust(p.id, 1) }}
-          className="flex items-center gap-1 rounded-full"
+          className="flex min-w-0 flex-1 items-center gap-2 text-left transition hover:opacity-80"
         >
-          <PlayerAvatar playerId={p.id} name={p.name} size={20} />
-          <span className="font-semibold">{p.name}</span>
-          {badgeEl}
+          <PlayerAvatar playerId={p.id} name={p.name} size={28} />
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-sm font-medium text-chalk">{p.name}</span>
+            <span className="block text-[10px] text-chalk-dim">
+              {pos || "—"}
+              {p.ovr != null && <> · <span className="font-semibold text-gold">{p.ovr} OVR</span></>}
+            </span>
+          </span>
         </PlayerCardButton>
-        <span className="font-display text-grass">×{count}</span>
-        <button
-          onClick={() => onAdjust(p.id, -1)}
-          aria-label={`One fewer for ${p.name}`}
-          className="ml-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-night/10 text-sm leading-none text-chalk hover:bg-night/20"
-        >
-          −
-        </button>
-        <button
-          onClick={() => onAdjust(p.id, 1)}
-          disabled={atCap}
-          aria-label={`One more for ${p.name}`}
-          className="flex h-5 w-5 items-center justify-center rounded-full bg-grass text-sm leading-none text-night hover:brightness-110 disabled:opacity-40"
-        >
-          +
-        </button>
-      </span>
+        {sel ? (
+          <span className="flex shrink-0 items-center gap-1.5">
+            <button
+              onClick={() => onAdjust(p.id, -1)}
+              aria-label={`One fewer for ${p.name}`}
+              className="flex h-6 w-6 items-center justify-center rounded-full bg-night/10 text-base leading-none text-chalk hover:bg-night/20"
+            >
+              −
+            </button>
+            <span className="w-4 text-center font-display text-grass">{count}</span>
+            <button
+              onClick={() => onAdjust(p.id, 1)}
+              disabled={atCap}
+              aria-label={`One more for ${p.name}`}
+              className="flex h-6 w-6 items-center justify-center rounded-full bg-grass text-base leading-none text-night hover:brightness-110 disabled:opacity-40"
+            >
+              +
+            </button>
+          </span>
+        ) : (
+          <button
+            type="button"
+            onClick={() => onAdjust(p.id, 1)}
+            disabled={atCap}
+            aria-label={`Add ${p.name} as a scorer`}
+            className="flex h-7 shrink-0 items-center rounded-full bg-night/10 px-3 text-xs font-semibold text-chalk transition hover:bg-grass hover:text-night disabled:opacity-40"
+          >
+            + Goal
+          </button>
+        )}
+      </div>
     );
   };
 
@@ -430,14 +448,26 @@ function TeamScorers({
         </button>
       ) : (
         <div className="space-y-2">
-          <div className="flex flex-wrap gap-1.5">{list.map(renderChip)}</div>
-          {bench.length > 0 && (
-            <details>
-              <summary className="cursor-pointer list-none text-[11px] font-semibold text-chalk-dim transition hover:text-chalk">
-                ⬇ Full squad ({bench.length} more)
-              </summary>
-              <div className="mt-1.5 flex flex-wrap gap-1.5">{bench.map(renderChip)}</div>
-            </details>
+          {selected.length > 0 && <div className="space-y-1.5">{selected.map(row)}</div>}
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={`Search ${label} players…`}
+            aria-label={`Search ${label} players`}
+            className="w-full rounded-lg border border-night/10 bg-white px-3 py-2 text-sm text-chalk outline-none focus:border-grass focus:ring-2 focus:ring-grass/30"
+          />
+          <div className="max-h-80 space-y-1.5 overflow-y-auto">{candidates.map(row)}</div>
+          {moreAvailable && (
+            <button
+              type="button"
+              onClick={() => setShowAll(true)}
+              className="text-[11px] font-semibold text-chalk-dim transition hover:text-chalk"
+            >
+              ⬇ Show full squad ({unpicked.length - candidates.length} more)
+            </button>
+          )}
+          {q.length >= 1 && candidates.length === 0 && (
+            <p className="text-[11px] text-chalk-dim">No players match &ldquo;{query}&rdquo;.</p>
           )}
         </div>
       )}
