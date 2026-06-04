@@ -3,6 +3,8 @@
 import { useState, type JSX } from "react";
 import Flag from "@/components/Flag";
 import { Trophy } from "@/components/icons";
+import { openTeamCard } from "@/components/TeamCard";
+import { useLongPress } from "@/lib/useLongPress";
 
 // A single team as it appears in the bracket. Mirrors the shape the consumer
 // already has on hand (id + display name + crest code/logo for <Flag>).
@@ -63,6 +65,7 @@ export default function KnockoutBracket({
   locked,
   championNo,
   treeOnly,
+  fifaRank = {},
 }: {
   rounds: BracketRound[]; // in tournament order: R32 … Final
   teamsById: Record<number, BracketTeam>; // lookup for ids in the matches
@@ -71,9 +74,11 @@ export default function KnockoutBracket({
   locked?: boolean;
   championNo?: number; // canonical no of the final (104) — its winner is crowned
   treeOnly?: boolean; // force the connected-tree view + hide the toggle (read-only displays)
+  fifaRank?: Record<number, number>; // teamId → FIFA rank, shown as #N (hold a team for its card)
 }): JSX.Element {
   const highlight = new Set(highlightIds ?? []);
   const interactive = typeof onPick === "function" && !locked;
+  const longPress = useLongPress();
 
   // Two ways to read the same bracket:
   //  • "rounds" — paged, one phase at a time (best for picking on mobile)
@@ -145,10 +150,13 @@ export default function KnockoutBracket({
         : "border-night/10 text-chalk";
     const hover = canPick && !isWinner ? "hover:bg-night/5" : "";
 
+    const rank = fifaRank[teamId];
+    const hold = longPress(() => openTeamCard({ teamId, name }));
     const inner = (
       <>
         <Flag teamId={teamId} logoUrl={t?.logo_url ?? null} code={t?.code ?? null} name={name} size={18} />
         <span className="min-w-0 flex-1 truncate">{name}</span>
+        {rank != null && <span className="shrink-0 text-[10px] tabular-nums opacity-60">#{rank}</span>}
         {isWinner && <span className="shrink-0 text-[11px] leading-none">✓</span>}
       </>
     );
@@ -158,14 +166,26 @@ export default function KnockoutBracket({
         <button
           type="button"
           onClick={() => onPick!(matchNo, teamId)}
-          aria-label={`Pick ${name} to win`}
-          className={`${base} ${tone} ${hover}`}
+          aria-label={`Pick ${name} to win (hold for details)`}
+          className={`${base} ${tone} ${hover} select-none`}
+          {...hold}
         >
           {inner}
         </button>
       );
     }
-    return <div className={`${base} ${tone}`}>{inner}</div>;
+    return (
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => openTeamCard({ teamId, name })}
+        aria-label={`${name} — view details`}
+        className={`${base} ${tone} cursor-pointer select-none`}
+        {...hold}
+      >
+        {inner}
+      </div>
+    );
   };
 
   const matchCard = (m: BracketMatch) => {
@@ -193,8 +213,12 @@ export default function KnockoutBracket({
     const t = teamId != null ? teamsById[teamId] : null;
     const isGold = teamId != null && highlight.has(teamId);
     const tone = isWinner ? "font-bold text-grass" : isGold ? "font-semibold text-gold" : "text-chalk";
+    const tappable =
+      teamId != null
+        ? { onClick: () => openTeamCard({ teamId, name: t?.name }), ...longPress(() => openTeamCard({ teamId, name: t?.name })) }
+        : {};
     return (
-      <div className={`flex items-center gap-1 ${tone}`}>
+      <div className={`flex items-center gap-1 ${tone}${teamId != null ? " cursor-pointer select-none" : ""}`} {...tappable}>
         {t ? (
           <span className="shrink-0">
             <Flag teamId={t.id} logoUrl={t.logo_url} code={t.code} name={t.name} size={12} />

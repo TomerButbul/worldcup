@@ -36,7 +36,7 @@ function subscribe(l: () => void) {
 function getSnapshot() {
   return current;
 }
-function openTeamCard(req: CardReq) {
+export function openTeamCard(req: CardReq) {
   current = req;
   emit();
 }

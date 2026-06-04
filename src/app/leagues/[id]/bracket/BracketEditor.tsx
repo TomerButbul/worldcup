@@ -8,7 +8,8 @@ import { saveBracket } from "./actions";
 import { celebrate } from "@/lib/confetti";
 import { goalCelebration } from "@/lib/goal";
 import Flag from "@/components/Flag";
-import { TeamCardButton } from "@/components/TeamCard";
+import { TeamCardButton, openTeamCard } from "@/components/TeamCard";
+import { useLongPress } from "@/lib/useLongPress";
 import Ball from "@/components/art/Ball";
 import Trophy from "@/components/art/Trophy";
 import KnockoutBracket, { type BracketRound, type BracketTeam } from "@/components/KnockoutBracket";
@@ -114,6 +115,7 @@ export default function BracketEditor({
   const [errMsg, setErrMsg] = useState<string | null>(null);
   const [activeGroup, setActiveGroup] = useState<string>(() => groupsOrder[0] ?? "A");
   const [step, setStep] = useState<Step>("groups");
+  const longPress = useLongPress();
 
   const KO_ORDER = useMemo(
     () => Object.keys(KNOCKOUT_TEMPLATE).map(Number).sort((a, b) => a - b),
@@ -515,7 +517,8 @@ export default function BracketEditor({
                   onClick={() => toggleThird(g)}
                   disabled={locked || atMax}
                   aria-pressed={selected}
-                  className={`flex min-h-10 items-center gap-2 rounded-lg border px-2.5 py-2 text-left text-sm transition disabled:cursor-not-allowed ${
+                  {...longPress(() => openTeamCard({ teamId, name: t.name }))}
+                  className={`flex min-h-10 select-none items-center gap-2 rounded-lg border px-2.5 py-2 text-left text-sm transition disabled:cursor-not-allowed ${
                     selected
                       ? "border-gold bg-gold/15 text-gold glow-gold"
                       : atMax
@@ -527,6 +530,9 @@ export default function BracketEditor({
                   <Flag teamId={t.id} logoUrl={t.logo_url} code={t.code} name={t.name} size={18} />
                   <span className="flex min-w-0 flex-1 items-center gap-1 truncate">
                     <span className="truncate">{t.name}</span>
+                    {fifaRank[teamId] != null && (
+                      <span className="shrink-0 text-[10px] tabular-nums text-chalk-dim">#{fifaRank[teamId]}</span>
+                    )}
                     {isFav && <span className="shrink-0 text-[11px] text-gold">★</span>}
                   </span>
                   {selected && <span className="shrink-0 text-xs">✓</span>}
@@ -611,6 +617,7 @@ export default function BracketEditor({
                 onPick={pickWinner}
                 locked={locked}
                 championNo={104}
+                fifaRank={fifaRank}
               />
 
               <div className="flex items-center justify-between gap-2 text-sm">
