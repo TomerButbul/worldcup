@@ -18,7 +18,16 @@ export type PlayerProfile = {
   height_cm: number | null;
   weight_kg: number | null;
   team: { id: number; name: string; logo_url: string | null; code: string | null } | null;
-  stats: { apps: number; minutes: number; goals: number; assists: number; yellow: number; red: number };
+  stats: {
+    apps: number;
+    minutes: number;
+    goals: number;
+    assists: number;
+    yellow: number;
+    red: number;
+    saves: number;
+    cleanSheets: number;
+  };
 };
 
 const loadPlayer = unstable_cache(
@@ -37,7 +46,7 @@ const loadPlayer = unstable_cache(
       p.team_id != null
         ? s.from("teams").select("id, name, logo_url, code").eq("id", p.team_id).maybeSingle()
         : Promise.resolve({ data: null as PlayerProfile["team"] }),
-      s.from("match_player_stats").select("minutes, assists").eq("player_id", id),
+      s.from("match_player_stats").select("match_id, minutes, assists, saves").eq("player_id", id),
     ]);
 
     const goals = (goalsRes.data ?? []).reduce((n, r) => n + (r.goals ?? 0), 0);
@@ -48,6 +57,28 @@ const loadPlayer = unstable_cache(
     const apps = appRows.length; // one row per match the player appeared in
     const minutes = appRows.reduce((n, r) => n + (r.minutes ?? 0), 0);
     const assists = appRows.reduce((n, r) => n + (r.assists ?? 0), 0);
+    const saves = appRows.reduce((n, r) => n + (r.saves ?? 0), 0);
+
+    // Clean sheets: of the finished matches the player actually played in
+    // (minutes > 0), how many did THEIR team finish conceding 0 goals. The
+    // player's team is p.team_id; conceded = the OTHER side's goals. Unplayed or
+    // still-ongoing matches (and null scores) don't count.
+    let cleanSheets = 0;
+    const matchIds = appRows.map((r) => r.match_id).filter((mid): mid is number => mid != null);
+    if (p.team_id != null && matchIds.length) {
+      const { data: matchRows } = await s
+        .from("matches")
+        .select("id, home_team_id, away_team_id, home_goals, away_goals, status")
+        .in("id", matchIds);
+      const byId = new Map((matchRows ?? []).map((m) => [m.id, m]));
+      for (const r of appRows) {
+        if ((r.minutes ?? 0) <= 0 || r.match_id == null) continue;
+        const m = byId.get(r.match_id);
+        if (!m || m.status !== "finished") continue;
+        const conceded = p.team_id === m.home_team_id ? m.away_goals : m.home_goals;
+        if (conceded === 0) cleanSheets += 1;
+      }
+    }
 
     return {
       id: p.id,
@@ -61,7 +92,7 @@ const loadPlayer = unstable_cache(
       height_cm: p.height_cm,
       weight_kg: p.weight_kg,
       team: (teamRes.data as PlayerProfile["team"]) ?? null,
-      stats: { apps, minutes, goals, assists, yellow, red },
+      stats: { apps, minutes, goals, assists, yellow, red, saves, cleanSheets },
     };
   },
   ["player-profile"],

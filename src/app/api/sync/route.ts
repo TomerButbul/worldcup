@@ -3,6 +3,9 @@ import { revalidateTag } from "next/cache";
 import { createServiceClient } from "@/lib/supabase/server";
 import { recomputeAllScores } from "@/lib/scoring-engine";
 import { TOURNAMENT_TAG } from "@/lib/tournamentData";
+import { sendToUsers } from "@/lib/push";
+import { teamAt } from "@/lib/draft";
+import { draftTeamIds } from "@/lib/draft-scoring";
 import {
   fetchTeams,
   fetchStandings,
@@ -39,7 +42,26 @@ export async function GET(request: NextRequest) {
     // teams/standings/squads/scoring — this stays cheap so it can run often.
     if (request.nextUrl.searchParams.get("mode") === "live") {
       const liveFixtures = await fetchLiveFixtures();
+
+      // Read the score we last *pushed* for each live fixture BEFORE the upsert
+      // overwrites home_goals/away_goals, so we can tell whether a new goal
+      // happened this run. (null notified = nothing pushed yet → treat as 0.)
+      const notifiedBefore = new Map<number, { home: number; away: number }>();
       if (liveFixtures.length) {
+        const { data: prev } = await supabase
+          .from("matches")
+          .select("id, notified_home_goals, notified_away_goals")
+          .in(
+            "id",
+            liveFixtures.map((f) => f.fixture.id),
+          );
+        for (const r of prev ?? []) {
+          notifiedBefore.set(r.id, {
+            home: r.notified_home_goals ?? 0,
+            away: r.notified_away_goals ?? 0,
+          });
+        }
+
         await supabase.from("matches").upsert(
           liveFixtures.map((f) => ({
             id: f.fixture.id,
@@ -57,6 +79,19 @@ export async function GET(request: NextRequest) {
           })),
         );
       }
+
+      // Goal-notify accumulator: one entry per fixture whose score increased
+      // this run. We send AFTER the loop so recipient lookups batch once.
+      const goalEvents: {
+        matchId: number;
+        homeId: number | null;
+        awayId: number | null;
+        newHome: number;
+        newAway: number;
+        scoringTeamId: number | null;
+        scorerName: string | null;
+      }[] = [];
+
       let lineups = 0;
       let events = 0;
       let stats = 0;
@@ -90,6 +125,34 @@ export async function GET(request: NextRequest) {
         }
         // Replace the event timeline for this match (no stable ids → idempotent).
         const evs = await fetchFixtureEvents(fid, 20);
+
+        // Goal detection (best-effort, never blocks the sync): a goal happened
+        // when the live total exceeds the score we last pushed for. The side
+        // whose count rose is the scorer; pull the latest goal scorer's name for
+        // that side from the events we already have (cheap, no extra API call).
+        const newHome = f.goals.home ?? 0;
+        const newAway = f.goals.away ?? 0;
+        const before = notifiedBefore.get(fid) ?? { home: 0, away: 0 };
+        if (newHome + newAway > before.home + before.away) {
+          const homeScored = newHome > before.home;
+          const scoringTeamId = homeScored ? (f.teams.home?.id ?? null) : (f.teams.away?.id ?? null);
+          const scorerName =
+            scoringTeamId != null
+              ? (evs
+                  .filter((e) => e.type === "Goal" && e.team?.id === scoringTeamId && e.player?.name)
+                  .at(-1)?.player.name ?? null)
+              : null;
+          goalEvents.push({
+            matchId: fid,
+            homeId: f.teams.home?.id ?? null,
+            awayId: f.teams.away?.id ?? null,
+            newHome,
+            newAway,
+            scoringTeamId,
+            scorerName,
+          });
+        }
+
         await supabase.from("match_events").delete().eq("match_id", fid);
         const rows = evs
           .filter((e) => ["Goal", "Card", "subst"].includes(e.type))
@@ -112,7 +175,103 @@ export async function GET(request: NextRequest) {
         // Per-team live statistics (possession, shots, passes, …).
         stats += await syncMatchStats(supabase, fid);
       }
-      return NextResponse.json({ ok: true, mode: "live", live: liveFixtures.length, lineups, events, stats });
+
+      // LIVE-GOAL push: notify the users who care about each match that just
+      // scored (favorite team OR a nation they drafted). Best-effort and fully
+      // additive — wrapped so a push failure can never break the score sync.
+      let goalsNotified = 0;
+      if (goalEvents.length) {
+        try {
+          // Every team id involved in a goal this run — scope all reads to these.
+          const teamIds = [
+            ...new Set(
+              goalEvents.flatMap((g) => [g.homeId, g.awayId]).filter((id): id is number => id != null),
+            ),
+          ];
+
+          // (a) team names for the notification body (home/away + scorer's side).
+          const { data: teamRows } = await supabase
+            .from("teams")
+            .select("id, name")
+            .in("id", teamIds);
+          const teamName = new Map<number, string>();
+          for (const t of teamRows ?? []) teamName.set(t.id, t.name);
+
+          // (b) favorites: profiles whose favorite_team_id is one of these teams.
+          const favByTeam = new Map<number, string[]>();
+          const { data: favRows } = await supabase
+            .from("profiles")
+            .select("id, favorite_team_id")
+            .in("favorite_team_id", teamIds);
+          for (const p of favRows ?? []) {
+            if (p.favorite_team_id == null) continue;
+            (favByTeam.get(p.favorite_team_id) ?? favByTeam.set(p.favorite_team_id, []).get(p.favorite_team_id)!).push(p.id);
+          }
+
+          // (c) drafted: resolve each draft pick (pot, slot) → draft team name →
+          // synced team id, then group the drafters by that team id. Read all
+          // picks + the team-name map ONCE for the whole run.
+          const draftByTeam = new Map<number, string[]>();
+          const { data: allTeams } = await supabase.from("teams").select("id, name");
+          const nameToId = draftTeamIds(allTeams ?? []);
+          const { data: picks } = await supabase.from("draft_picks").select("user_id, pot, slot");
+          for (const pick of picks ?? []) {
+            const dt = teamAt(pick.pot, pick.slot);
+            const tid = dt ? nameToId.get(dt.name) : undefined;
+            if (tid == null || !teamIds.includes(tid)) continue;
+            (draftByTeam.get(tid) ?? draftByTeam.set(tid, []).get(tid)!).push(pick.user_id);
+          }
+
+          for (const g of goalEvents) {
+            const homeName = (g.homeId != null ? teamName.get(g.homeId) : null) ?? "Home";
+            const awayName = (g.awayId != null ? teamName.get(g.awayId) : null) ?? "Away";
+            const scoringName =
+              (g.scoringTeamId != null ? teamName.get(g.scoringTeamId) : null) ??
+              (g.scoringTeamId === g.homeId ? homeName : awayName);
+
+            // Union of favorite + drafted users for either side of this match.
+            const recipients = new Set<string>();
+            for (const id of [g.homeId, g.awayId]) {
+              if (id == null) continue;
+              for (const u of favByTeam.get(id) ?? []) recipients.add(u);
+              for (const u of draftByTeam.get(id) ?? []) recipients.add(u);
+            }
+
+            if (recipients.size) {
+              const body = g.scorerName
+                ? `${g.scorerName} — ${homeName} ${g.newHome}–${g.newAway} ${awayName}`
+                : `${homeName} ${g.newHome}–${g.newAway} ${awayName}`;
+              await sendToUsers([...recipients], {
+                title: `⚽ ${scoringName} GOAL!`,
+                body,
+                url: "/dashboard",
+                tag: `goal-${g.matchId}`,
+              });
+              goalsNotified += 1;
+            }
+
+            // Record the score we pushed for so the 60s cron stays idempotent.
+            // Always set to the current score (even with no recipients) so a
+            // VAR-disallowed goal can't wedge it and a re-goal still fires.
+            await supabase
+              .from("matches")
+              .update({ notified_home_goals: g.newHome, notified_away_goals: g.newAway })
+              .eq("id", g.matchId);
+          }
+        } catch {
+          // Swallow: notifications are best-effort; never fail the score sync.
+        }
+      }
+
+      return NextResponse.json({
+        ok: true,
+        mode: "live",
+        live: liveFixtures.length,
+        lineups,
+        events,
+        stats,
+        goalsNotified,
+      });
     }
 
     // 1) Teams
@@ -421,11 +580,19 @@ export async function GET(request: NextRequest) {
         ...cards.map((c) => c.player.id!),
       ]);
       if (appeared.size) {
+        // Per-player saves for this fixture (keepers); 0 for everyone else.
+        const savesByPlayer = await fetchSavesByPlayer(m.id);
         await supabase.from("match_player_stats").upsert(
           [...appeared].map((pid) => {
             const sp = span.get(pid);
             const minutes = sp ? Math.max(0, Math.min(ft, sp.end) - sp.start) : 0;
-            return { match_id: m.id, player_id: pid, minutes, assists: assistCount.get(pid) ?? 0 };
+            return {
+              match_id: m.id,
+              player_id: pid,
+              minutes,
+              assists: assistCount.get(pid) ?? 0,
+              saves: savesByPlayer.get(pid) ?? 0,
+            };
           }),
           { onConflict: "match_id,player_id" },
         );
@@ -461,6 +628,54 @@ export async function GET(request: NextRequest) {
 function roundGroup(round: string): string | null {
   const m = round.match(/Group\s+([A-L])/i);
   return m ? m[1].toUpperCase() : null;
+}
+
+// --- Per-player fixture statistics (fixtures/players) ----------------------
+// Also not in the shared client. Returns per-team blocks, each with a players
+// array; every player's statistics[0] carries a `goals.saves` (number for
+// keepers, null/absent for outfielders). We only read saves here — minutes and
+// assists keep coming from the lineup/event derivation above (more accurate for
+// sub timing). Best-effort: an empty/erroring response yields an empty map.
+interface AfFixturePlayers {
+  team: { id: number };
+  players: {
+    player: { id: number };
+    statistics: { goals?: { saves?: number | null } | null }[];
+  }[];
+}
+
+async function fetchFixturePlayers(fixtureId: number): Promise<AfFixturePlayers[]> {
+  const key = process.env.API_FOOTBALL_KEY;
+  if (!key) throw new Error("API_FOOTBALL_KEY is not set");
+  const url = new URL("https://v3.football.api-sports.io/fixtures/players");
+  url.searchParams.set("fixture", String(fixtureId));
+  const res = await fetch(url, {
+    headers: { "x-apisports-key": key },
+    next: { revalidate: 20 }, // short cache: live saves should stay fresh
+  });
+  if (!res.ok) {
+    throw new Error(`API-Football /fixtures/players -> ${res.status} ${res.statusText}`);
+  }
+  const json = (await res.json()) as { response?: AfFixturePlayers[] };
+  return json.response ?? [];
+}
+
+// Map of player_id -> saves for one fixture (keepers only get a non-zero value).
+// Wrapped so a missing/failed feed never blocks the appearance upsert: returns
+// an empty map and saves default to 0.
+async function fetchSavesByPlayer(fixtureId: number): Promise<Map<number, number>> {
+  const out = new Map<number, number>();
+  try {
+    for (const block of await fetchFixturePlayers(fixtureId)) {
+      for (const p of block.players ?? []) {
+        const saves = p.statistics?.[0]?.goals?.saves ?? 0;
+        if (p.player?.id != null) out.set(p.player.id, saves ?? 0);
+      }
+    }
+  } catch {
+    // Best-effort: leave the map empty so every appearance stores saves = 0.
+  }
+  return out;
 }
 
 // --- Match statistics (fixtures/statistics) -------------------------------

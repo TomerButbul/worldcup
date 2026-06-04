@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import Flag from "@/components/Flag";
+import Ball from "@/components/art/Ball";
 
 type Profile = {
   id: number;
@@ -19,7 +20,16 @@ type Profile = {
   height_cm: number | null;
   weight_kg: number | null;
   team: { id: number; name: string; logo_url: string | null; code: string | null } | null;
-  stats: { apps: number; minutes: number; goals: number; assists: number; yellow: number; red: number };
+  stats: {
+    apps: number;
+    minutes: number;
+    goals: number;
+    assists: number;
+    yellow: number;
+    red: number;
+    saves: number;
+    cleanSheets: number;
+  };
   club: {
     name: string | null;
     league: string | null;
@@ -121,12 +131,45 @@ export function PlayerCardHost() {
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value, icon }: { label: string; value: string; icon?: ReactNode }) {
   return (
     <div className="rounded-2xl bg-night/5 p-3 text-center">
-      <p className="truncate font-display text-lg text-chalk">{value}</p>
+      <p className="flex items-center justify-center gap-1 truncate font-display text-lg text-chalk">
+        {icon}
+        {value}
+      </p>
       <p className="mt-0.5 text-[11px] uppercase tracking-wide text-chalk-dim">{label}</p>
     </div>
+  );
+}
+
+// Football boot / cleat — the "who set it up" mark for assists.
+function BootIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden className="text-gold">
+      <path d="M3 7a1 1 0 0 1 1-1h4.5a1 1 0 0 1 1 1v3l8.4 3.5c1.3.6 2.1 1.8 2.1 3.2V18a1 1 0 0 1-1 1H5.2A2.2 2.2 0 0 1 3 16.8V7z" />
+      <circle cx="7" cy="21" r="0.9" />
+      <circle cx="12" cy="21" r="0.9" />
+      <circle cx="17" cy="21" r="0.9" />
+    </svg>
+  );
+}
+
+// Goalkeeper glove — saves.
+function GloveIcon() {
+  return (
+    <svg width="15" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden className="text-sky-500">
+      <path d="M6 11V5.5a1.5 1.5 0 0 1 3 0V10h.8V4a1.5 1.5 0 0 1 3 0v6h.8V5a1.5 1.5 0 0 1 3 0v8a6 6 0 0 1-6 6h-1.4a5.2 5.2 0 0 1-5.2-5.2v-1.2A2.4 2.4 0 0 1 6 11z" />
+    </svg>
+  );
+}
+
+// Shield — a clean sheet (nothing got past).
+function ShieldIcon() {
+  return (
+    <svg width="14" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden className="text-grass">
+      <path d="M12 2.5l7.5 2.8v5.7c0 4.8-3.2 8.4-7.5 10.5C7.7 19.4 4.5 15.8 4.5 11V5.3L12 2.5z" />
+    </svg>
   );
 }
 
@@ -168,7 +211,8 @@ function PlayerCardModal({ req, onClose }: { req: CardReq; onClose: () => void }
   const broad = p?.position ? (POS_SHORT[p.position] ?? p.position) : null;
   const badge = detailPos || broad;
   const noStats =
-    !!p && p.stats.apps + p.stats.goals + p.stats.assists + p.stats.yellow + p.stats.red === 0;
+    !!p &&
+    p.stats.apps + p.stats.goals + p.stats.assists + p.stats.yellow + p.stats.red + p.stats.saves === 0;
 
   return (
     <motion.div
@@ -231,15 +275,31 @@ function PlayerCardModal({ req, onClose }: { req: CardReq; onClose: () => void }
             <p className="pt-1 text-center text-[11px] font-semibold uppercase tracking-wider text-chalk-dim">
               Tournament
             </p>
-            <div className="grid grid-cols-3 gap-3">
-              <Stat label="Apps" value={String(p.stats.apps)} />
-              <Stat label="Goals" value={String(p.stats.goals)} />
-              <Stat label="Assists" value={`🅰️ ${p.stats.assists}`} />
-            </div>
-            <div className="grid grid-cols-3 gap-3">
-              <Stat label="Minutes" value={`${p.stats.minutes}'`} />
-              <Stat label="Yellow" value={`🟨 ${p.stats.yellow}`} />
-              <Stat label="Red" value={`🟥 ${p.stats.red}`} />
+            <div className="flex flex-wrap justify-center gap-3">
+              {(() => {
+                const s = p.stats;
+                const gk = p.position === "Goalkeeper";
+                const df = p.position === "Defender";
+                const tiles: { label: string; value: string; icon?: ReactNode }[] = [
+                  { label: "Apps", value: String(s.apps) },
+                ];
+                if (gk) {
+                  tiles.push({ label: "Saves", value: String(s.saves ?? 0), icon: <GloveIcon /> });
+                  tiles.push({ label: "Clean sheets", value: String(s.cleanSheets ?? 0), icon: <ShieldIcon /> });
+                } else {
+                  tiles.push({ label: "Goals", value: String(s.goals), icon: <Ball size={15} /> });
+                  tiles.push({ label: "Assists", value: String(s.assists), icon: <BootIcon /> });
+                  if (df) tiles.push({ label: "Clean sheets", value: String(s.cleanSheets ?? 0), icon: <ShieldIcon /> });
+                }
+                tiles.push({ label: "Minutes", value: `${s.minutes}'` });
+                tiles.push({ label: "Yellow", value: `🟨 ${s.yellow}` });
+                tiles.push({ label: "Red", value: `🟥 ${s.red}` });
+                return tiles.map((t) => (
+                  <div key={t.label} className="w-[calc(33.333%-0.5rem)] min-w-[92px]">
+                    <Stat label={t.label} value={t.value} icon={t.icon} />
+                  </div>
+                ));
+              })()}
             </div>
             {p.club && (
               <>
