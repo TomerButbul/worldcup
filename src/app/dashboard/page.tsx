@@ -7,6 +7,8 @@ import GameButton from "@/components/GameButton";
 import Reveal from "@/components/Reveal";
 import Flag from "@/components/Flag";
 import Trophy from "@/components/art/Trophy";
+import Ball from "@/components/art/Ball";
+import { Medal } from "@/components/icons";
 import Avatar from "@/components/Avatar";
 import ProfileEditor from "@/components/ProfileEditor";
 import FavoriteTeamPicker from "@/components/FavoriteTeamPicker";
@@ -174,6 +176,52 @@ export default async function DashboardPage({
               </section>
             </Reveal>
           )}
+
+          {/* Predictions hub — make all your picks straight from Home, no league
+              required (they count on the global rankings, and in any league you join). */}
+          <Reveal>
+            <section className="space-y-2">
+              <h2 className="font-display text-lg text-chalk">Your predictions</h2>
+              <div className="glass-strong overflow-hidden rounded-2xl">
+                <Link
+                  href="/bracket"
+                  className="group flex items-center gap-3 border-b border-night/5 p-3.5 transition hover:bg-night/5"
+                >
+                  <span className="shrink-0 text-gold"><Trophy size={26} /></span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-semibold text-chalk">Bracket</span>
+                    <span className="block truncate text-xs text-chalk-dim">Order the groups, build your knockout &amp; crown a champion</span>
+                  </span>
+                  <span className="shrink-0 text-gold transition group-hover:translate-x-0.5">→</span>
+                </Link>
+                <Link
+                  href="/predict"
+                  className="group flex items-center gap-3 border-b border-night/5 p-3.5 transition hover:bg-night/5"
+                >
+                  <span className="shrink-0 text-gold"><Ball size={26} /></span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-semibold text-chalk">Match predictions</span>
+                    <span className="block truncate text-xs text-chalk-dim">Pick scores &amp; goal scorers, match by match</span>
+                  </span>
+                  <span className="shrink-0 text-gold transition group-hover:translate-x-0.5">→</span>
+                </Link>
+                <Link
+                  href="/awards"
+                  className="group flex items-center gap-3 p-3.5 transition hover:bg-night/5"
+                >
+                  <span className="shrink-0 text-gold"><Medal size={26} /></span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-semibold text-chalk">Awards</span>
+                    <span className="block truncate text-xs text-chalk-dim">Golden Boot, Ball, Glove &amp; Young Player</span>
+                  </span>
+                  <span className="shrink-0 text-gold transition group-hover:translate-x-0.5">→</span>
+                </Link>
+              </div>
+              <p className="px-1 text-xs text-chalk-dim">
+                Make them once — <span className="text-chalk">no league needed</span>. They count on the global rankings and in every league you join.
+              </p>
+            </section>
+          </Reveal>
 
           {error && (
             <p className="rounded-lg bg-red-500/15 px-3 py-2 text-sm text-red-600">{error}</p>
