@@ -1038,7 +1038,9 @@ async function alertMissingScorers(
   url: string,
 ): Promise<number> {
   const { data: lus } = await supabase.from("match_lineups").select("xi").eq("match_id", matchId);
-  if (!lus?.length) return 0;
+  // Require BOTH teams' XIs (2 rows). If only one side has been announced, a
+  // scorer on the not-yet-published side would look "missing" → a false alarm.
+  if (!lus || lus.length < 2) return 0;
   const xi = new Set<number>();
   for (const l of lus) {
     for (const p of (l.xi as { player_id?: number }[] | null) ?? []) {
