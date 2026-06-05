@@ -403,11 +403,13 @@ export default function KnockoutBracket({
                 {/* WINNERS advance sideways into the Final — solid bracket lines */}
                 <span aria-hidden className="absolute left-0 top-1/2 h-px w-[11px] -translate-y-1/2 bg-night/40 lg:w-[17px]" />
                 <span aria-hidden className="absolute right-0 top-1/2 h-px w-[11px] -translate-y-1/2 bg-night/40 lg:w-[17px]" />
-                {/* LOSERS drop down to the 3rd-place match — dashed bronze, clearly
-                    distinct from the winners' solid advance lines */}
-                <span aria-hidden className="absolute left-0 top-1/2 h-[92px] w-0 border-l border-dashed border-[#cd7f32]/70 lg:h-[118px]" />
+                {/* LOSERS drop to the 3rd-place match — dashed bronze. They leave
+                    from the LOWER edge of each semi (a different spot than the
+                    winner lines, which leave from the centre toward the Final), so
+                    the two paths read as separate, not one bent line. */}
+                <span aria-hidden className="absolute left-0 top-[calc(50%+18px)] h-[74px] w-0 border-l border-dashed border-[#cd7f32]/70 lg:top-[calc(50%+24px)] lg:h-[94px]" />
                 <span aria-hidden className="absolute left-0 top-[calc(50%+92px)] h-0 w-[22px] -translate-y-1/2 border-t border-dashed border-[#cd7f32]/70 lg:top-[calc(50%+118px)] lg:w-[38px]" />
-                <span aria-hidden className="absolute right-0 top-1/2 h-[92px] w-0 border-r border-dashed border-[#cd7f32]/70 lg:h-[118px]" />
+                <span aria-hidden className="absolute right-0 top-[calc(50%+18px)] h-[74px] w-0 border-r border-dashed border-[#cd7f32]/70 lg:top-[calc(50%+24px)] lg:h-[94px]" />
                 <span aria-hidden className="absolute right-0 top-[calc(50%+92px)] h-0 w-[22px] -translate-y-1/2 border-t border-dashed border-[#cd7f32]/70 lg:top-[calc(50%+118px)] lg:w-[38px]" />
 
                 {/* FINAL label */}
