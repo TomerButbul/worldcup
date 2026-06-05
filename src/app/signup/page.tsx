@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { signup } from "@/app/auth/actions";
+import { signup, playAsGuest } from "@/app/auth/actions";
 import { createClient } from "@/lib/supabase/server";
 import GameButton from "@/components/GameButton";
 import Reveal from "@/components/Reveal";
@@ -25,6 +25,9 @@ export default async function SignupPage({
     <main className="flex flex-1 items-center justify-center p-6">
       <Reveal className="w-full max-w-sm">
         <div className="glass-strong rounded-3xl p-6 space-y-6 sm:p-8">
+          <Link href="/" className="-mb-2 block text-sm text-chalk-dim hover:text-chalk">
+            &larr; Home
+          </Link>
           <div className="text-center">
             <div className="mb-2 flex justify-center"><Ball size={44} /></div>
             <h1 className="font-display text-3xl text-chalk">{upgrading ? "Save your picks" : "Join the game"}</h1>
@@ -61,6 +64,21 @@ export default async function SignupPage({
               Log in
             </Link>
           </p>
+
+          {upgrading ? (
+            <Link
+              href="/dashboard"
+              className="block border-t border-night/10 pt-4 text-center text-sm font-semibold text-grass hover:underline"
+            >
+              &larr; Back to your picks (stay a guest)
+            </Link>
+          ) : (
+            <form action={playAsGuest} className="border-t border-night/10 pt-4">
+              <button type="submit" className="w-full text-center text-sm font-semibold text-grass hover:underline">
+                Skip — keep playing as a guest &rarr;
+              </button>
+            </form>
+          )}
         </div>
       </Reveal>
     </main>

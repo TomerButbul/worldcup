@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { login } from "@/app/auth/actions";
+import { login, playAsGuest } from "@/app/auth/actions";
 import GameButton from "@/components/GameButton";
 import Reveal from "@/components/Reveal";
 
@@ -14,6 +14,9 @@ export default async function LoginPage({
     <main className="flex flex-1 items-center justify-center p-6">
       <Reveal className="w-full max-w-sm">
         <div className="glass-strong rounded-3xl p-6 space-y-6 sm:p-8">
+          <Link href="/" className="-mb-2 block text-sm text-chalk-dim hover:text-chalk">
+            &larr; Home
+          </Link>
           <div className="text-center">
             <div className="mb-2 text-4xl">🏟️</div>
             <h1 className="font-display text-3xl text-chalk">Welcome back</h1>
@@ -63,6 +66,12 @@ export default async function LoginPage({
               Sign up
             </Link>
           </p>
+
+          <form action={playAsGuest} className="border-t border-night/10 pt-4">
+            <button type="submit" className="w-full text-center text-sm font-semibold text-grass hover:underline">
+              Skip — keep playing as a guest &rarr;
+            </button>
+          </form>
         </div>
       </Reveal>
     </main>
