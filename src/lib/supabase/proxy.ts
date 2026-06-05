@@ -48,7 +48,11 @@ export async function updateSession(request: NextRequest) {
     url.pathname = "/signup";
     return NextResponse.redirect(url);
   }
-  if (user && isAuthPath(pathname)) {
+  // Full accounts get bounced off the auth screens. But a GUEST (anonymous
+  // account) is technically signed in, and it MUST be able to reach /signup to
+  // upgrade (attach an email, keeping its picks) and /login to switch to a real
+  // account — otherwise "Save my picks" silently 307s back to /dashboard.
+  if (user && !user.is_anonymous && isAuthPath(pathname)) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);
