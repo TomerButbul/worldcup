@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Upfront, Live, Trophy, Bell } from "@/components/icons";
 import type { ComponentType } from "react";
+import { SUPPORT_URL } from "@/lib/site";
 
 export const metadata = {
   title: "How it works",
@@ -190,6 +191,23 @@ export default function HowItWorksPage() {
           </section>
         </div>
       </div>
+
+      {/* Permanent, low-key support line — always here for anyone who wants to give,
+          never a nag. Hidden until SUPPORT_URL is set. */}
+      {SUPPORT_URL ? (
+        <p className="pt-2 text-center text-xs text-chalk-dim">
+          World Cup is free and ad-free, built by one person.{" "}
+          <a
+            href={SUPPORT_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-semibold text-gold underline-offset-2 hover:underline"
+          >
+            ☕ Buy me a coffee
+          </a>{" "}
+          if you&apos;d like to chip in.
+        </p>
+      ) : null}
     </main>
   );
 }
