@@ -73,6 +73,8 @@ export const metadata: Metadata = {
     title: "World Cup 2026 — Bracket & Prediction Game",
     description: "Predict the 2026 World Cup — bracket, scores & goal scorers. Compete with friends.",
   },
+  // Google Search Console site-ownership verification (HTML-tag method).
+  verification: { google: "g5p78MpK9-udokFnX994iNw9fLp3F7SCbYsDpuboMz8" },
 };
 
 export const viewport: Viewport = {
