@@ -5,6 +5,37 @@ import Hero from "@/components/Hero";
 import InstallPrompt from "@/components/InstallPrompt";
 import GameButton from "@/components/GameButton";
 import { playAsGuest } from "@/app/auth/actions";
+import { SITE_URL, SITE_DESCRIPTION } from "@/lib/site";
+import type { Metadata } from "next";
+
+// The landing is the one heavily-indexed page — claim the canonical root URL.
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
+
+// JSON-LD: tells search engines this is a free web-based game/app so the result
+// is understood and can earn richer display. Kept accurate — it's a real free PWA.
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": `${SITE_URL}/#website`,
+      url: SITE_URL,
+      name: "World Cup 2026 Predictions",
+      description: SITE_DESCRIPTION,
+    },
+    {
+      "@type": "WebApplication",
+      name: "World Cup 2026 — Bracket & Prediction Game",
+      url: SITE_URL,
+      applicationCategory: "GameApplication",
+      operatingSystem: "Web, iOS, Android",
+      description: SITE_DESCRIPTION,
+      offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+    },
+  ],
+};
 
 export default async function Home() {
   const supabase = await createClient();
@@ -15,6 +46,7 @@ export default async function Home() {
 
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-9 p-6 text-center">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <Hero />
 
       {/* Start instantly as a guest — no sign-up. (Falls back to /signup if guest

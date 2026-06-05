@@ -10,6 +10,7 @@ import GuestBanner from "@/components/GuestBanner";
 import LiveScoresWidget from "@/components/LiveScoresWidget";
 import { getCachedMatchdayFlags } from "@/lib/tournamentData";
 import { createClient } from "@/lib/supabase/server";
+import { SITE_URL, SITE_DESCRIPTION } from "@/lib/site";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,12 +29,27 @@ const anton = Anton({
 });
 
 export const metadata: Metadata = {
+  // Resolves OG/Twitter image + canonical URLs to absolute — required for social
+  // cards and clean canonicals. Change SITE_URL (lib/site) to move domains.
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: "World Cup — 2026 Bracket & Prediction Game",
+    default: "World Cup 2026 Predictions — Bracket & Pick'em Game",
     template: "%s · World Cup",
   },
-  description: "Predict the 2026 World Cup bracket and match results. Compete with friends.",
+  description: SITE_DESCRIPTION,
   applicationName: "World Cup",
+  keywords: [
+    "World Cup 2026",
+    "World Cup predictions",
+    "World Cup bracket",
+    "World Cup prediction game",
+    "World Cup pick em",
+    "World Cup bracket challenge",
+    "World Cup pool",
+    "predict the World Cup",
+    "soccer predictions",
+    "football predictions",
+  ],
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [
@@ -46,10 +62,17 @@ export const metadata: Metadata = {
   appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "World Cup" },
   openGraph: {
     title: "World Cup 2026 — Bracket & Prediction Game",
-    description: "Predict the bracket, call every match, and battle your friends across three leaderboards.",
+    description: SITE_DESCRIPTION,
     type: "website",
+    siteName: "World Cup",
+    url: SITE_URL,
+    locale: "en_US",
   },
-  twitter: { card: "summary", title: "World Cup 2026", description: "Predict the World Cup. Compete with friends." },
+  twitter: {
+    card: "summary_large_image",
+    title: "World Cup 2026 — Bracket & Prediction Game",
+    description: "Predict the 2026 World Cup — bracket, scores & goal scorers. Compete with friends.",
+  },
 };
 
 export const viewport: Viewport = {

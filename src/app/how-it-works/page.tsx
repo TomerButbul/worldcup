@@ -2,7 +2,12 @@ import Link from "next/link";
 import { Upfront, Live, Trophy, Bell } from "@/components/icons";
 import type { ComponentType } from "react";
 
-export const metadata = { title: "How it works" };
+export const metadata = {
+  title: "How it works",
+  description:
+    "How the World Cup 2026 prediction game works: build your bracket, predict exact scores and goal scorers, pick the Golden Boot, and exactly how every point is scored.",
+  alternates: { canonical: "/how-it-works" },
+};
 
 const GAME_STEPS = [
   "Predict the bracket — order each group's table (1st→4th) and pick the 8 best third-placed teams; your knockout bracket builds itself, then crown your champion.",
