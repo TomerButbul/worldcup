@@ -533,7 +533,7 @@ export default function BracketEditor({
                   <h3 className="font-display text-base text-gold">Group {g}</h3>
                   <span className="text-xs text-chalk-dim">
                     Top 2 advance ·{" "}
-                    <InfoTip label="3rd may qualify">
+                    <InfoTip label="3rd may qualify" align="end">
                       The top 2 in every group advance. On top of that, the <b>8 best of the 12
                       third-placed teams</b> also sneak into the Round of 32.
                     </InfoTip>

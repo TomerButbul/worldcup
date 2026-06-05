@@ -9,18 +9,23 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 //
 //   <InfoTip label="OVR">Overall rating, 0–99 — a player's all-round skill.</InfoTip>
 //   Best third place <InfoTip>The 8 best 3rd-placed teams also advance.</InfoTip>
+//
+// align="end" opens the bubble leftward (right-aligned) — use it for triggers
+// near the right screen edge so the bubble can't overflow into a horizontal scroll.
 export default function InfoTip({
   children,
   label,
   className = "",
   wrapClassName = "",
   bare = false,
+  align = "center",
 }: {
   children: ReactNode; // the explanation shown in the bubble
   label?: ReactNode; // the trigger; defaults to a small ⓘ
   className?: string; // extra classes on the trigger button
   wrapClassName?: string; // extra classes on the positioned outer wrapper
   bare?: boolean; // render the label as-is (no underline / ⓘ chrome)
+  align?: "center" | "end"; // bubble alignment relative to the trigger
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLSpanElement>(null);
@@ -40,6 +45,9 @@ export default function InfoTip({
       document.removeEventListener("keydown", onKey);
     };
   }, [open]);
+
+  const bubblePos = align === "end" ? "right-0" : "left-1/2 -translate-x-1/2";
+  const arrowPos = align === "end" ? "right-3" : "left-1/2 -translate-x-1/2";
 
   return (
     <span ref={ref} className={`group relative inline-flex align-middle ${wrapClassName}`}>
@@ -63,18 +71,20 @@ export default function InfoTip({
       >
         {label ?? "i"}
       </button>
-      {/* The bubble — shown on tap, or on hover for pointer devices. */}
+      {/* The bubble is `hidden` (display:none) when closed so it takes ZERO
+          layout — an always-laid-out opacity-0 bubble near a screen edge silently
+          widens the page and causes a horizontal scroll on mobile. Shown on tap
+          or hover; capped to the viewport and right-alignable near the edge. */}
       <span
         role="tooltip"
-        className={`pointer-events-none absolute bottom-full left-1/2 z-[120] mb-2 w-56 -translate-x-1/2 rounded-xl bg-night px-3 py-2 text-left text-[11px] font-normal normal-case leading-snug tracking-normal text-white shadow-xl transition-opacity duration-150 ${
-          open ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+        className={`pointer-events-none absolute bottom-full ${bubblePos} z-[120] mb-2 w-56 max-w-[calc(100vw-1.5rem)] rounded-xl bg-night px-3 py-2 text-left text-[11px] font-normal normal-case leading-snug tracking-normal text-white shadow-xl ${
+          open ? "block" : "hidden group-hover:block"
         }`}
-        style={{ visibility: open ? "visible" : undefined }}
       >
         {children}
         <span
           aria-hidden
-          className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-night"
+          className={`absolute top-full ${arrowPos} border-4 border-transparent border-t-night`}
         />
       </span>
     </span>
