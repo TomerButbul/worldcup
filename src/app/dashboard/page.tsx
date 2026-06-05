@@ -72,31 +72,60 @@ export default async function DashboardPage({
   // Global counts as a prediction league, so everyone can always predict.
   const predictionLeagues = leagues.filter((l) => l.kind !== "draft");
 
-  // Soonest match still open for prediction (kickoff in the future), tournament-wide.
-  const { data: nextMatchRows } = await supabase
+  // The next matchday: every game on the soonest upcoming day, grouped in the
+  // tournament's North-American timezone so a day's full slate stays together even
+  // when a late kickoff crosses midnight UTC (e.g. June 11 keeps both its games).
+  const { data: upcomingRows } = await supabase
     .from("matches")
     .select("id, stage, kickoff_at, home_team_id, away_team_id")
     .gt("kickoff_at", new Date(nowMs()).toISOString())
-    // Skip knockout fixtures whose teams aren't set yet, so "Up next" never
-    // shows a dead "TBD vs TBD" card with a Predict link that goes nowhere.
+    // Skip knockout fixtures whose teams aren't set yet (no dead "TBD vs TBD").
     .not("home_team_id", "is", null)
     .not("away_team_id", "is", null)
     .order("kickoff_at")
-    .limit(1);
-  const nextMatch = nextMatchRows?.[0] ?? null;
+    .limit(16);
 
-  let nextMatchData: NextMatchData | null = null;
-  let nextPrediction: { home: number; away: number } | null = null;
+  const TOURNAMENT_TZ = "America/New_York";
+  const dayKeyOf = (iso: string) =>
+    new Intl.DateTimeFormat("en-CA", { timeZone: TOURNAMENT_TZ }).format(new Date(iso));
+  const upcoming = upcomingRows ?? [];
+  const nextDayKey = upcoming.length ? dayKeyOf(upcoming[0].kickoff_at) : null;
+  const nextDayMatches = upcoming.filter((m) => dayKeyOf(m.kickoff_at) === nextDayKey);
+  const nextDayLabel =
+    nextDayMatches.length > 0
+      ? new Date(nextDayMatches[0].kickoff_at).toLocaleDateString("en-US", {
+          timeZone: TOURNAMENT_TZ,
+          weekday: "long",
+          month: "short",
+          day: "numeric",
+        })
+      : null;
+
   const canPredict = predictionLeagues.length > 0;
-  if (nextMatch) {
-    const teamById = new Map(teams.map((t) => [t.id, t]));
-    const home = nextMatch.home_team_id ? teamById.get(nextMatch.home_team_id) : null;
-    const away = nextMatch.away_team_id ? teamById.get(nextMatch.away_team_id) : null;
-    nextMatchData = {
-      stage: nextMatch.stage,
-      kickoff_at: nextMatch.kickoff_at,
-      homeTeamId: nextMatch.home_team_id,
-      awayTeamId: nextMatch.away_team_id,
+  const teamById = new Map(teams.map((t) => [t.id, t]));
+
+  // One prediction lookup for the whole matchday (account-level picks).
+  const predByMatch = new Map<number, { home: number; away: number }>();
+  if (canPredict && nextDayMatches.length > 0) {
+    const { data: myPreds } = await supabase
+      .from("match_predictions")
+      .select("match_id, home_goals, away_goals")
+      .eq("user_id", user.id)
+      .in("match_id", nextDayMatches.map((m) => m.id))
+      .not("home_goals", "is", null);
+    for (const p of myPreds ?? []) {
+      if (p.home_goals != null) predByMatch.set(p.match_id, { home: p.home_goals, away: p.away_goals ?? 0 });
+    }
+  }
+
+  const nextDayCards = nextDayMatches.map((m) => {
+    const home = m.home_team_id ? teamById.get(m.home_team_id) : null;
+    const away = m.away_team_id ? teamById.get(m.away_team_id) : null;
+    const data: NextMatchData = {
+      stage: m.stage,
+      kickoff_at: m.kickoff_at,
+      homeTeamId: m.home_team_id,
+      awayTeamId: m.away_team_id,
       homeName: home?.name ?? "TBD",
       awayName: away?.name ?? "TBD",
       homeCode: home?.code ?? null,
@@ -104,20 +133,8 @@ export default async function DashboardPage({
       homeLogoUrl: home?.logo_url ?? null,
       awayLogoUrl: away?.logo_url ?? null,
     };
-
-    if (canPredict) {
-      // Picks are account-level (identical across every league), so grab any one.
-      const { data: myPreds } = await supabase
-        .from("match_predictions")
-        .select("home_goals, away_goals")
-        .eq("user_id", user.id)
-        .eq("match_id", nextMatch.id)
-        .not("home_goals", "is", null)
-        .limit(1);
-      const p = myPreds?.[0];
-      if (p && p.home_goals != null) nextPrediction = { home: p.home_goals, away: p.away_goals ?? 0 };
-    }
-  }
+    return { id: m.id, data, prediction: predByMatch.get(m.id) ?? null };
+  });
 
   const inputClass =
     "w-full rounded-xl border border-night/10 bg-white px-3 py-2.5 text-sm text-chalk outline-none placeholder:text-chalk-dim focus:border-grass focus:ring-2 focus:ring-grass/30";
@@ -163,16 +180,23 @@ export default async function DashboardPage({
             <NotificationToggle placement="top" />
           </Reveal>
 
-          {nextMatchData && nextMatch && (
+          {nextDayCards.length > 0 && nextDayLabel && (
             <Reveal>
               <section className="space-y-2">
-                <h2 className="font-display text-lg text-chalk">Up next</h2>
-                <NextMatchCard
-                  match={nextMatchData}
-                  matchId={nextMatch.id}
-                  prediction={nextPrediction}
-                  canPredict={canPredict}
-                />
+                <h2 className="font-display text-lg text-chalk">
+                  Next up · <span className="text-chalk-dim">{nextDayLabel}</span>
+                </h2>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {nextDayCards.map((c) => (
+                    <NextMatchCard
+                      key={c.id}
+                      match={c.data}
+                      matchId={c.id}
+                      prediction={c.prediction}
+                      canPredict={canPredict}
+                    />
+                  ))}
+                </div>
               </section>
             </Reveal>
           )}

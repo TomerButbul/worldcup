@@ -114,8 +114,10 @@ export default async function PredictPage() {
 
   // Group upcoming by matchday so the page isn't a wall of cards: show the next
   // matchday, tuck the rest behind a "predict earlier" disclosure.
+  // Group by the tournament's North-American day so a matchday's full slate stays
+  // together even when a late kickoff crosses midnight UTC (e.g. June 11's 2 games).
   const dayLabel = (iso: string) =>
-    new Date(iso).toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
+    new Date(iso).toLocaleDateString("en-US", { timeZone: "America/New_York", weekday: "long", month: "short", day: "numeric" });
   const upcomingByDay: { day: string; matches: NonNullable<typeof matches> }[] = [];
   for (const m of upcoming ?? []) {
     const day = dayLabel(m.kickoff_at);
