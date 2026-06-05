@@ -154,7 +154,7 @@ export default function MatchCard({
       return (
         <button
           type="button"
-          onClick={() => setActiveTeam(side)}
+          onClick={() => setActiveTeam((cur) => (cur === side ? null : side))}
           {...teamLongPress(() => openTeamCard({ teamId: tId, name: tName }))}
           aria-label={`Pick ${tName} scorers — hold for team details`}
           className={`flex min-w-0 flex-1 select-none flex-col gap-0.5 border-b-2 px-1 pb-1 transition ${
@@ -253,32 +253,28 @@ export default function MatchCard({
       </div>
 
       {match.venueName && (
-        <div className="mt-3 flex justify-center">
+        <div className="mt-2 flex justify-center">
           <VenueButton
             venue={{ id: match.venueId, name: match.venueName, city: match.venueCity }}
-            className="group flex max-w-full items-center gap-2.5 rounded-xl bg-night/5 p-1.5 pr-3 text-left transition hover:bg-night/10"
+            className="group inline-flex max-w-full items-center gap-1.5 rounded-full bg-night/5 py-0.5 pl-0.5 pr-2.5 text-[11px] text-chalk-dim transition hover:bg-night/10 hover:text-chalk"
           >
-            {match.venueId != null ? (
+            {match.venueId != null && (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={venueImage(match.venueId) ?? undefined}
                 alt=""
-                width={48}
-                height={32}
+                width={24}
+                height={16}
                 loading="lazy"
                 onError={(e) => {
                   e.currentTarget.style.display = "none";
                 }}
-                className="h-8 w-12 shrink-0 rounded-md object-cover ring-1 ring-night/10"
+                className="h-4 w-6 shrink-0 rounded-full object-cover"
               />
-            ) : (
-              <span className="flex h-8 w-12 shrink-0 items-center justify-center rounded-md bg-night/10 text-sm">🏟️</span>
             )}
-            <span className="min-w-0">
-              <span className="block truncate text-xs font-semibold text-chalk transition group-hover:text-gold">
-                {match.venueName}
-              </span>
-              {match.venueCity && <span className="block truncate text-[10px] text-chalk-dim">{match.venueCity}</span>}
+            <span className="truncate">
+              {match.venueName}
+              {match.venueCity ? ` · ${match.venueCity}` : ""}
             </span>
           </VenueButton>
         </div>
