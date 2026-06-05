@@ -467,6 +467,9 @@ export async function GET(request: NextRequest) {
             away_team_id: f.teams.away?.id ?? null,
             home_goals: f.goals.home,
             away_goals: f.goals.away,
+            venue_id: f.fixture.venue?.id ?? null,
+            venue_name: f.fixture.venue?.name ?? null,
+            venue_city: f.fixture.venue?.city ?? null,
             // Advancer (correct for shootouts) — powers the pen-winner scoring
             // and fixes a pens-decided final crowning the wrong champion.
             winner_team_id: f.teams.home?.winner

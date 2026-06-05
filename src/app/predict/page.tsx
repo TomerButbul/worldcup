@@ -31,7 +31,9 @@ export default async function PredictPage() {
   const [{ data: matches }, teams, players, { data: preds }] = await Promise.all([
     supabase
       .from("matches")
-      .select("id, stage, kickoff_at, status, home_team_id, away_team_id, home_goals, away_goals")
+      .select(
+        "id, stage, kickoff_at, status, home_team_id, away_team_id, home_goals, away_goals, venue_id, venue_name, venue_city",
+      )
       .order("kickoff_at"),
     getCachedTeams(),
     getCachedPlayers(),
@@ -140,6 +142,9 @@ export default async function PredictPage() {
       awayName: m.away_team_id ? (teamName.get(m.away_team_id) ?? "TBD") : "TBD",
       homeGoalsActual: m.home_goals,
       awayGoalsActual: m.away_goals,
+      venueId: m.venue_id ?? null,
+      venueName: m.venue_name ?? null,
+      venueCity: m.venue_city ?? null,
     };
   }
 

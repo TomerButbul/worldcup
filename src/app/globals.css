@@ -33,7 +33,11 @@ html {
   background: #eef3ff;
   color: var(--color-chalk);
   scroll-behavior: smooth;
+  /* Lock text scaling so Android (Chrome/Samsung Internet) doesn't auto-inflate
+     fonts the way iOS never does — the full prefixed + standard set. */
   -webkit-text-size-adjust: 100%;
+  -moz-text-size-adjust: 100%;
+  text-size-adjust: 100%;
   -webkit-tap-highlight-color: transparent;
 }
 

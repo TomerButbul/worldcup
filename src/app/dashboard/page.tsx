@@ -79,7 +79,7 @@ export default async function DashboardPage({
   // when a late kickoff crosses midnight UTC (e.g. June 11 keeps both its games).
   const { data: upcomingRows } = await supabase
     .from("matches")
-    .select("id, stage, kickoff_at, home_team_id, away_team_id")
+    .select("id, stage, kickoff_at, home_team_id, away_team_id, venue_name, venue_city")
     .gt("kickoff_at", new Date(nowMs()).toISOString())
     // Skip knockout fixtures whose teams aren't set yet (no dead "TBD vs TBD").
     .not("home_team_id", "is", null)
@@ -134,6 +134,8 @@ export default async function DashboardPage({
       awayCode: away?.code ?? null,
       homeLogoUrl: home?.logo_url ?? null,
       awayLogoUrl: away?.logo_url ?? null,
+      venueName: (m as { venue_name?: string | null }).venue_name ?? null,
+      venueCity: (m as { venue_city?: string | null }).venue_city ?? null,
     };
     return { id: m.id, data, prediction: predByMatch.get(m.id) ?? null };
   });

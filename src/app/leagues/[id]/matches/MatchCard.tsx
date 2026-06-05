@@ -9,6 +9,7 @@ import { useAutosave } from "@/lib/useAutosave";
 import SaveStatus from "@/components/SaveStatus";
 import Flag from "@/components/Flag";
 import { TeamCardButton, openTeamCard } from "@/components/TeamCard";
+import { VenueButton } from "@/components/VenueCard";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import { PlayerCardButton, openPlayerCard } from "@/components/PlayerCard";
 import { useLongPress } from "@/lib/useLongPress";
@@ -28,6 +29,9 @@ export interface MatchCardData {
   awayName: string;
   homeGoalsActual: number | null;
   awayGoalsActual: number | null;
+  venueId: number | null;
+  venueName: string | null;
+  venueCity: string | null;
 }
 
 export interface Lineup {
@@ -235,6 +239,18 @@ export default function MatchCard({
 
         {teamSide("away")}
       </div>
+
+      {match.venueName && (
+        <div className="mt-2.5 flex justify-center">
+          <VenueButton
+            venue={{ id: match.venueId, name: match.venueName, city: match.venueCity }}
+            className="max-w-full truncate rounded-full bg-night/5 px-2.5 py-1 text-[11px] text-chalk-dim transition hover:bg-night/10 hover:text-chalk"
+          >
+            {match.venueName}
+            {match.venueCity ? ` · ${match.venueCity}` : ""}
+          </VenueButton>
+        </div>
+      )}
 
       {locked ? (
         <div className="mt-3 flex flex-col items-center gap-1.5 text-center text-xs text-chalk-dim">

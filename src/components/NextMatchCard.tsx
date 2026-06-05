@@ -15,6 +15,8 @@ export interface NextMatchData {
   awayCode: string | null;
   homeLogoUrl: string | null;
   awayLogoUrl: string | null;
+  venueName: string | null;
+  venueCity: string | null;
 }
 
 // Predictions are account-level (the same in every league), so we show ONE pick.
@@ -77,6 +79,13 @@ export default function NextMatchCard({
           <span className="truncate">{match.awayName}</span>
         </span>
       </div>
+
+      {match.venueName && (
+        <p className="mt-2 truncate text-center text-[11px] text-chalk-dim">
+          {match.venueName}
+          {match.venueCity ? ` · ${match.venueCity}` : ""}
+        </p>
+      )}
 
       <div className="mt-4 flex items-center justify-between gap-2 border-t border-night/5 pt-3">
         <p className="inline-flex items-center gap-1.5 text-xs font-medium text-chalk-dim">

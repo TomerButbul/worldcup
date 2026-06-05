@@ -41,7 +41,12 @@ export interface AfTeam {
 }
 
 export interface AfFixture {
-  fixture: { id: number; date: string; status: { short: string } };
+  fixture: {
+    id: number;
+    date: string;
+    status: { short: string };
+    venue?: { id: number | null; name: string | null; city: string | null };
+  };
   league: { round: string };
   teams: { home: { id: number; winner: boolean | null }; away: { id: number; winner: boolean | null } };
   goals: { home: number | null; away: number | null };

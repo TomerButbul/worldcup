@@ -5,6 +5,7 @@ import AnimatedBackground from "@/components/AnimatedBackground";
 import FlagGarland from "@/components/FlagGarland";
 import { PlayerCardHost } from "@/components/PlayerCard";
 import { TeamCardHost } from "@/components/TeamCard";
+import { VenueCardHost } from "@/components/VenueCard";
 import { GlobalNav } from "@/components/BottomNav";
 import GuestBanner from "@/components/GuestBanner";
 import LiveScoresWidget from "@/components/LiveScoresWidget";
@@ -125,6 +126,7 @@ export default async function RootLayout({
         {user && <LiveScoresWidget />}
         <PlayerCardHost />
         <TeamCardHost />
+        <VenueCardHost />
       </body>
     </html>
   );
