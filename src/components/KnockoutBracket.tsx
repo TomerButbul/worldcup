@@ -5,6 +5,7 @@ import Flag from "@/components/Flag";
 import Trophy from "@/components/art/Trophy";
 import { openTeamCard } from "@/components/TeamCard";
 import { useLongPress } from "@/lib/useLongPress";
+import Podium from "@/components/Podium";
 
 // A single team as it appears in the bracket. Mirrors the shape the consumer
 // already has on hand (id + display name + crest code/logo for <Flag>).
@@ -82,17 +83,14 @@ export default function KnockoutBracket({
   const longPress = useLongPress();
 
   // Two ways to read the same bracket:
-  //  • "rounds" — paged, one phase at a time (best for picking on mobile)
-  //  • "tree"   — a compact connected bracket from R16 → Final (the big picture)
-  // Default to the full bracket once the champion is picked — so at a glance (on
-  // mobile too) you see your finished bracket — or when locked. While still
-  // picking, the pager (step-through) has bigger tap targets, so it leads there.
-  const finalPicked = rounds.some(
-    (r) => r.matches.some((m) => m.no === (championNo ?? 104) && m.winner != null),
-  );
-  const [view, setView] = useState<"rounds" | "tree">(
-    treeOnly || locked || finalPicked ? "tree" : "rounds",
-  );
+  //  • "rounds" — paged, one phase at a time (bigger tap targets; ends on the
+  //               medal podium — the climax). The right call on a phone.
+  //  • "tree"   — the full two-sided bracket (the big picture). Great on a wide
+  //               screen, cramped on a phone, so it's a desktop default + an
+  //               opt-in toggle on mobile.
+  // Start paged everywhere; the effect below promotes desktop to the tree once we
+  // know the viewport. (treeOnly forces the tree for read-only embeds.)
+  const [view, setView] = useState<"rounds" | "tree">(treeOnly ? "tree" : "rounds");
 
   // Desktop defaults to the full bracket and gets a larger tree; mobile keeps the
   // paged picker (the tree is cramped on a phone). Once locked there's no picking,
@@ -107,12 +105,17 @@ export default function KnockoutBracket({
   }, []);
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- switch to the full bracket once we know it's a desktop viewport
-    if (!treeOnly && !locked && isDesktop) setView("tree");
-  }, [isDesktop, locked, treeOnly]);
+    if (!treeOnly && isDesktop) setView("tree");
+  }, [isDesktop, treeOnly]);
   const flagSz = isDesktop ? 18 : 12;
 
-  // Round-by-round paging — one phase at a time, no horizontal scroll.
-  const [active, setActive] = useState(0);
+  // Round-by-round paging — one phase at a time, no horizontal scroll. A finished
+  // bracket opens straight on the Final (and its medal podium — the payoff); an
+  // in-progress one starts at the first round.
+  const finalPicked = rounds.some(
+    (r) => r.matches.some((m) => m.no === (championNo ?? 104) && m.winner != null),
+  );
+  const [active, setActive] = useState(finalPicked ? rounds.length - 1 : 0);
   const safeActive = Math.max(0, Math.min(active, rounds.length - 1));
   const round = rounds[safeActive];
   const isFinalRound = safeActive === rounds.length - 1;
@@ -340,21 +343,6 @@ export default function KnockoutBracket({
   const thirdId = mget(103).winner;
   const thirdTeam = thirdId != null ? (teamsById[thirdId] ?? null) : null;
 
-  const podiumCard = (team: BracketTeam | null, medal: string, label: string, cls: string) => (
-    <div className={`glass flex flex-col items-center gap-1 rounded-xl border p-2.5 text-center ${cls}`}>
-      <span className="text-base leading-none">{medal}</span>
-      {team ? (
-        <>
-          <Flag teamId={team.id} logoUrl={team.logo_url} code={team.code} name={team.name} size={20} />
-          <span className="max-w-full truncate text-xs font-semibold text-chalk">{team.name}</span>
-        </>
-      ) : (
-        <span className="text-[10px] text-chalk-dim">—</span>
-      )}
-      <span className="text-[9px] uppercase tracking-wide text-chalk-dim">{label}</span>
-    </div>
-  );
-
   if (!round) return <div className="glass rounded-2xl p-6 text-center text-sm text-chalk-dim">No bracket yet.</div>;
 
   return (
@@ -509,30 +497,10 @@ export default function KnockoutBracket({
             {round.matches.map((m) => matchCard(m))}
           </div>
 
-          {/* Podium on the final phase: champion (WC trophy) + silver + bronze. */}
+          {/* Podium on the final phase — the climax: gold / silver / bronze. */}
           {isFinalRound && (
-            <div className="space-y-2 pt-1">
-              {champTeam ? (
-                <div className="glass-strong mx-auto flex max-w-sm flex-col items-center gap-1.5 rounded-2xl border border-gold bg-gold/15 p-4 text-center text-gold glow-gold">
-                  <Trophy size={44} />
-                  <Flag teamId={champTeam.id} logoUrl={champTeam.logo_url} code={champTeam.code} name={champTeam.name} size={32} />
-                  <span className="font-display text-lg leading-tight">{champTeam.name}</span>
-                  <span className="text-[11px] uppercase tracking-wide text-gold/80">🥇 Champion</span>
-                </div>
-              ) : (
-                <div className="glass mx-auto flex max-w-sm flex-col items-center gap-1 rounded-2xl border border-dashed border-gold/40 p-4 text-center">
-                  <span className="opacity-50"><Trophy size={32} /></span>
-                  <span className="font-display text-xs uppercase tracking-wide text-chalk-dim">
-                    Win the Final to crown a champion
-                  </span>
-                </div>
-              )}
-              {(runnerUpTeam || thirdTeam) && (
-                <div className="mx-auto grid max-w-sm grid-cols-2 gap-2">
-                  {podiumCard(runnerUpTeam, "🥈", "Runner-up", "border-slate-300 bg-slate-300/10")}
-                  {podiumCard(thirdTeam, "🥉", "Third place", "border-[#cd7f32]/60 bg-[#cd7f32]/10")}
-                </div>
-              )}
+            <div className="pt-1">
+              <Podium champion={champTeam} runnerUp={runnerUpTeam} third={thirdTeam} />
             </div>
           )}
 
