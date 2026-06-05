@@ -379,15 +379,46 @@ export default function KnockoutBracket({
               {treeCol(BRACKET_LEFT[3].nos, BRACKET_LEFT[3].label)}
               {treeLine()}
 
-              {/* CENTRE — the Final + crowned champion */}
-              <div className="flex w-[70px] flex-col px-0.5">
-                <div className="mb-1 text-center font-display text-[9px] uppercase tracking-wide text-gold">Final</div>
+              {/* CENTRE — the Final (the showpiece), with the 3rd-place match
+                  hung beneath it and joined by a connector so it reads as part of
+                  the bracket: lower and clearly less important than the Final. */}
+              <div className="flex w-[132px] flex-col px-1">
+                <div className="mb-1 text-center font-display text-[11px] uppercase tracking-wide text-gold">Final</div>
                 <div className="flex flex-1 flex-col items-center justify-center gap-1">
-                  {championTeamId != null && <Trophy size={22} />}
-                  <div className="w-full rounded-md ring-1 ring-gold">{treeCard(mget(104))}</div>
-                  <span className="font-display text-[10px] leading-none text-gold">
+                  {championTeamId != null && <Trophy size={32} />}
+                  {/* Enlarged, glowing final card — bigger flags + text than the rest of the tree. */}
+                  <div className="w-full rounded-lg bg-white/90 p-1.5 shadow-sm ring-2 ring-gold glow-gold">
+                    {[finalMatch.home, finalMatch.away].map((tid, i) => {
+                      const isW = finalMatch.winner != null && tid === finalMatch.winner;
+                      const t = tid != null ? teamsById[tid] : null;
+                      return (
+                        <div key={i}>
+                          {i === 1 && <div className="my-1 h-px bg-night/10" />}
+                          <div className={`flex items-center gap-1.5 ${isW ? "font-bold text-grass" : "text-chalk"}`}>
+                            {t ? (
+                              <Flag teamId={t.id} logoUrl={t.logo_url} code={t.code} name={t.name} size={16} />
+                            ) : (
+                              <span className="inline-block h-4 w-4 rounded-full bg-night/10" />
+                            )}
+                            <span className="text-xs">{codeOf(tid)}</span>
+                            {isW && <span className="ml-auto text-[10px] text-grass">✓</span>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <span className="font-display text-xs font-bold leading-none text-gold">
                     {championTeamId != null ? codeOf(championTeamId) : "Champion"}
                   </span>
+
+                  {/* 3rd-place playoff — connected beneath the Final, smaller + subdued. */}
+                  {mget(103).home != null && (
+                    <div className="mt-0.5 flex flex-col items-center">
+                      <div className="h-3.5 w-px bg-night/30" aria-hidden />
+                      <div className="mb-0.5 font-display text-[8px] uppercase tracking-wide text-[#b87333]">🥉 3rd place</div>
+                      <div className="w-[84px] opacity-90">{treeCard(mget(103))}</div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -402,14 +433,6 @@ export default function KnockoutBracket({
               {treeCol(BRACKET_RIGHT[3].nos, BRACKET_RIGHT[3].label)}
             </div>
           </div>
-
-          {/* Third-place playoff — compact, in the bracket's own style. */}
-          {mget(103).home != null && (
-            <div className="mx-auto w-[132px] pt-0.5 text-center">
-              <div className="mb-0.5 font-display text-[9px] uppercase tracking-wide text-[#b87333]">🥉 3rd-place playoff</div>
-              {treeCard(mget(103))}
-            </div>
-          )}
         </div>
       ) : (
         /* --------------------------- PAGED, ROUND BY ROUND --------------------------- */
