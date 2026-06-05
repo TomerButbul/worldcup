@@ -109,7 +109,7 @@ function positioned(xi: LineupPlayer[], half: "top" | "bottom") {
       out.push({
         p: x.p,
         x: ((i + 0.5) / sorted.length) * 100,
-        y: half === "bottom" ? 92 - frac * 36 : 8 + frac * 36,
+        y: half === "bottom" ? 93 - frac * 40 : 7 + frac * 40,
         label: labels[i] ?? "",
       });
     });
@@ -179,7 +179,7 @@ function PlayerChip({
         </span>
         <span className="max-w-[3.25rem] truncate text-[9px] leading-tight text-chalk sm:max-w-[3.75rem]">{first}</span>
         {label && (
-          <span className="rounded bg-night/40 px-1 text-[7px] font-bold uppercase leading-none text-gold">
+          <span className="hidden rounded bg-night/40 px-1 text-[7px] font-bold uppercase leading-none text-gold sm:block">
             {label}
           </span>
         )}
@@ -221,7 +221,7 @@ export default function Pitch({
       </div>
 
       {/* Vertical pitch */}
-      <div className="relative mx-auto aspect-[3/4] w-full max-w-sm overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-grass/70 to-grass/55">
+      <div className="relative mx-auto aspect-[5/7] w-full max-w-sm overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-grass/70 to-grass/55">
         {/* markings */}
         <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-white/30" />
         <div className="absolute left-1/2 top-1/2 h-20 w-20 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/30" />

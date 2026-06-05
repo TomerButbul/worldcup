@@ -84,6 +84,7 @@ export default function MatchCard({
   // Scorer picker shows ONE team at a time. Default to NONE selected so the card
   // stays compact — tap a team in the score row to expand its scorer picker.
   const [activeTeam, setActiveTeam] = useState<"home" | "away" | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
   const teamLongPress = useLongPress();
 
   const kickoff = new Date(match.kickoff_at).toLocaleString(undefined, {
@@ -210,9 +211,9 @@ export default function MatchCard({
   const pickScore =
     initial && initial.home_goals != null ? `${initial.home_goals}–${initial.away_goals}` : null;
 
-  const lockedScorers = Object.entries(initial?.scorer_goals ?? {})
-    .map(([pid, n]) => `${playerName(Number(pid))}${n > 1 ? ` ×${n}` : ""}`)
-    .join(", ");
+  const lockedScorerList = Object.entries(initial?.scorer_goals ?? {})
+    .map(([pid, n]) => `${playerName(Number(pid))}${n > 1 ? ` ×${n}` : ""}`);
+  const lockedScorers = lockedScorerList.join(", ");
 
   const penName =
     initial?.pen_winner_team_id == null
@@ -288,24 +289,69 @@ export default function MatchCard({
 
       {locked ? (
         <div className="mt-3 flex flex-col items-center gap-1.5 text-center text-xs text-chalk-dim">
-          <span>
-            {pickScore || lockedScorers || penName ? (
-              <>
-                Your pick:{" "}
-                {pickScore && <span className="text-chalk">{pickScore}</span>}
-                {penName && <> {pickScore ? "· " : ""}🥅 {penName}</>}
-                {lockedScorers && <> {pickScore || penName ? "· " : ""}<Ball size={13} className="mr-1 inline-block align-[-2px]" />{lockedScorers}</>}
-              </>
-            ) : (
-              <span>🔒 Locked — no prediction made</span>
-            )}
-          </span>
+          {pickScore || lockedScorers || penName ? (
+            <button
+              type="button"
+              onClick={() => setDetailOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-full bg-grass/15 px-3 py-1.5 transition hover:bg-grass/25"
+            >
+              <span className="font-semibold text-grass">Your pick:</span>
+              <span className="font-display text-sm tabular-nums text-chalk">{pickScore ?? "—"}</span>
+              {(lockedScorers || penName) && <span className="text-[11px] text-chalk-dim">tap for detail ›</span>}
+            </button>
+          ) : (
+            <span>🔒 Locked — no prediction made</span>
+          )}
           <Link
             href={`/leagues/${leagueId}/matches/${match.id}`}
             className="font-semibold text-gold transition hover:text-gold-bright"
           >
             Match summary →
           </Link>
+
+          {detailOpen && (
+            <div
+              className="fixed inset-0 z-[200] grid place-items-center bg-night/60 p-4 backdrop-blur-sm"
+              onClick={() => setDetailOpen(false)}
+              role="dialog"
+              aria-modal="true"
+            >
+              <div
+                className="glass-strong w-full max-w-xs rounded-3xl p-5 text-center"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <p className="text-[11px] uppercase tracking-wide text-chalk-dim">Your prediction</p>
+                <p className="mt-0.5 text-xs text-chalk-dim">
+                  {match.homeName} <span className="text-chalk-dim/60">v</span> {match.awayName}
+                </p>
+                <p className="mt-2 font-display text-4xl tabular-nums text-gradient-gold">{pickScore ?? "—"}</p>
+                {penName && <p className="mt-1 text-xs text-chalk-dim">🥅 Penalties: {penName}</p>}
+                {lockedScorerList.length > 0 ? (
+                  <div className="mt-4 text-left">
+                    <p className="mb-1.5 text-center text-[11px] font-semibold uppercase tracking-wide text-chalk-dim">
+                      Goal scorers
+                    </p>
+                    <ul className="space-y-1">
+                      {lockedScorerList.map((s, i) => (
+                        <li key={i} className="flex items-center gap-1.5 text-sm text-chalk">
+                          <Ball size={13} className="shrink-0" /> {s}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : (
+                  <p className="mt-3 text-xs text-chalk-dim">No goal scorers picked.</p>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setDetailOpen(false)}
+                  className="mt-5 w-full rounded-xl bg-gold px-4 py-2 text-sm font-semibold text-night transition hover:brightness-110"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <>
