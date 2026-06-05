@@ -145,13 +145,9 @@ export default function KnockoutBracket({
       (m) => (m.home != null && highlight.has(m.home)) || (m.away != null && highlight.has(m.away)),
     );
 
-  // 3-letter code for the compact tree cells (ARG, BRA…), falling back to name.
-  const codeOf = (teamId: number | null): string => {
-    if (teamId == null) return "—";
-    const t = teamsById[teamId];
-    if (!t) return "—";
-    return (t.code ?? t.name.slice(0, 3)).toUpperCase();
-  };
+  // Full team name for the tree cells — readers want names, not abbreviations.
+  const nameOf = (teamId: number | null): string =>
+    teamId == null ? "—" : (teamsById[teamId]?.name ?? "—");
 
   // One team row inside a paged match card. Highlighted teams get the gold trail
   // treatment; the tie's winner gets a grass fill + ✓. Becomes a <button> only
@@ -261,7 +257,7 @@ export default function KnockoutBracket({
         ) : (
           <span className="inline-block h-3 w-3 shrink-0 rounded-full bg-night/10" />
         )}
-        <span className="whitespace-nowrap">{codeOf(teamId)}</span>
+        <span className="min-w-0 flex-1 truncate">{nameOf(teamId)}</span>
         {isWinner && <span className="shrink-0 text-[8px] leading-none">✓</span>}
       </div>
     );
@@ -294,7 +290,7 @@ export default function KnockoutBracket({
 
   // One round column (label + its match cards spread by justify-around).
   const treeCol = (nos: number[], label: string) => (
-    <div className="flex w-[58px] flex-col px-0.5 lg:w-[92px]">
+    <div className="flex w-[104px] flex-col px-0.5 lg:w-[136px]">
       <div className="mb-1 text-center font-display text-[9px] uppercase tracking-wide text-chalk-dim lg:text-[11px]">{label}</div>
       <div className="flex flex-1 flex-col justify-around">{nos.map((no) => treeCard(mget(no)))}</div>
     </div>
@@ -371,17 +367,36 @@ export default function KnockoutBracket({
 
       {view === "tree" ? (
         /* -------------------- FULL BRACKET — two-sided (R32 → Final) -------------------- */
-        <div className="space-y-1.5">
+        <div className="space-y-2">
+          {/* Champion — crowned above the whole bracket, with the trophy. */}
+          {champTeam ? (
+            <div className="mx-auto flex max-w-sm items-center justify-center gap-2.5 rounded-2xl bg-gold/15 px-4 py-2 ring-1 ring-gold glow-gold">
+              <Trophy size={34} />
+              <Flag teamId={champTeam.id} logoUrl={champTeam.logo_url} code={champTeam.code} name={champTeam.name} size={26} />
+              <div className="min-w-0 text-left leading-tight">
+                <p className="truncate font-display text-base text-gradient-gold sm:text-lg">{champTeam.name}</p>
+                <p className="text-[10px] uppercase tracking-[0.18em] text-gold/80">World Champion</p>
+              </div>
+            </div>
+          ) : (
+            <div className="mx-auto flex max-w-sm items-center justify-center gap-2 rounded-2xl border border-dashed border-gold/40 px-4 py-2 text-chalk-dim">
+              <span className="opacity-50">
+                <Trophy size={22} />
+              </span>
+              <span className="font-display text-xs uppercase tracking-wide">Win the Final to crown your champion</span>
+            </div>
+          )}
+
           <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-0.5 text-[10px] text-chalk-dim">
-            <span className="font-semibold text-chalk">Full bracket · R32 → Final</span>
+            <span className="font-semibold text-chalk">Full bracket</span>
             {highlight.size > 0 && <span className="text-gold">★ = your path</span>}
-            <span className="text-chalk-dim/70">turn sideways for the full view</span>
+            <span className="text-chalk-dim/70">scroll sideways for every round</span>
           </div>
+
           <div className="overflow-x-auto pb-1">
-            {/* mx-auto centres the bracket when wide (landscape) and scrolls when
-                narrow. Fixed height keeps justify-around spacing uniform so the
-                connector elbows land dead-on their feeder cards. */}
-            <div className="mx-auto flex h-[300px] w-max items-stretch text-[10px] leading-none lg:h-[580px] lg:text-[13px]">
+            {/* Fixed height keeps justify-around spacing uniform so the connector
+                elbows land dead-on their feeder cards. */}
+            <div className="mx-auto flex h-[300px] w-max items-stretch text-[10px] leading-none lg:h-[560px] lg:text-[13px]">
               {/* LEFT half — flows rightward toward the centre */}
               {treeCol(BRACKET_LEFT[0].nos, BRACKET_LEFT[0].label)}
               {treeConn(BRACKET_LEFT[1].nos.length, "r")}
@@ -392,46 +407,28 @@ export default function KnockoutBracket({
               {treeCol(BRACKET_LEFT[3].nos, BRACKET_LEFT[3].label)}
               {treeLine()}
 
-              {/* CENTRE — the Final (the showpiece), with the 3rd-place match
-                  hung beneath it and joined by a connector so it reads as part of
-                  the bracket: lower and clearly less important than the Final. */}
-              <div className="flex w-[132px] flex-col px-1 lg:w-[190px]">
-                <div className="mb-1 text-center font-display text-[11px] uppercase tracking-wide text-gold">Final</div>
-                <div className="flex flex-1 flex-col items-center justify-center gap-1">
-                  {championTeamId != null && <Trophy size={32} />}
-                  {/* Enlarged, glowing final card — bigger flags + text than the rest of the tree. */}
-                  <div className="w-full rounded-lg bg-white/90 p-1.5 shadow-sm ring-2 ring-gold glow-gold">
-                    {[finalMatch.home, finalMatch.away].map((tid, i) => {
-                      const isW = finalMatch.winner != null && tid === finalMatch.winner;
-                      const t = tid != null ? teamsById[tid] : null;
-                      return (
-                        <div key={i}>
-                          {i === 1 && <div className="my-1 h-px bg-night/10" />}
-                          <div className={`flex items-center gap-1.5 ${isW ? "font-bold text-grass" : "text-chalk"}`}>
-                            {t ? (
-                              <Flag teamId={t.id} logoUrl={t.logo_url} code={t.code} name={t.name} size={isDesktop ? 24 : 16} />
-                            ) : (
-                              <span className="inline-block h-4 w-4 rounded-full bg-night/10" />
-                            )}
-                            <span className="text-xs">{codeOf(tid)}</span>
-                            {isW && <span className="ml-auto text-[10px] text-grass">✓</span>}
-                          </div>
+              {/* CENTRE — the Final alone; the champion is crowned in the banner above. */}
+              <div className="flex w-[150px] flex-col justify-center px-1 lg:w-[200px]">
+                <div className="mb-1.5 text-center font-display text-[11px] uppercase tracking-[0.15em] text-gold">Final</div>
+                <div className="w-full rounded-xl bg-white/90 p-2 shadow-md ring-2 ring-gold glow-gold">
+                  {[finalMatch.home, finalMatch.away].map((tid, i) => {
+                    const isW = finalMatch.winner != null && tid === finalMatch.winner;
+                    const t = tid != null ? teamsById[tid] : null;
+                    return (
+                      <div key={i}>
+                        {i === 1 && <div className="my-1.5 h-px bg-night/10" />}
+                        <div className={`flex items-center gap-1.5 ${isW ? "font-bold text-grass" : "text-chalk"}`}>
+                          {t ? (
+                            <Flag teamId={t.id} logoUrl={t.logo_url} code={t.code} name={t.name} size={isDesktop ? 22 : 16} />
+                          ) : (
+                            <span className="inline-block h-4 w-4 shrink-0 rounded-full bg-night/10" />
+                          )}
+                          <span className="min-w-0 flex-1 truncate text-xs">{t?.name ?? "TBD"}</span>
+                          {isW && <span className="shrink-0 text-[10px] text-grass">✓</span>}
                         </div>
-                      );
-                    })}
-                  </div>
-                  <span className="font-display text-xs font-bold leading-none text-gold">
-                    {championTeamId != null ? codeOf(championTeamId) : "Champion"}
-                  </span>
-
-                  {/* 3rd-place playoff — connected beneath the Final, smaller + subdued. */}
-                  {mget(103).home != null && (
-                    <div className="mt-0.5 flex flex-col items-center">
-                      <div className="h-3.5 w-px bg-night/30" aria-hidden />
-                      <div className="mb-0.5 font-display text-[8px] uppercase tracking-wide text-[#b87333]">🥉 3rd place</div>
-                      <div className="w-[84px] opacity-90">{treeCard(mget(103))}</div>
-                    </div>
-                  )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -446,6 +443,42 @@ export default function KnockoutBracket({
               {treeCol(BRACKET_RIGHT[3].nos, BRACKET_RIGHT[3].label)}
             </div>
           </div>
+
+          {/* 3rd-place play-off — contested by the two SEMI-FINAL losers, so it
+              branches from the semis (its own match below the bracket), not the Final. */}
+          {mget(103).home != null && (
+            <div className="mx-auto w-max max-w-full pt-1 text-center">
+              <p className="mb-1 font-display text-[10px] uppercase tracking-[0.12em] text-[#b87333]">
+                🥉 Third place · losing semi-finalists
+              </p>
+              {/* prongs: the two semi losers drop in from either side */}
+              <div className="mx-auto flex h-3 w-44 items-start justify-between">
+                <span className="h-3 w-1/2 rounded-tr-md border-r border-t border-[#cd7f32]/45" aria-hidden />
+                <span className="h-3 w-1/2 rounded-tl-md border-l border-t border-[#cd7f32]/45" aria-hidden />
+              </div>
+              <div className="mx-auto w-[210px] rounded-xl bg-white/85 p-2 shadow-sm ring-1 ring-[#cd7f32]/50 lg:w-[240px]">
+                {[mget(103).home, mget(103).away].map((tid, i) => {
+                  const m3 = mget(103);
+                  const isW = m3.winner != null && tid === m3.winner;
+                  const t = tid != null ? teamsById[tid] : null;
+                  return (
+                    <div key={i}>
+                      {i === 1 && <div className="my-1 h-px bg-night/10" />}
+                      <div className={`flex items-center gap-1.5 text-left ${isW ? "font-bold text-[#9c5a1a]" : "text-chalk"}`}>
+                        {t ? (
+                          <Flag teamId={t.id} logoUrl={t.logo_url} code={t.code} name={t.name} size={16} />
+                        ) : (
+                          <span className="inline-block h-4 w-4 shrink-0 rounded-full bg-night/10" />
+                        )}
+                        <span className="min-w-0 flex-1 truncate text-xs">{t?.name ?? "TBD"}</span>
+                        {isW && <span className="shrink-0 text-[11px]">🥉</span>}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         /* --------------------------- PAGED, ROUND BY ROUND --------------------------- */
