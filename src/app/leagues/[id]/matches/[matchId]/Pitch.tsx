@@ -109,7 +109,7 @@ function positioned(xi: LineupPlayer[], half: "top" | "bottom") {
       out.push({
         p: x.p,
         x: ((i + 0.5) / sorted.length) * 100,
-        y: half === "bottom" ? 96 - frac * 40 : 4 + frac * 40,
+        y: half === "bottom" ? 92 - frac * 36 : 8 + frac * 36,
         label: labels[i] ?? "",
       });
     });
@@ -137,30 +137,47 @@ function PlayerChip({
   stat,
   tone,
   label,
+  photo,
 }: {
   p: LineupPlayer;
   stat: Map<number, Stat>;
   tone: "home" | "away";
   label?: string;
+  photo?: string | null;
 }) {
   const first = p.name.split(" ").slice(-1)[0] ?? p.name;
+  const ring = tone === "home" ? "ring-grass" : "ring-white";
   return (
-    <motion.div layout layoutId={`pl-${p.player_id}`} className="flex w-14 flex-col items-center gap-0.5">
+    <motion.div layout layoutId={`pl-${p.player_id}`} className="flex w-12 flex-col items-center gap-0.5 sm:w-[3.75rem]">
       <PlayerCardButton
         playerId={p.player_id}
         name={p.name}
         detailPos={label}
         className="flex w-full flex-col items-center gap-0.5"
       >
-        <span
-          className={`relative flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-bold tabular-nums shadow ${
-            tone === "home" ? "bg-grass text-night" : "bg-white text-night"
-          }`}
-        >
-          {p.number ?? "•"}
+        {/* Circular face shot with a jersey-number badge — falls back to a number
+            disc when we have no photo. */}
+        <span className={`relative grid h-9 w-9 place-items-center overflow-hidden rounded-full bg-night/25 shadow ring-2 ${ring} sm:h-11 sm:w-11`}>
+          {photo ? (
+            // eslint-disable-next-line @next/next/no-img-element -- next/image not worth it for a tiny avatar
+            <img src={photo} alt="" loading="lazy" className="h-full w-full object-cover" />
+          ) : (
+            <span
+              className={`grid h-full w-full place-items-center text-[11px] font-bold tabular-nums ${
+                tone === "home" ? "bg-grass text-night" : "bg-white text-night"
+              }`}
+            >
+              {p.number ?? "•"}
+            </span>
+          )}
+          {photo && p.number != null && (
+            <span className="absolute -bottom-1 -right-1 grid h-[15px] w-[15px] place-items-center rounded-full bg-night text-[8px] font-bold leading-none tabular-nums text-white ring-1 ring-white/50">
+              {p.number}
+            </span>
+          )}
           <Badges s={stat.get(p.player_id)} />
         </span>
-        <span className="max-w-[3.5rem] truncate text-[9px] leading-tight text-chalk">{first}</span>
+        <span className="max-w-[3.25rem] truncate text-[9px] leading-tight text-chalk sm:max-w-[3.75rem]">{first}</span>
         {label && (
           <span className="rounded bg-night/40 px-1 text-[7px] font-bold uppercase leading-none text-gold">
             {label}
@@ -177,12 +194,14 @@ export default function Pitch({
   homeName,
   awayName,
   events,
+  photoById = {},
 }: {
   home: LineupRow | null;
   away: LineupRow | null;
   homeName: string;
   awayName: string;
   events: EventRow[];
+  photoById?: Record<number, string | null>;
 }) {
   const stat = aggregateStats(events);
   if (!home && !away) return null;
@@ -211,12 +230,12 @@ export default function Pitch({
 
         {aPos.map(({ p, x, y, label }) => (
           <div key={p.player_id} className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${x}%`, top: `${y}%` }}>
-            <PlayerChip p={p} stat={stat} tone="away" label={label} />
+            <PlayerChip p={p} stat={stat} tone="away" label={label} photo={photoById[p.player_id]} />
           </div>
         ))}
         {hPos.map(({ p, x, y, label }) => (
           <div key={p.player_id} className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${x}%`, top: `${y}%` }}>
-            <PlayerChip p={p} stat={stat} tone="home" label={label} />
+            <PlayerChip p={p} stat={stat} tone="home" label={label} photo={photoById[p.player_id]} />
           </div>
         ))}
       </div>

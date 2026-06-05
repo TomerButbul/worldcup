@@ -859,9 +859,22 @@ async function syncProxyFixtures(
     if (!isHalfTime) {
       const lus = await fetchLineups(rid);
       if (lus.length) {
+        const mlRows = lineupRows(pm.id, lus);
         await supabase
           .from("match_lineups")
-          .upsert(lineupRows(pm.id, lus), { onConflict: "match_id,team_id" });
+          .upsert(mlRows, { onConflict: "match_id,team_id" });
+        // Mirror into team_lineups (per-team) so the predict/scorer page shows the
+        // live XI too. syncUpcomingLineups does this for real matches but skips test
+        // fixtures (id >= 9M), so the proxy has to populate it itself.
+        await supabase.from("team_lineups").upsert(
+          mlRows.map((r) => ({
+            team_id: r.team_id,
+            formation: r.formation,
+            xi: r.xi,
+            fixture_id: rid,
+            updated_at: new Date().toISOString(),
+          })),
+        );
       }
 
       evs = await fetchFixtureEvents(rid, 20);
