@@ -329,6 +329,20 @@ export default function KnockoutBracket({
   const thirdId = mget(103).winner;
   const thirdTeam = thirdId != null ? (teamsById[thirdId] ?? null) : null;
 
+  // Final/3rd connector origins: each semifinal's WINNER row feeds the Final and
+  // its LOSER row feeds the 3rd place — so the two lines leave the match from the
+  // actual winning + losing teams (not a shared point). A card row sits ±ROW from
+  // its centre (top row above, bottom row below).
+  const ROW = isDesktop ? 12 : 9;
+  const lSemi = mget(101);
+  const rSemi = mget(102);
+  const lWinTop = lSemi.winner != null && lSemi.winner === lSemi.home;
+  const rWinTop = rSemi.winner != null && rSemi.winner === rSemi.home;
+  const lWinY = lWinTop ? -ROW : ROW;
+  const lLoseY = lWinTop ? ROW : -ROW;
+  const rWinY = rWinTop ? -ROW : ROW;
+  const rLoseY = rWinTop ? ROW : -ROW;
+
   if (!round) return <div className="glass rounded-2xl p-6 text-center text-sm text-chalk-dim">No bracket yet.</div>;
 
   return (
@@ -400,17 +414,15 @@ export default function KnockoutBracket({
                   the Final (winners, sideways) AND the 3rd place (losers, straight
                   down) — same converging shape, just smaller and underneath. */}
               <div className="relative w-[170px] lg:w-[232px]">
-                {/* WINNERS advance sideways into the Final — solid bracket lines */}
-                <span aria-hidden className="absolute left-0 top-1/2 h-px w-[11px] -translate-y-1/2 bg-night/40 lg:w-[17px]" />
-                <span aria-hidden className="absolute right-0 top-1/2 h-px w-[11px] -translate-y-1/2 bg-night/40 lg:w-[17px]" />
-                {/* LOSERS drop to the 3rd-place match — dashed bronze. They leave
-                    from the LOWER edge of each semi (a different spot than the
-                    winner lines, which leave from the centre toward the Final), so
-                    the two paths read as separate, not one bent line. */}
-                <span aria-hidden className="absolute left-0 top-[calc(50%+18px)] h-[74px] w-0 border-l border-dashed border-[#cd7f32]/70 lg:top-[calc(50%+24px)] lg:h-[94px]" />
-                <span aria-hidden className="absolute left-0 top-[calc(50%+92px)] h-0 w-[22px] -translate-y-1/2 border-t border-dashed border-[#cd7f32]/70 lg:top-[calc(50%+118px)] lg:w-[38px]" />
-                <span aria-hidden className="absolute right-0 top-[calc(50%+18px)] h-[74px] w-0 border-r border-dashed border-[#cd7f32]/70 lg:top-[calc(50%+24px)] lg:h-[94px]" />
-                <span aria-hidden className="absolute right-0 top-[calc(50%+92px)] h-0 w-[22px] -translate-y-1/2 border-t border-dashed border-[#cd7f32]/70 lg:top-[calc(50%+118px)] lg:w-[38px]" />
+                {/* WINNERS advance into the Final — a solid line leaving the
+                    WINNING team's row of each semifinal. */}
+                <span aria-hidden className="absolute left-0 h-px w-[11px] -translate-y-1/2 bg-night/40 lg:w-[17px]" style={{ top: `calc(50% + ${lWinY}px)` }} />
+                <span aria-hidden className="absolute right-0 h-px w-[11px] -translate-y-1/2 bg-night/40 lg:w-[17px]" style={{ top: `calc(50% + ${rWinY}px)` }} />
+                {/* LOSERS drop to the 3rd-place match — a dashed bronze elbow
+                    leaving the LOSING team's row, rounded at the corner like the
+                    bracket's other connectors. */}
+                <span aria-hidden className="absolute left-0 bottom-[58px] w-[22px] rounded-bl-md border-b border-l border-dashed border-[#cd7f32]/70 lg:bottom-[162px] lg:w-[38px]" style={{ top: `calc(50% + ${lLoseY}px)` }} />
+                <span aria-hidden className="absolute right-0 bottom-[58px] w-[22px] rounded-br-md border-b border-r border-dashed border-[#cd7f32]/70 lg:bottom-[162px] lg:w-[38px]" style={{ top: `calc(50% + ${rLoseY}px)` }} />
 
                 {/* FINAL label */}
                 <div className="absolute left-1/2 top-[calc(50%-44px)] -translate-x-1/2 whitespace-nowrap font-display text-[11px] uppercase tracking-[0.15em] text-gold lg:top-[calc(50%-52px)]">
