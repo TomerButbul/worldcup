@@ -561,35 +561,43 @@ function TeamScorers({
     <div>
       {cap === 0 ? (
         <p className="text-[11px] text-chalk-dim">Predict a goal first to pick scorers for this team.</p>
-      ) : (
-        <div className="space-y-2">
-          {pitchNodes.length > 0 && (
-            <>
-              <p className="text-center text-[11px] text-chalk-dim">Tap a player to add a goal · hold for details</p>
-              <div className="relative mx-auto aspect-[5/6] w-full max-w-[320px] overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-grass/70 to-grass/55">
-                <div className="absolute bottom-0 left-1/2 h-12 w-28 -translate-x-1/2 border-x border-t border-white/25" />
-                <div className="absolute bottom-0 left-1/2 h-5 w-14 -translate-x-1/2 border-x border-t border-white/25" />
-                <div className="absolute -top-9 left-1/2 h-16 w-16 -translate-x-1/2 rounded-full border border-white/25" />
-                {pitchNodes.map(pitchNode)}
-              </div>
-            </>
-          )}
-          {selected.length > 0 && (
-            <div className="space-y-1.5">
-              <p className="text-[11px] font-semibold text-chalk-dim">Your scorers</p>
-              {selected.map(row)}
+      ) : pitchNodes.length > 0 ? (
+        // Desktop: pitch on the left, your scorers + search on the right — so the
+        // card fills its width instead of a narrow pitch floating in dead space.
+        <div className="space-y-2 lg:grid lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start lg:gap-4 lg:space-y-0">
+          <div className="space-y-1.5">
+            <p className="text-center text-[11px] text-chalk-dim">Tap a player to add a goal · hold for details</p>
+            <div className="relative mx-auto aspect-[5/6] w-full max-w-[320px] overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-grass/70 to-grass/55">
+              <div className="absolute bottom-0 left-1/2 h-12 w-28 -translate-x-1/2 border-x border-t border-white/25" />
+              <div className="absolute bottom-0 left-1/2 h-5 w-14 -translate-x-1/2 border-x border-t border-white/25" />
+              <div className="absolute -top-9 left-1/2 h-16 w-16 -translate-x-1/2 rounded-full border border-white/25" />
+              {pitchNodes.map(pitchNode)}
             </div>
-          )}
-          {pitchNodes.length > 0 ? (
+          </div>
+          <div className="space-y-2">
+            {selected.length > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-[11px] font-semibold text-chalk-dim">Your scorers</p>
+                {selected.map(row)}
+              </div>
+            )}
             <details>
               <summary className="cursor-pointer list-none text-[11px] font-semibold text-chalk-dim transition hover:text-chalk">
                 🔍 Search / other players
               </summary>
               <div className="mt-2 space-y-2">{searchBlock}</div>
             </details>
-          ) : (
-            searchBlock
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {selected.length > 0 && (
+            <div className="space-y-1.5">
+              <p className="text-[11px] font-semibold text-chalk-dim">Your scorers</p>
+              {selected.map(row)}
+            </div>
           )}
+          {searchBlock}
         </div>
       )}
     </div>

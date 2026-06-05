@@ -206,39 +206,36 @@ export default async function DashboardPage({
           <Reveal>
             <section className="space-y-2">
               <h2 className="font-display text-lg text-chalk">Your predictions</h2>
-              <div className="glass-strong overflow-hidden rounded-2xl">
+              <div className="grid gap-3 sm:grid-cols-3">
                 <Link
                   href="/bracket"
-                  className="group flex items-center gap-3 border-b border-night/5 p-3.5 transition hover:bg-night/5"
+                  className="group glass-strong flex flex-col gap-1.5 rounded-2xl p-4 transition hover:-translate-y-0.5 hover:bg-night/5"
                 >
-                  <span className="shrink-0 text-gold"><Trophy size={26} /></span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block font-semibold text-chalk">Bracket</span>
-                    <span className="block truncate text-xs text-chalk-dim">Order the groups, build your knockout &amp; crown a champion</span>
+                  <span className="text-gold"><Trophy size={30} /></span>
+                  <span className="flex items-center gap-1 font-semibold text-chalk">
+                    Bracket <span className="text-gold transition group-hover:translate-x-0.5">→</span>
                   </span>
-                  <span className="shrink-0 text-gold transition group-hover:translate-x-0.5">→</span>
+                  <span className="text-xs text-chalk-dim">Order the groups, build your knockout &amp; crown a champion</span>
                 </Link>
                 <Link
                   href="/predict"
-                  className="group flex items-center gap-3 border-b border-night/5 p-3.5 transition hover:bg-night/5"
+                  className="group glass-strong flex flex-col gap-1.5 rounded-2xl p-4 transition hover:-translate-y-0.5 hover:bg-night/5"
                 >
-                  <span className="shrink-0 text-gold"><Ball size={26} /></span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block font-semibold text-chalk">Match predictions</span>
-                    <span className="block truncate text-xs text-chalk-dim">Pick scores &amp; goal scorers, match by match</span>
+                  <span className="text-gold"><Ball size={30} /></span>
+                  <span className="flex items-center gap-1 font-semibold text-chalk">
+                    Match predictions <span className="text-gold transition group-hover:translate-x-0.5">→</span>
                   </span>
-                  <span className="shrink-0 text-gold transition group-hover:translate-x-0.5">→</span>
+                  <span className="text-xs text-chalk-dim">Pick scores &amp; goal scorers, match by match</span>
                 </Link>
                 <Link
                   href="/awards"
-                  className="group flex items-center gap-3 p-3.5 transition hover:bg-night/5"
+                  className="group glass-strong flex flex-col gap-1.5 rounded-2xl p-4 transition hover:-translate-y-0.5 hover:bg-night/5"
                 >
-                  <span className="shrink-0 text-gold"><Medal size={26} /></span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block font-semibold text-chalk">Awards</span>
-                    <span className="block truncate text-xs text-chalk-dim">Golden Boot, Ball, Glove &amp; Young Player</span>
+                  <span className="text-gold"><Medal size={30} /></span>
+                  <span className="flex items-center gap-1 font-semibold text-chalk">
+                    Awards <span className="text-gold transition group-hover:translate-x-0.5">→</span>
                   </span>
-                  <span className="shrink-0 text-gold transition group-hover:translate-x-0.5">→</span>
+                  <span className="text-xs text-chalk-dim">Golden Boot, Ball, Glove &amp; Young Player</span>
                 </Link>
               </div>
               <p className="px-1 text-xs text-chalk-dim">
@@ -308,6 +305,20 @@ export default async function DashboardPage({
             </Reveal>
           </div>
 
+        </div>
+
+        {/* Secondary / aside column */}
+        <div className="mt-4 space-y-4 lg:mt-0 lg:space-y-4">
+          {favStatus && (
+            <Reveal>
+              <FavoriteTeamStatus status={favStatus} />
+            </Reveal>
+          )}
+
+          <Reveal>
+            <FavoriteTeamPicker teams={teams} current={favId} />
+          </Reveal>
+
           <Reveal>
             <Link
               href="/rankings"
@@ -322,19 +333,6 @@ export default async function DashboardPage({
               </span>
               <span className="text-gold transition group-hover:translate-x-0.5">→</span>
             </Link>
-          </Reveal>
-        </div>
-
-        {/* Secondary / aside column */}
-        <div className="mt-4 space-y-4 lg:mt-0 lg:space-y-4">
-          {favStatus && (
-            <Reveal>
-              <FavoriteTeamStatus status={favStatus} />
-            </Reveal>
-          )}
-
-          <Reveal>
-            <FavoriteTeamPicker teams={teams} current={favId} />
           </Reveal>
 
           <Reveal>
