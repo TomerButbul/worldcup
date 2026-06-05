@@ -2,7 +2,13 @@ import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getCachedTeams } from "@/lib/tournamentData";
 
-export const dynamic = "force-dynamic";
+// Edge-cache the public live feed for a short window so a match-day crowd polling
+// every 45s collapses to ~one DB read per 15s globally (served from Vercel's CDN)
+// instead of one read per viewer. The cookie-free service client makes the response
+// identical for everyone, so it's safe to share-cache; data is at most ~15s staler
+// than the ~60s sync — fine for an ambient scores pill. Next emits the matching
+// `s-maxage=15, stale-while-revalidate` Cache-Control for the CDN from this.
+export const revalidate = 15;
 
 type MiniTeam = { id: number; name: string; code: string | null; logo_url: string | null } | null;
 
@@ -34,5 +40,5 @@ export async function GET() {
     awayGoals: m.away_goals ?? 0,
   }));
 
-  return NextResponse.json({ games }, { headers: { "Cache-Control": "no-store" } });
+  return NextResponse.json({ games });
 }
