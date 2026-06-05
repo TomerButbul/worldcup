@@ -19,6 +19,12 @@ export type GlobalRank = {
   live: number;
 };
 
+// Curated, server-authored avatars (fixed /public assets, e.g. the AI-mascot art)
+// are safe to show to a global/stranger audience. User-UPLOADED images never are,
+// so they stay hidden on the worldwide board (kid-safe) — only this allow-list passes.
+const isCuratedAvatar = (u: string | null | undefined): u is string =>
+  !!u && u.startsWith("/mascots/");
+
 export const getCachedGlobalRankings = unstable_cache(
   async (): Promise<GlobalRank[]> => {
     const s = createServiceClient();
@@ -54,13 +60,13 @@ export const getCachedGlobalRankings = unstable_cache(
         // Guests are hidden from the worldwide board until they create an account.
         if (p?.is_guest) return null;
         const b = best.get(id)!;
+        const av = p?.avatar_url;
         return {
           user_id: id,
           name: p?.team_name || p?.display_name || "Player",
-          // Generic avatars only on the worldwide board — never surface a
-          // user-uploaded image to a global/stranger audience (kid-safe). The
-          // curated favourite-team crest still shows.
-          avatarUrl: null as string | null,
+          // Never surface a user-uploaded image to a global/stranger audience
+          // (kid-safe) — but curated mascot art (a fixed /public asset) is fine.
+          avatarUrl: isCuratedAvatar(av) ? av : null,
           favTeamId: p?.favorite_team_id ?? null,
           total: b.total,
           upfront: b.upfront,

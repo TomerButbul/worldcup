@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="Zayu the jaguar">
+  <circle cx="128" cy="128" r="128" fill="#0B7A4B"/>
+  <path d="M74 96 L66 50 L108 78 Z" fill="#E8B84B"/>
+  <path d="M182 96 L190 50 L148 78 Z" fill="#E8B84B"/>
+  <path d="M78 88 L74 64 L96 78 Z" fill="#7A4A12"/>
+  <path d="M178 88 L182 64 L160 78 Z" fill="#7A4A12"/>
+  <ellipse cx="128" cy="138" rx="62" ry="58" fill="#E8B84B"/>
+  <g fill="#5A3410">
+    <circle cx="92" cy="112" r="6"/><circle cx="106" cy="98" r="4"/>
+    <circle cx="164" cy="112" r="6"/><circle cx="150" cy="98" r="4"/>
+    <circle cx="84" cy="150" r="5"/><circle cx="172" cy="150" r="5"/>
+  </g>
+  <ellipse cx="128" cy="168" rx="34" ry="26" fill="#F3D79A"/>
+  <ellipse cx="104" cy="130" rx="12" ry="13" fill="#fff"/><circle cx="105" cy="131" r="6.5" fill="#1c1c1c"/>
+  <ellipse cx="152" cy="130" rx="12" ry="13" fill="#fff"/><circle cx="151" cy="131" r="6.5" fill="#1c1c1c"/>
+  <path d="M118 158 L138 158 L128 168 Z" fill="#3A2010"/>
+  <path d="M128 168 L128 178 M128 178 C120 178 116 173 114 170 M128 178 C136 178 140 173 142 170" stroke="#3A2010" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+  <g stroke="#5A3410" stroke-width="2.5" stroke-linecap="round">
+    <path d="M96 170 L62 164"/><path d="M96 176 L64 178"/>
+    <path d="M160 170 L194 164"/><path d="M160 176 L192 178"/>
+  </g>
+</svg>

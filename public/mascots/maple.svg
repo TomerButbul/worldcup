@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="Maple the moose">
+  <circle cx="128" cy="128" r="128" fill="#D52B1E"/>
+  <g stroke="#E0AC5B" stroke-width="10" stroke-linecap="round" fill="none">
+    <path d="M100 92 C86 74 80 60 80 44"/>
+    <path d="M82 62 L62 54"/>
+    <path d="M82 48 L64 38"/>
+    <path d="M88 38 L80 24"/>
+    <path d="M156 92 C170 74 176 60 176 44"/>
+    <path d="M174 62 L194 54"/>
+    <path d="M174 48 L192 38"/>
+    <path d="M168 38 L176 24"/>
+  </g>
+  <ellipse cx="80" cy="116" rx="15" ry="24" fill="#6E4A2A" transform="rotate(-20 80 116)"/>
+  <ellipse cx="176" cy="116" rx="15" ry="24" fill="#6E4A2A" transform="rotate(20 176 116)"/>
+  <path d="M128 80 C162 80 180 108 180 140 C180 184 158 214 128 214 C98 214 76 184 76 140 C76 108 94 80 128 80 Z" fill="#8A5C34"/>
+  <ellipse cx="128" cy="182" rx="35" ry="33" fill="#6E4A2A"/>
+  <ellipse cx="114" cy="186" rx="5" ry="7" fill="#3A2614"/>
+  <ellipse cx="142" cy="186" rx="5" ry="7" fill="#3A2614"/>
+  <circle cx="107" cy="134" r="11" fill="#fff"/><circle cx="109" cy="136" r="6" fill="#241200"/>
+  <circle cx="149" cy="134" r="11" fill="#fff"/><circle cx="151" cy="136" r="6" fill="#241200"/>
+</svg>

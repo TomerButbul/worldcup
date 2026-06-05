@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="Clutch the eagle">
+  <circle cx="128" cy="128" r="128" fill="#2A3B8F"/>
+  <path d="M40 212 C62 182 92 170 128 170 C164 170 194 182 216 212 L216 256 L40 256 Z" fill="#5A3A1E"/>
+  <path d="M128 56 C176 56 206 92 206 138 C206 156 198 170 186 178 C170 150 150 140 128 140 C106 140 86 150 70 178 C58 170 50 156 50 138 C50 92 80 56 128 56 Z" fill="#F7F7F5"/>
+  <path d="M84 116 L116 124 L112 134 L86 130 Z" fill="#CED3DE"/>
+  <path d="M172 116 L140 124 L144 134 L170 130 Z" fill="#CED3DE"/>
+  <circle cx="100" cy="128" r="9" fill="#1c1c1c"/>
+  <circle cx="156" cy="128" r="9" fill="#1c1c1c"/>
+  <path d="M128 132 C140 132 146 142 146 154 C146 168 138 182 128 190 C118 182 110 168 110 154 C110 142 116 132 128 132 Z" fill="#F4B400"/>
+  <path d="M128 190 C124 186 122 181 122 176 L134 176 C134 181 132 186 128 190 Z" fill="#D99000"/>
+  <ellipse cx="128" cy="150" rx="2.6" ry="4" fill="#9A6A00"/>
+</svg>
