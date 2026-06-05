@@ -45,12 +45,18 @@ jobs:
               "$BASE/api/sync?mode=live" || echo ERR)
             echo "tick $i live [$code]: $(head -c 200 live.json 2>/dev/null)"
             # Every ~10 min also run the full sync (finished-match goal import,
-            # standings, scoring) so results/points stay fresh during games too.
+            # standings, scoring) + reminders (deadline/no-prediction/result
+            # nudges) so results, points, and alerts stay fresh during games —
+            # the */15 schedules for these are throttled to ~90 min like this one.
             if [ $((i % 10)) -eq 0 ]; then
               fcode=$(curl -fsS --max-time 110 -o full.json -w "%{http_code}" \
                 -H "Authorization: Bearer $SYNC_SECRET" \
                 "$BASE/api/sync" || echo ERR)
               echo "tick $i FULL [$fcode]: $(head -c 200 full.json 2>/dev/null)"
+              ncode=$(curl -fsS --max-time 60 -o notify.json -w "%{http_code}" \
+                -H "Authorization: Bearer $SYNC_SECRET" \
+                "$BASE/api/notify" || echo ERR)
+              echo "tick $i NOTIFY [$ncode]: $(head -c 200 notify.json 2>/dev/null)"
             fi
             sleep 60
           done

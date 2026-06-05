@@ -20,6 +20,7 @@ import {
   mapStage,
   mapStatus,
 } from "@/lib/apiFootball";
+import { missingScorers } from "@/lib/alerts";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -286,6 +287,16 @@ export async function GET(request: NextRequest) {
         }
       }
 
+      // Upcoming real WC matches (~45 min out): pull the official XI as soon as
+      // it's published + warn any predictor whose scorer isn't starting. Caught
+      // within 60s on the live tick. Isolated, best-effort.
+      let xiAlerts = 0;
+      try {
+        xiAlerts = await syncUpcomingLineups(supabase);
+      } catch {
+        // best-effort
+      }
+
       // Dress-rehearsal proxy matches (e.g. tonight's Canada–Ireland test) pull
       // a REAL fixture's live data onto a sentinel match id. Fully isolated so it
       // can never break the WC live score sync.
@@ -304,6 +315,7 @@ export async function GET(request: NextRequest) {
         events,
         stats,
         goalsNotified,
+        xiAlerts,
         proxies,
       });
     }
@@ -847,28 +859,9 @@ async function syncProxyFixtures(
     if (!isHalfTime) {
       const lus = await fetchLineups(rid);
       if (lus.length) {
-        await supabase.from("match_lineups").upsert(
-          lus.map((l) => ({
-            match_id: pm.id,
-            team_id: l.team.id,
-            formation: l.formation ?? null,
-            xi: l.startXI.map((x) => ({
-              player_id: x.player.id,
-              name: x.player.name,
-              number: x.player.number,
-              pos: x.player.pos,
-              grid: x.player.grid,
-            })),
-            subs: l.substitutes.map((x) => ({
-              player_id: x.player.id,
-              name: x.player.name,
-              number: x.player.number,
-              pos: x.player.pos,
-            })),
-            updated_at: new Date().toISOString(),
-          })),
-          { onConflict: "match_id,team_id" },
-        );
+        await supabase
+          .from("match_lineups")
+          .upsert(lineupRows(pm.id, lus), { onConflict: "match_id,team_id" });
       }
 
       evs = await fetchFixtureEvents(rid, 20);
@@ -890,6 +883,15 @@ async function syncProxyFixtures(
       if (rows.length) await supabase.from("match_events").insert(rows);
 
       await syncMatchStats(supabase, pm.id, rid);
+
+      // Pre-kickoff: warn any predictor whose picked scorer isn't in the XI.
+      if (mapStatus(short) === "scheduled") {
+        try {
+          await alertMissingScorers(supabase, pm.id, pm.home_team_id, pm.away_team_id, "/sandbox");
+        } catch {
+          // best-effort
+        }
+      }
     }
 
     // 3) Notifications + scoring only fire on a goal or at full time — read the
@@ -997,4 +999,134 @@ async function syncProxyFixtures(
     }
   }
   return touched;
+}
+
+// --- Pre-kickoff scorer alerts ---------------------------------------------
+
+// Map API lineups → match_lineups rows (shared by the proxy + upcoming-XI sync).
+function lineupRows(matchId: number, lus: Awaited<ReturnType<typeof fetchLineups>>) {
+  return lus.map((l) => ({
+    match_id: matchId,
+    team_id: l.team.id,
+    formation: l.formation ?? null,
+    xi: l.startXI.map((x) => ({
+      player_id: x.player.id,
+      name: x.player.name,
+      number: x.player.number,
+      pos: x.player.pos,
+      grid: x.player.grid,
+    })),
+    subs: l.substitutes.map((x) => ({
+      player_id: x.player.id,
+      name: x.player.name,
+      number: x.player.number,
+      pos: x.player.pos,
+    })),
+    updated_at: new Date().toISOString(),
+  }));
+}
+
+// Once the official XI is published, warn each predictor whose picked goal scorer
+// is NOT in either team's starting XI (benched/injured/suspended all surface as
+// "not starting"), so they can swap before predictions lock. One push per
+// (match, user), deduped via notif_sent. Best-effort.
+async function alertMissingScorers(
+  supabase: ReturnType<typeof createServiceClient>,
+  matchId: number,
+  homeTeamId: number | null,
+  awayTeamId: number | null,
+  url: string,
+): Promise<number> {
+  const { data: lus } = await supabase.from("match_lineups").select("xi").eq("match_id", matchId);
+  if (!lus?.length) return 0;
+  const xi = new Set<number>();
+  for (const l of lus) {
+    for (const p of (l.xi as { player_id?: number }[] | null) ?? []) {
+      if (p?.player_id != null) xi.add(p.player_id);
+    }
+  }
+  if (!xi.size) return 0;
+
+  const { data: preds } = await supabase
+    .from("match_predictions")
+    .select("user_id, scorer_goals")
+    .eq("match_id", matchId);
+  // Predictions are account-level → one scorer set per user (same in every league).
+  const byUser = new Map<string, Record<string, number>>();
+  for (const p of preds ?? []) {
+    if (!byUser.has(p.user_id)) byUser.set(p.user_id, (p.scorer_goals ?? {}) as Record<string, number>);
+  }
+
+  const perUser = new Map<string, number[]>();
+  const allMissing = new Set<number>();
+  for (const [uid, sg] of byUser) {
+    const miss = missingScorers(sg, xi);
+    if (miss.length) {
+      perUser.set(uid, miss);
+      for (const id of miss) allMissing.add(id);
+    }
+  }
+  if (!perUser.size) return 0;
+
+  const { data: teamRows } = await supabase
+    .from("teams")
+    .select("id, name")
+    .in("id", [homeTeamId, awayTeamId].filter((x): x is number => x != null));
+  const teamName = (id: number | null) =>
+    (id != null ? (teamRows ?? []).find((t) => t.id === id)?.name : null) ?? "TBD";
+  const { data: pl } = await supabase.from("players").select("id, name").in("id", [...allMissing]);
+  const playerName = (id: number) => (pl ?? []).find((p) => p.id === id)?.name ?? `#${id}`;
+
+  let sent = 0;
+  for (const [uid, miss] of perUser) {
+    const key = `xi_${matchId}_${uid}`;
+    const { data: ex } = await supabase.from("notif_sent").select("key").eq("key", key).maybeSingle();
+    if (ex) continue;
+    const names = miss.map(playerName).join(", ");
+    const n = await sendToUsersCategory([uid], "matches", {
+      title: "⚠️ Your scorer pick isn't starting",
+      body: `${names} not in the XI for ${teamName(homeTeamId)} v ${teamName(awayTeamId)} — swap before kickoff →`,
+      url,
+      tag: `xi-${matchId}`,
+    });
+    await supabase.from("notif_sent").insert({ key });
+    sent += n;
+  }
+  return sent;
+}
+
+// For real WC matches kicking off within ~45 min: pull the official XI (now
+// published), store it so the match page shows it pre-game, and fire the
+// scorer-not-starting alert. Bounded to the pre-kickoff window so it's cheap;
+// runs on the 60s live tick so the XI is caught within a minute of release.
+async function syncUpcomingLineups(
+  supabase: ReturnType<typeof createServiceClient>,
+): Promise<number> {
+  const now = Date.now();
+  const { data: soon } = await supabase
+    .from("matches")
+    .select("id, home_team_id, away_team_id")
+    .eq("status", "scheduled")
+    .lt("id", 9_000_000)
+    .gt("kickoff_at", new Date(now).toISOString())
+    .lte("kickoff_at", new Date(now + 45 * 60_000).toISOString());
+  if (!soon?.length) return 0;
+
+  let alerts = 0;
+  for (const m of soon) {
+    const lus = await fetchLineups(m.id);
+    if (lus.length) {
+      await supabase
+        .from("match_lineups")
+        .upsert(lineupRows(m.id, lus), { onConflict: "match_id,team_id" });
+    }
+    alerts += await alertMissingScorers(
+      supabase,
+      m.id,
+      m.home_team_id,
+      m.away_team_id,
+      `/predict#match-${m.id}`,
+    );
+  }
+  return alerts;
 }

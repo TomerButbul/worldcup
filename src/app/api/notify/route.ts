@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { broadcast, broadcastCategory, sendToUsersCategory, type PushPayload } from "@/lib/push";
 import { KICKOFF_MS } from "@/lib/clock";
+import { usersToNudge } from "@/lib/alerts";
 
 // Reminder sender — hit by a cron every ~15 min. Sends each reminder once
 // (deduped via notif_sent): bracket lock (24h / 1h before kickoff) and a
@@ -62,24 +63,48 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  // Per-match nudge: matches kicking off within ~75 min.
+  // Per-match nudge: real matches kicking off within ~2h — but ONLY to players
+  // who can predict and haven't predicted THIS match yet (no point nagging
+  // someone already locked in). Once per match via notif_sent. Sentinels (the
+  // gated proxy/test matches, id >= 9_000_000) are excluded so a private test
+  // match can never broadcast to the whole user base.
   const { data: upcoming } = await s
     .from("matches")
     .select("id, kickoff_at, home_team_id, away_team_id")
+    .lt("id", 9_000_000)
     .gt("kickoff_at", new Date(now).toISOString())
-    .lte("kickoff_at", new Date(now + 75 * 60_000).toISOString());
+    .lte("kickoff_at", new Date(now + 2 * H).toISOString());
   if (upcoming?.length) {
     const { data: teams } = await s.from("teams").select("id, name");
     const nm = new Map((teams ?? []).map((t) => [t.id, t.name]));
+    // Everyone who CAN predict = members of a non-draft league. Predictions are
+    // account-level, so membership in any prediction league is enough.
+    const { data: members } = await s
+      .from("league_members")
+      .select("user_id, leagues!inner(kind)")
+      .neq("leagues.kind", "draft");
+    const eligible = [...new Set((members ?? []).map((m) => m.user_id as string))];
     for (const m of upcoming) {
+      const key = `nopred_${m.id}`;
+      const { data: ex } = await s.from("notif_sent").select("key").eq("key", key).maybeSingle();
+      if (ex) continue;
+      const { data: preds } = await s.from("match_predictions").select("user_id").eq("match_id", m.id);
+      const recipients = usersToNudge(
+        eligible,
+        (preds ?? []).map((p) => p.user_id as string),
+      );
       const home = m.home_team_id ? (nm.get(m.home_team_id) ?? "TBD") : "TBD";
       const away = m.away_team_id ? (nm.get(m.away_team_id) ?? "TBD") : "TBD";
-      await once(`match_${m.id}`, "matches", {
-        title: `⚽ ${home} vs ${away}`,
-        body: "Kicks off soon — lock in your scorers!",
-        url: "/dashboard",
-        tag: `m${m.id}`,
-      });
+      const n = recipients.length
+        ? await sendToUsersCategory(recipients, "matches", {
+            title: `⚽ ${home} vs ${away}`,
+            body: "Kicks off soon and you haven't predicted yet — get your pick in →",
+            url: `/predict#match-${m.id}`,
+            tag: `m${m.id}`,
+          })
+        : 0;
+      await s.from("notif_sent").insert({ key });
+      sent.push(`${key}=${n}`);
     }
   }
 
@@ -90,6 +115,7 @@ export async function GET(request: NextRequest) {
     .from("matches")
     .select("id, home_team_id, away_team_id, home_goals, away_goals")
     .eq("status", "finished")
+    .lt("id", 9_000_000)
     .gte("kickoff_at", new Date(now - 4 * H).toISOString());
   if (justFinished?.length) {
     const { data: rteams } = await s.from("teams").select("id, name");
