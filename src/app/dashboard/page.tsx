@@ -16,6 +16,8 @@ import FavoriteTeamStatus from "@/components/FavoriteTeamStatus";
 import Countdown from "@/components/Countdown";
 import NotificationToggle from "@/components/NotificationToggle";
 import NextMatchCard, { type NextMatchData } from "@/components/NextMatchCard";
+import SupportCard from "@/components/SupportCard";
+import { SUPPORT_URL } from "@/lib/site";
 import { computeFavStatus } from "@/lib/favoriteStatus";
 import AutoRefresh from "@/components/AutoRefresh";
 import { nowMs, KICKOFF_MS } from "@/lib/clock";
@@ -347,6 +349,10 @@ export default async function DashboardPage({
           <Reveal>
             <NotificationToggle placement="bottom" />
           </Reveal>
+
+          <Reveal>
+            <SupportCard />
+          </Reveal>
         </div>
       </div>
 
@@ -354,6 +360,14 @@ export default async function DashboardPage({
         <Link href="/how-it-works" className="hover:text-chalk">
           ℹ️ How it works &amp; scoring
         </Link>
+        {SUPPORT_URL ? (
+          <>
+            {" · "}
+            <a href={SUPPORT_URL} target="_blank" rel="noopener noreferrer" className="hover:text-chalk">
+              ☕ Support the project
+            </a>
+          </>
+        ) : null}
       </p>
     </main>
   );
