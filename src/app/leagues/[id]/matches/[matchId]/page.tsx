@@ -5,6 +5,7 @@ import Flag from "@/components/Flag";
 import { TeamCardButton } from "@/components/TeamCard";
 import { VenueButton } from "@/components/VenueCard";
 import { venueImage } from "@/lib/venues";
+import HalfTime from "@/components/HalfTime";
 import Ball from "@/components/art/Ball";
 import Pitch, { type EventRow, type LineupRow } from "./Pitch";
 import MatchPredictions from "./MatchPredictions";
@@ -47,7 +48,7 @@ export default async function MatchSummaryPage({
 
   const { data: match } = await supabase
     .from("matches")
-    .select("id, stage, kickoff_at, status, home_team_id, away_team_id, home_goals, away_goals, winner_team_id, venue_id, venue_name, venue_city")
+    .select("id, stage, kickoff_at, status, status_short, second_half_at, elapsed, home_team_id, away_team_id, home_goals, away_goals, winner_team_id, venue_id, venue_name, venue_city")
     .eq("id", matchNum)
     .maybeSingle();
   if (!match) notFound();
@@ -305,6 +306,7 @@ export default async function MatchSummaryPage({
   }
   predRows.sort((a, b) => (b.points ?? 0) - (a.points ?? 0) || a.name.localeCompare(b.name));
   const iHavePredicted = predRows.some((r) => r.isMe);
+  const myPred = predRows.find((r) => r.isMe) ?? null;
 
   // Chronological events timeline for the Summary tab. Each event picks a side
   // (home → left, away → right) and an icon; goals also show the assist.
@@ -507,11 +509,14 @@ export default async function MatchSummaryPage({
         <div className="mt-2 flex items-center justify-between gap-2 text-xs text-chalk-dim">
           <span className="font-display text-gold">{stageLabel(match.stage)}</span>
           <span className="flex items-center gap-2">
-            {live && (
+            {match.status_short === "HT" ? (
+              <HalfTime secondHalfAt={match.second_half_at} />
+            ) : live ? (
               <span className="flex items-center gap-1 rounded-full bg-red-500/20 px-2 py-0.5 text-red-600">
                 <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-400" /> LIVE
+                {match.elapsed != null ? ` ${match.elapsed}'` : ""}
               </span>
-            )}
+            ) : null}
             <span className="whitespace-nowrap">{kickoff}</span>
           </span>
         </div>
@@ -579,12 +584,24 @@ export default async function MatchSummaryPage({
 
         {!locked && (
           <div className="mt-3 flex justify-center">
-            <Link
-              href={`/predict#match-${match.id}`}
-              className="rounded-full bg-gold px-4 py-1.5 text-xs font-semibold text-night shadow-sm transition hover:brightness-110"
-            >
-              ⚽ Predict this match →
-            </Link>
+            {myPred && myPred.score ? (
+              <Link
+                href={`/predict#match-${match.id}`}
+                className="inline-flex max-w-full items-center gap-2 rounded-full bg-grass/15 px-3 py-1.5 text-xs text-chalk transition hover:bg-grass/25"
+              >
+                <span className="font-semibold text-grass">Your pick:</span>
+                <span className="font-display tabular-nums">{myPred.score}</span>
+                {myPred.scorerNames ? <span className="truncate text-chalk-dim">· {myPred.scorerNames}</span> : null}
+                <span className="shrink-0 font-semibold text-gold">Edit&nbsp;→</span>
+              </Link>
+            ) : (
+              <Link
+                href={`/predict#match-${match.id}`}
+                className="rounded-full bg-gold px-4 py-1.5 text-xs font-semibold text-night shadow-sm transition hover:brightness-110"
+              >
+                ⚽ Predict this match →
+              </Link>
+            )}
           </div>
         )}
       </div>

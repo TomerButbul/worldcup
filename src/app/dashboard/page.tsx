@@ -200,6 +200,7 @@ export default async function DashboardPage({
                       matchId={c.id}
                       prediction={c.prediction}
                       canPredict={canPredict}
+                      leagueId={friendsLeagues[0]?.id ?? leagues.find((l) => l.is_global)?.id}
                     />
                   ))}
                 </div>
