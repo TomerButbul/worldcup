@@ -11,6 +11,7 @@ import {
   fetchStandings,
   fetchFixtures,
   fetchLiveFixtures,
+  fetchFixtureById,
   fetchFixtureEvents,
   fetchLineups,
   fetchTeamLastFixture,
@@ -285,6 +286,16 @@ export async function GET(request: NextRequest) {
         }
       }
 
+      // Dress-rehearsal proxy matches (e.g. tonight's Canada–Ireland test) pull
+      // a REAL fixture's live data onto a sentinel match id. Fully isolated so it
+      // can never break the WC live score sync.
+      let proxies = 0;
+      try {
+        proxies = await syncProxyFixtures(supabase);
+      } catch {
+        // best-effort
+      }
+
       return NextResponse.json({
         ok: true,
         mode: "live",
@@ -293,6 +304,7 @@ export async function GET(request: NextRequest) {
         events,
         stats,
         goalsNotified,
+        proxies,
       });
     }
 
@@ -632,6 +644,15 @@ export async function GET(request: NextRequest) {
     summary.cards = cardsImported;
     summary.stats = statsImported;
 
+    // Proxy "dress-rehearsal" matches — run here too so the test keeps updating
+    // every 10 min even if the 60s live pinger is down. Before the recompute so
+    // standings include the proxy result. Isolated: never breaks the real sync.
+    try {
+      summary.proxies = await syncProxyFixtures(supabase);
+    } catch {
+      // best-effort
+    }
+
     // 5) Recompute scores
     await recomputeAllScores(supabase);
 
@@ -742,8 +763,11 @@ function statsToObject(list: AfTeamStatistics["statistics"]): Record<string, num
 async function syncMatchStats(
   supabase: ReturnType<typeof createServiceClient>,
   matchId: number,
+  // Proxy matches fetch the REAL fixture's stats (fetchId) but store them under
+  // the proxy match id (matchId). Defaults to the same id for normal matches.
+  fetchId: number = matchId,
 ): Promise<number> {
-  const teamStats = await fetchStatistics(matchId);
+  const teamStats = await fetchStatistics(fetchId);
   const rows = teamStats
     .filter((t) => t.team?.id != null && (t.statistics?.length ?? 0) > 0)
     .map((t) => ({
@@ -754,4 +778,223 @@ async function syncMatchStats(
   if (!rows.length) return 0;
   await supabase.from("match_stats").upsert(rows, { onConflict: "match_id,team_id" });
   return rows.length;
+}
+
+// --- Proxy "dress-rehearsal" fixtures --------------------------------------
+// A proxy match carries a sentinel id (>= 9_000_000) and an api_fixture_id that
+// points at a REAL fixture in ANY competition. We pull that fixture by id and
+// mirror its score/status/lineups/events/stats — plus goal & full-time pushes
+// and final scoring — onto the PROXY id, so the entire pipeline behaves exactly
+// as it will for a World Cup game (a true end-to-end rehearsal). The real
+// fixture lives outside the WC league, so the normal sync never sees it and no
+// stray match row leaks into anyone's lists. Best-effort: the caller wraps this
+// so any failure here can NEVER break the real WC sync.
+async function syncProxyFixtures(
+  supabase: ReturnType<typeof createServiceClient>,
+): Promise<number> {
+  const { data: proxies } = await supabase
+    .from("matches")
+    .select(
+      "id, api_fixture_id, status, notified_home_goals, notified_away_goals, second_half_at, home_team_id, away_team_id, goals_synced",
+    )
+    .gte("id", 9_000_000)
+    .not("api_fixture_id", "is", null);
+  if (!proxies?.length) return 0;
+
+  let touched = 0;
+  let needRecompute = false;
+
+  for (const pm of proxies) {
+    const rid = pm.api_fixture_id as number;
+    const fx = (await fetchFixtureById(rid))[0];
+    if (!fx) continue;
+
+    const short = fx.fixture.status.short;
+    const newHome = fx.goals.home ?? 0;
+    const newAway = fx.goals.away ?? 0;
+    const finished = mapStatus(short) === "finished";
+    const isHalfTime = short === "HT";
+
+    // 1) Mirror score/status onto the proxy row.
+    await supabase
+      .from("matches")
+      .update({
+        status: mapStatus(short),
+        status_short: short,
+        home_goals: fx.goals.home,
+        away_goals: fx.goals.away,
+        elapsed: fx.fixture.status.elapsed ?? null,
+        // Half-time: stamp the expected 2nd-half time once and keep it stable so
+        // the UI can count down; clear it the moment play resumes.
+        second_half_at: isHalfTime
+          ? (pm.second_half_at ?? new Date(Date.now() + 15 * 60 * 1000).toISOString())
+          : ["2H", "ET", "BT", "P"].includes(short)
+            ? null
+            : (pm.second_half_at ?? null),
+        winner_team_id: fx.teams.home?.winner
+          ? (fx.teams.home?.id ?? null)
+          : fx.teams.away?.winner
+            ? (fx.teams.away?.id ?? null)
+            : null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", pm.id);
+    touched += 1;
+
+    // 2) Detail feeds (lineups/events/stats). Skip during half-time to save the
+    // ~3 calls/game while nothing changes — the HT countdown still shows.
+    let evs: Awaited<ReturnType<typeof fetchFixtureEvents>> = [];
+    if (!isHalfTime) {
+      const lus = await fetchLineups(rid);
+      if (lus.length) {
+        await supabase.from("match_lineups").upsert(
+          lus.map((l) => ({
+            match_id: pm.id,
+            team_id: l.team.id,
+            formation: l.formation ?? null,
+            xi: l.startXI.map((x) => ({
+              player_id: x.player.id,
+              name: x.player.name,
+              number: x.player.number,
+              pos: x.player.pos,
+              grid: x.player.grid,
+            })),
+            subs: l.substitutes.map((x) => ({
+              player_id: x.player.id,
+              name: x.player.name,
+              number: x.player.number,
+              pos: x.player.pos,
+            })),
+            updated_at: new Date().toISOString(),
+          })),
+          { onConflict: "match_id,team_id" },
+        );
+      }
+
+      evs = await fetchFixtureEvents(rid, 20);
+      await supabase.from("match_events").delete().eq("match_id", pm.id);
+      const rows = evs
+        .filter((e) => ["Goal", "Card", "subst"].includes(e.type))
+        .map((e, i) => ({
+          match_id: pm.id,
+          team_id: e.team?.id ?? null,
+          type: e.type.toLowerCase(),
+          detail: e.detail ?? null,
+          player_id: e.player?.id ?? null,
+          player_name: e.player?.name ?? null,
+          related_id: e.assist?.id ?? null,
+          related_name: e.assist?.name ?? null,
+          minute: e.time?.elapsed ?? null,
+          sort: i,
+        }));
+      if (rows.length) await supabase.from("match_events").insert(rows);
+
+      await syncMatchStats(supabase, pm.id, rid);
+    }
+
+    // 3) Notifications + scoring only fire on a goal or at full time — read the
+    // recipients (everyone who predicted this match) + team names once here.
+    const before = { home: pm.notified_home_goals ?? 0, away: pm.notified_away_goals ?? 0 };
+    const goalHappened = newHome + newAway > before.home + before.away;
+    const justFinished = finished && !pm.goals_synced;
+
+    if (goalHappened || justFinished) {
+      const { data: teamRows } = await supabase
+        .from("teams")
+        .select("id, name")
+        .in("id", [pm.home_team_id, pm.away_team_id].filter((x): x is number => x != null));
+      const nameOf = (id: number | null) =>
+        (id != null ? (teamRows ?? []).find((t) => t.id === id)?.name : null) ?? "";
+      const homeName = nameOf(pm.home_team_id);
+      const awayName = nameOf(pm.away_team_id);
+
+      const { data: predRows } = await supabase
+        .from("match_predictions")
+        .select("user_id, league_id")
+        .eq("match_id", pm.id);
+      const recipients = [...new Set((predRows ?? []).map((r) => r.user_id as string))];
+      const leagueId = (predRows ?? [])[0]?.league_id as string | undefined;
+      const matchUrl = leagueId ? `/leagues/${leagueId}/matches/${pm.id}` : "/dashboard";
+
+      // 3a) Live goal push (faithful to a real WC goal alert).
+      if (goalHappened) {
+        const homeScored = newHome > before.home;
+        const scoringTeamId = homeScored ? (fx.teams.home?.id ?? null) : (fx.teams.away?.id ?? null);
+        const scorerName =
+          scoringTeamId != null
+            ? (evs
+                .filter((e) => e.type === "Goal" && e.team?.id === scoringTeamId && e.player?.name)
+                .at(-1)?.player.name ?? null)
+            : null;
+        const scoringName = nameOf(scoringTeamId) || (homeScored ? homeName : awayName);
+        if (recipients.length) {
+          try {
+            await sendToUsersCategory(recipients, "goals", {
+              title: `⚽ ${scoringName} GOAL!`,
+              body: scorerName
+                ? `${scorerName} — ${homeName} ${newHome}–${newAway} ${awayName}`
+                : `${homeName} ${newHome}–${newAway} ${awayName}`,
+              url: matchUrl,
+              tag: `goal-${pm.id}`,
+            });
+          } catch {
+            // best-effort: a push failure must not block the score sync.
+          }
+        }
+        // Record the pushed score so re-runs stay idempotent (even if nobody was
+        // notified, so a re-goal after a VAR check still fires next time).
+        await supabase
+          .from("matches")
+          .update({ notified_home_goals: newHome, notified_away_goals: newAway })
+          .eq("id", pm.id);
+      }
+
+      // 3b) Full time: import goal scorers under the proxy id (credits scorer
+      // predictions), recompute, and send a one-time result push.
+      if (justFinished) {
+        const goals = evs.filter(
+          (e) =>
+            e.type === "Goal" &&
+            e.detail !== "Missed Penalty" &&
+            e.detail !== "Own Goal" &&
+            e.player?.id != null,
+        );
+        const involved = new Map<number, { id: number; team_id: number; name: string }>();
+        for (const e of goals)
+          involved.set(e.player.id!, { id: e.player.id!, team_id: e.team.id, name: e.player.name ?? "Unknown" });
+        if (involved.size) await supabase.from("players").upsert([...involved.values()]);
+        const goalCount = new Map<number, number>();
+        for (const g of goals) goalCount.set(g.player.id!, (goalCount.get(g.player.id!) ?? 0) + 1);
+        if (goalCount.size) {
+          await supabase
+            .from("match_goals")
+            .upsert([...goalCount].map(([player_id, cnt]) => ({ match_id: pm.id, player_id, goals: cnt })));
+        }
+        await supabase.from("matches").update({ goals_synced: true }).eq("id", pm.id);
+        needRecompute = true;
+
+        if (recipients.length) {
+          try {
+            await sendToUsersCategory(recipients, "results", {
+              title: `⏱️ Full time — ${homeName} ${newHome}–${newAway} ${awayName}`,
+              body: "See how your prediction scored →",
+              url: matchUrl,
+              tag: `ft-${pm.id}`,
+            });
+          } catch {
+            // best-effort
+          }
+        }
+      }
+    }
+  }
+
+  if (needRecompute) {
+    try {
+      await recomputeAllScores(supabase);
+    } catch {
+      // best-effort: scores also recompute on the next full sync.
+    }
+  }
+  return touched;
 }
