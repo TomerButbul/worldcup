@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type JSX } from "react";
+import { useState, useEffect, type JSX } from "react";
 import Flag from "@/components/Flag";
 import Trophy from "@/components/art/Trophy";
 import { openTeamCard } from "@/components/TeamCard";
@@ -84,7 +84,24 @@ export default function KnockoutBracket({
   // Two ways to read the same bracket:
   //  • "rounds" — paged, one phase at a time (best for picking on mobile)
   //  • "tree"   — a compact connected bracket from R16 → Final (the big picture)
-  const [view, setView] = useState<"rounds" | "tree">(treeOnly ? "tree" : "rounds");
+  const [view, setView] = useState<"rounds" | "tree">(treeOnly || locked ? "tree" : "rounds");
+
+  // Desktop defaults to the full bracket and gets a larger tree; mobile keeps the
+  // paged picker (the tree is cramped on a phone). Once locked there's no picking,
+  // so it's bracket-only everywhere. matchMedia drives the default + the sizing.
+  const [isDesktop, setIsDesktop] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const apply = () => setIsDesktop(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- switch to the full bracket once we know it's a desktop viewport
+    if (!treeOnly && !locked && isDesktop) setView("tree");
+  }, [isDesktop, locked, treeOnly]);
+  const flagSz = isDesktop ? 18 : 12;
 
   // Round-by-round paging — one phase at a time, no horizontal scroll.
   const [active, setActive] = useState(0);
@@ -228,7 +245,7 @@ export default function KnockoutBracket({
       <div className={`flex items-center gap-1 ${tone}${teamId != null ? " cursor-pointer select-none" : ""}`} {...tappable}>
         {t ? (
           <span className="shrink-0">
-            <Flag teamId={t.id} logoUrl={t.logo_url} code={t.code} name={t.name} size={12} />
+            <Flag teamId={t.id} logoUrl={t.logo_url} code={t.code} name={t.name} size={flagSz} />
           </span>
         ) : (
           <span className="inline-block h-3 w-3 shrink-0 rounded-full bg-night/10" />
@@ -266,15 +283,15 @@ export default function KnockoutBracket({
 
   // One round column (label + its match cards spread by justify-around).
   const treeCol = (nos: number[], label: string) => (
-    <div className="flex w-[58px] flex-col px-0.5">
-      <div className="mb-1 text-center font-display text-[9px] uppercase tracking-wide text-chalk-dim">{label}</div>
+    <div className="flex w-[58px] flex-col px-0.5 lg:w-[92px]">
+      <div className="mb-1 text-center font-display text-[9px] uppercase tracking-wide text-chalk-dim lg:text-[11px]">{label}</div>
       <div className="flex flex-1 flex-col justify-around">{nos.map((no) => treeCard(mget(no)))}</div>
     </div>
   );
   // A connector column of ⊐ / ⊏ elbows (border side toward the centre); each
   // elbow occupies the middle 50% of its slot so it lands on both feeders.
   const treeConn = (count: number, side: "r" | "l") => (
-    <div className="flex w-2.5 flex-col">
+    <div className="flex w-2.5 flex-col lg:w-4">
       <div className="mb-1 text-[9px]" aria-hidden>
         &nbsp;
       </div>
@@ -292,7 +309,7 @@ export default function KnockoutBracket({
     </div>
   );
   const treeLine = () => (
-    <div className="flex w-2.5 flex-col">
+    <div className="flex w-2.5 flex-col lg:w-4">
       <div className="mb-1 text-[9px]" aria-hidden>
         &nbsp;
       </div>
@@ -335,7 +352,7 @@ export default function KnockoutBracket({
   return (
     <div className="space-y-3">
       {/* View toggle: paged picker ⟷ full connected bracket. */}
-      {!treeOnly && treeRounds.length >= 2 && (
+      {!treeOnly && !locked && treeRounds.length >= 2 && (
         <div className="flex justify-center">
           <div className="inline-flex rounded-xl bg-night/5 p-0.5 text-xs font-semibold">
             <button
@@ -368,7 +385,7 @@ export default function KnockoutBracket({
             {/* mx-auto centres the bracket when wide (landscape) and scrolls when
                 narrow. Fixed height keeps justify-around spacing uniform so the
                 connector elbows land dead-on their feeder cards. */}
-            <div className="mx-auto flex h-[300px] w-max items-stretch text-[10px] leading-none">
+            <div className="mx-auto flex h-[300px] w-max items-stretch text-[10px] leading-none lg:h-[580px] lg:text-[13px]">
               {/* LEFT half — flows rightward toward the centre */}
               {treeCol(BRACKET_LEFT[0].nos, BRACKET_LEFT[0].label)}
               {treeConn(BRACKET_LEFT[1].nos.length, "r")}
@@ -382,7 +399,7 @@ export default function KnockoutBracket({
               {/* CENTRE — the Final (the showpiece), with the 3rd-place match
                   hung beneath it and joined by a connector so it reads as part of
                   the bracket: lower and clearly less important than the Final. */}
-              <div className="flex w-[132px] flex-col px-1">
+              <div className="flex w-[132px] flex-col px-1 lg:w-[190px]">
                 <div className="mb-1 text-center font-display text-[11px] uppercase tracking-wide text-gold">Final</div>
                 <div className="flex flex-1 flex-col items-center justify-center gap-1">
                   {championTeamId != null && <Trophy size={32} />}
@@ -396,7 +413,7 @@ export default function KnockoutBracket({
                           {i === 1 && <div className="my-1 h-px bg-night/10" />}
                           <div className={`flex items-center gap-1.5 ${isW ? "font-bold text-grass" : "text-chalk"}`}>
                             {t ? (
-                              <Flag teamId={t.id} logoUrl={t.logo_url} code={t.code} name={t.name} size={16} />
+                              <Flag teamId={t.id} logoUrl={t.logo_url} code={t.code} name={t.name} size={isDesktop ? 24 : 16} />
                             ) : (
                               <span className="inline-block h-4 w-4 rounded-full bg-night/10" />
                             )}

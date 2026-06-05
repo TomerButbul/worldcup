@@ -741,14 +741,14 @@ export default function BracketEditor({
         </section>
       )}
 
-      {/* Sticky save bar */}
+      {/* Autosave status — a small floating chip, not a full-width bar. */}
       {!locked && (
-        <div className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+3.4rem)] z-20 border-t border-b border-night/10 bg-white/85 backdrop-blur">
-          <div className="mx-auto flex max-w-4xl flex-wrap items-center gap-x-3 gap-y-1.5 px-4 py-2.5 pr-16 sm:px-6 sm:pr-20">
-            <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${saveBadge.cls}`}>
-              {saveBadge.text}
-            </span>
-          </div>
+        <div className="pointer-events-none fixed bottom-[calc(env(safe-area-inset-bottom)+4rem)] right-4 z-20 lg:bottom-6 lg:right-6">
+          <span
+            className={`inline-flex items-center rounded-full px-3 py-1.5 text-xs font-semibold shadow-lg ring-1 ring-night/10 backdrop-blur transition ${saveBadge.cls}`}
+          >
+            {saveBadge.text}
+          </span>
         </div>
       )}
     </div>
