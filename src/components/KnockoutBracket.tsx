@@ -444,34 +444,41 @@ export default function KnockoutBracket({
             </div>
           </div>
 
-          {/* 3rd-place play-off — contested by the two SEMI-FINAL losers, so it
-              branches from the semis (its own match below the bracket), not the Final. */}
+          {/* 3rd-place play-off — the two SEMI-FINAL losers meet here. A proper
+              two-into-one connector (two feeders → one match) shows it branching
+              from the semis, NOT the Final, and the card is deliberately smaller
+              than the Final: it's the lesser prize. Below the bracket so it stays
+              visible on mobile without scrolling. */}
           {mget(103).home != null && (
-            <div className="mx-auto w-max max-w-full pt-1 text-center">
-              <p className="mb-1 font-display text-[10px] uppercase tracking-[0.12em] text-[#b87333]">
+            <div className="mx-auto flex w-max max-w-full flex-col items-center pt-0.5">
+              <p className="mb-0.5 font-display text-[10px] uppercase tracking-[0.12em] text-[#b87333]">
                 🥉 Third place · losing semi-finalists
               </p>
-              {/* prongs: the two semi losers drop in from either side */}
-              <div className="mx-auto flex h-3 w-44 items-start justify-between">
-                <span className="h-3 w-1/2 rounded-tr-md border-r border-t border-[#cd7f32]/45" aria-hidden />
-                <span className="h-3 w-1/2 rounded-tl-md border-l border-t border-[#cd7f32]/45" aria-hidden />
+              {/* two-into-one bracket connector: the two semi losers drop in */}
+              <div className="flex flex-col items-center text-[#cd7f32]" aria-hidden>
+                <div className="flex h-2.5 w-20 items-start justify-between">
+                  <span className="h-2.5 w-px bg-current opacity-55" />
+                  <span className="h-2.5 w-px bg-current opacity-55" />
+                </div>
+                <div className="h-px w-20 bg-current opacity-55" />
+                <div className="h-2.5 w-px bg-current opacity-55" />
               </div>
-              <div className="mx-auto w-[210px] rounded-xl bg-white/85 p-2 shadow-sm ring-1 ring-[#cd7f32]/50 lg:w-[240px]">
+              <div className="w-[132px] rounded-lg bg-white/80 p-1.5 shadow-sm ring-1 ring-[#cd7f32]/45 lg:w-[160px]">
                 {[mget(103).home, mget(103).away].map((tid, i) => {
                   const m3 = mget(103);
                   const isW = m3.winner != null && tid === m3.winner;
                   const t = tid != null ? teamsById[tid] : null;
                   return (
                     <div key={i}>
-                      {i === 1 && <div className="my-1 h-px bg-night/10" />}
-                      <div className={`flex items-center gap-1.5 text-left ${isW ? "font-bold text-[#9c5a1a]" : "text-chalk"}`}>
+                      {i === 1 && <div className="my-0.5 h-px bg-night/10" />}
+                      <div className={`flex items-center gap-1.5 text-left ${isW ? "font-semibold text-[#9c5a1a]" : "text-chalk-dim"}`}>
                         {t ? (
-                          <Flag teamId={t.id} logoUrl={t.logo_url} code={t.code} name={t.name} size={16} />
+                          <Flag teamId={t.id} logoUrl={t.logo_url} code={t.code} name={t.name} size={14} />
                         ) : (
-                          <span className="inline-block h-4 w-4 shrink-0 rounded-full bg-night/10" />
+                          <span className="inline-block h-3.5 w-3.5 shrink-0 rounded-full bg-night/10" />
                         )}
-                        <span className="min-w-0 flex-1 truncate text-xs">{t?.name ?? "TBD"}</span>
-                        {isW && <span className="shrink-0 text-[11px]">🥉</span>}
+                        <span className="min-w-0 flex-1 truncate text-[11px]">{t?.name ?? "TBD"}</span>
+                        {isW && <span className="shrink-0 text-[10px]">🥉</span>}
                       </div>
                     </div>
                   );
