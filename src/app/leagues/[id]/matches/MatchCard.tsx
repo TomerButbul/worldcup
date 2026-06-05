@@ -10,6 +10,7 @@ import SaveStatus from "@/components/SaveStatus";
 import Flag from "@/components/Flag";
 import { TeamCardButton, openTeamCard } from "@/components/TeamCard";
 import { VenueButton } from "@/components/VenueCard";
+import { venueImage } from "@/lib/venues";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import { PlayerCardButton, openPlayerCard } from "@/components/PlayerCard";
 import { useLongPress } from "@/lib/useLongPress";
@@ -77,9 +78,12 @@ export default function MatchCard({
   // player_id (string) -> predicted goals for that player.
   const [scorerGoals, setScorerGoals] = useState<Record<string, number>>(() => ({ ...(initial?.scorer_goals ?? {}) }));
   const [penWinner, setPenWinner] = useState<number | null>(initial?.pen_winner_team_id ?? null);
-  // Scorer picker shows ONE team at a time; default to the home side. The two
-  // teams in the score row double as the selector (tap a team to pick its scorers).
-  const [activeTeam, setActiveTeam] = useState<"home" | "away">("home");
+  // Whether the user has set a scoreline yet. Until then the match shows a clean
+  // "– : –" (not a misleading 0-0) and never autosaves an empty prediction.
+  const [touched, setTouched] = useState(initial != null);
+  // Scorer picker shows ONE team at a time. Default to NONE selected so the card
+  // stays compact — tap a team in the score row to expand its scorer picker.
+  const [activeTeam, setActiveTeam] = useState<"home" | "away" | null>(null);
   const teamLongPress = useLongPress();
 
   const kickoff = new Date(match.kickoff_at).toLocaleString(undefined, {
@@ -115,6 +119,7 @@ export default function MatchCard({
   // Change a side's score. Lowering it (or zeroing it) prunes that team's scorer
   // picks so you can never have more scorers than goals.
   function changeScore(side: "home" | "away", delta: number) {
+    setTouched(true);
     const cur = side === "home" ? home : away;
     const v = Math.max(0, cur + delta);
     if (side === "home") setHome(v);
@@ -159,9 +164,11 @@ export default function MatchCard({
           <span className={`flex w-full items-center gap-1.5 text-sm font-semibold text-chalk sm:text-base ${rowAlign}`}>
             {inner}
           </span>
-          <span className={`text-[11px] tabular-nums ${need ? "text-gold" : tCap > 0 ? "text-grass" : "text-chalk-dim"}`}>
-            {tSum}/{tCap}
-          </span>
+          {tCap > 0 && (
+            <span className={`text-[11px] tabular-nums ${need ? "text-gold" : "text-grass"}`}>
+              {tSum}/{tCap}
+            </span>
+          )}
         </button>
       );
     }
@@ -192,7 +199,7 @@ export default function MatchCard({
   );
   // Auto-save ~0.8s after the last tap — no Save button.
   const signature = `${home}-${away}-${penWinner ?? ""}|${JSON.stringify(scorerGoals)}`;
-  const { state: saveState, error: saveErr } = useAutosave(signature, saveFn, { enabled: !locked });
+  const { state: saveState, error: saveErr } = useAutosave(signature, saveFn, { enabled: !locked && touched });
 
   const pickScore =
     initial && initial.home_goals != null ? `${initial.home_goals}–${initial.away_goals}` : null;
@@ -236,9 +243,9 @@ export default function MatchCard({
           </span>
         ) : (
           <span className="flex items-center gap-2">
-            <Stepper value={home} onDec={() => changeScore("home", -1)} onInc={() => changeScore("home", 1)} />
+            <Stepper value={touched ? home : "–"} onDec={() => changeScore("home", -1)} onInc={() => changeScore("home", 1)} />
             <span className="text-chalk-dim">–</span>
-            <Stepper value={away} onDec={() => changeScore("away", -1)} onInc={() => changeScore("away", 1)} />
+            <Stepper value={touched ? away : "–"} onDec={() => changeScore("away", -1)} onInc={() => changeScore("away", 1)} />
           </span>
         )}
 
@@ -246,13 +253,33 @@ export default function MatchCard({
       </div>
 
       {match.venueName && (
-        <div className="mt-2.5 flex justify-center">
+        <div className="mt-3 flex justify-center">
           <VenueButton
             venue={{ id: match.venueId, name: match.venueName, city: match.venueCity }}
-            className="max-w-full truncate rounded-full bg-night/5 px-2.5 py-1 text-[11px] text-chalk-dim transition hover:bg-night/10 hover:text-chalk"
+            className="group flex max-w-full items-center gap-2.5 rounded-xl bg-night/5 p-1.5 pr-3 text-left transition hover:bg-night/10"
           >
-            {match.venueName}
-            {match.venueCity ? ` · ${match.venueCity}` : ""}
+            {match.venueId != null ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={venueImage(match.venueId) ?? undefined}
+                alt=""
+                width={48}
+                height={32}
+                loading="lazy"
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                }}
+                className="h-8 w-12 shrink-0 rounded-md object-cover ring-1 ring-night/10"
+              />
+            ) : (
+              <span className="flex h-8 w-12 shrink-0 items-center justify-center rounded-md bg-night/10 text-sm">🏟️</span>
+            )}
+            <span className="min-w-0">
+              <span className="block truncate text-xs font-semibold text-chalk transition group-hover:text-gold">
+                {match.venueName}
+              </span>
+              {match.venueCity && <span className="block truncate text-[10px] text-chalk-dim">{match.venueCity}</span>}
+            </span>
           </VenueButton>
         </div>
       )}
@@ -313,7 +340,11 @@ export default function MatchCard({
             <p className="mt-4 text-xs text-chalk-dim"><Ball size={14} className="mr-1 inline-block align-[-2px]" />Goal-scorer list loads once squads are synced.</p>
           ) : (
             <div className="mt-4 space-y-3">
-              {activeTeam === "home" ? (
+              {activeTeam === null ? (
+                homeCap > 0 || awayCap > 0 ? (
+                  <p className="text-center text-[11px] text-chalk-dim">Tap a team above to add its goal scorers.</p>
+                ) : null
+              ) : activeTeam === "home" ? (
                 <TeamScorers
                   label={match.homeName}
                   players={homePlayers}
@@ -625,7 +656,7 @@ function TeamScorers({
   );
 }
 
-function Stepper({ value, onDec, onInc }: { value: number; onDec: () => void; onInc: () => void }) {
+function Stepper({ value, onDec, onInc }: { value: number | string; onDec: () => void; onInc: () => void }) {
   return (
     <div className="flex flex-col items-center">
       <button onClick={onInc} className="px-3 py-1 text-base leading-none text-chalk-dim hover:text-chalk" aria-label="Increase">
