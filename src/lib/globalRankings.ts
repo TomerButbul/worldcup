@@ -52,7 +52,10 @@ export const getCachedGlobalRankings = unstable_cache(
         return {
           user_id: id,
           name: p?.team_name || p?.display_name || "Player",
-          avatarUrl: p?.avatar_url ?? null,
+          // Generic avatars only on the worldwide board — never surface a
+          // user-uploaded image to a global/stranger audience (kid-safe). The
+          // curated favourite-team crest still shows.
+          avatarUrl: null as string | null,
           favTeamId: p?.favorite_team_id ?? null,
           best: bestByUser.get(id) ?? 0,
         };

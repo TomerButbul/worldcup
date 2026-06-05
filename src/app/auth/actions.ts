@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { consumePendingInvite } from "@/app/dashboard/actions";
+import { containsProfanity } from "@/lib/profanity";
 
 export async function signup(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim();
@@ -12,6 +13,9 @@ export async function signup(formData: FormData) {
 
   if (!email || !password || !displayName) {
     redirect("/signup?error=Missing+fields");
+  }
+  if (containsProfanity(displayName)) {
+    redirect("/signup?error=Please+choose+a+different+display+name");
   }
 
   const supabase = await createClient();

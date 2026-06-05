@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { userPredictionLeagueIds } from "@/lib/predictionSync";
+import { containsProfanity } from "@/lib/profanity";
 
 export async function saveProfile(fields: {
   display_name?: string;
@@ -21,10 +22,13 @@ export async function saveProfile(fields: {
   if (fields.display_name !== undefined) {
     const name = fields.display_name.trim();
     if (!name) return { ok: false, error: "Name can't be empty" };
+    if (containsProfanity(name)) return { ok: false, error: "Please choose a different name." };
     update.display_name = name;
   }
   if (fields.team_name !== undefined) {
-    update.team_name = fields.team_name?.trim() || null;
+    const team = fields.team_name?.trim() || null;
+    if (team && containsProfanity(team)) return { ok: false, error: "Please choose a different team name." };
+    update.team_name = team;
   }
   if (fields.avatar_url !== undefined) {
     update.avatar_url = fields.avatar_url;
