@@ -32,11 +32,11 @@ export default async function SandboxPage() {
         .select("id, stage, kickoff_at, status, home_team_id, away_team_id, home_goals, away_goals, venue_id, venue_name, venue_city")
         .eq("id", MATCH)
         .maybeSingle(),
-      supabase.from("teams").select("id, name").in("id", [5529, 9001]),
+      supabase.from("teams").select("id, name").in("id", [5529, 776]),
       supabase
         .from("players")
         .select("id, name, team_id, position, photo_url, ovr, number, in_squad")
-        .in("team_id", [5529, 9001])
+        .in("team_id", [5529, 776])
         .eq("in_squad", true),
       supabase
         .from("match_predictions")
@@ -45,7 +45,7 @@ export default async function SandboxPage() {
         .eq("user_id", user.id)
         .eq("match_id", MATCH)
         .maybeSingle(),
-      supabase.from("team_lineups").select("team_id, xi").in("team_id", [5529, 9001]),
+      supabase.from("team_lineups").select("team_id, xi").in("team_id", [5529, 776]),
     ]);
   if (!match) notFound();
 
