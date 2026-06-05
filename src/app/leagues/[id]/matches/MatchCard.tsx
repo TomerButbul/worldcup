@@ -143,9 +143,9 @@ export default function MatchCard({
           onClick={() => setActiveTeam(side)}
           {...teamLongPress(() => openTeamCard({ teamId: tId, name: tName }))}
           aria-label={`Pick ${tName} scorers — hold for team details`}
-          className={`flex min-w-0 flex-1 select-none flex-col gap-0.5 rounded-xl border px-2 py-1.5 transition ${
+          className={`flex min-w-0 flex-1 select-none flex-col gap-0.5 border-b-2 px-1 pb-1 transition ${
             isHome ? "items-end" : "items-start"
-          } ${isActive ? "border-grass bg-grass/15" : "border-transparent hover:bg-night/5"}`}
+          } ${isActive ? "border-gold/70" : "border-transparent opacity-45 hover:opacity-80"}`}
         >
           <span className={`flex w-full items-center gap-1.5 text-sm font-semibold text-chalk sm:text-base ${rowAlign}`}>
             {inner}

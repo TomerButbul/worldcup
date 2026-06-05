@@ -127,7 +127,7 @@ export const DEFAULT_SCORING: ScoringConfig = {
     advance_semi: 6,
     advance_final: 8,
     champion: 25,
-    third_place: 4,
+    third_place: 4, // bronze winner — scored like a normal knockout call, not special
     golden_boot: 12,
     golden_ball: 10,
     golden_glove: 8,
