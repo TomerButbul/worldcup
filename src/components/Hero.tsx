@@ -38,9 +38,9 @@ export default function Hero() {
         animate={{ opacity: 1 }}
         transition={{ duration: 0.6, delay: 0.45 }}
       >
-        Predict the 2026 tournament your way — pick winners in seconds, or go deep on
-        scorelines, goal scorers and the bracket. Casual fan or die-hard, you&apos;re
-        playing the same game.
+        Predict the 2026 tournament your way, or just follow every match live — scores,
+        lineups, stats and every squad, all in one place. Football obsessive or
+        first-timer, you&apos;re in.
       </motion.p>
 
       <motion.div
