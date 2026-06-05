@@ -59,7 +59,8 @@ export default async function DashboardPage({
     const { data: favMatches } = await supabase
       .from("matches")
       .select("id, stage, group_label, kickoff_at, status, home_team_id, away_team_id, home_goals, away_goals")
-      .or(`home_team_id.eq.${favId},away_team_id.eq.${favId}`);
+      .or(`home_team_id.eq.${favId},away_team_id.eq.${favId}`)
+      .lt("id", 9_000_000); // hide sentinel test fixtures
     favStatus = computeFavStatus(favId, teams, (favMatches ?? []) as Match[]);
   }
   const favTeam = teams.find((t) => t.id === favId) ?? null;
@@ -84,6 +85,7 @@ export default async function DashboardPage({
     // Skip knockout fixtures whose teams aren't set yet (no dead "TBD vs TBD").
     .not("home_team_id", "is", null)
     .not("away_team_id", "is", null)
+    .lt("id", 9_000_000) // hide sentinel test fixtures
     .order("kickoff_at")
     .limit(16);
 

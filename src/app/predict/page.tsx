@@ -34,6 +34,7 @@ export default async function PredictPage() {
       .select(
         "id, stage, kickoff_at, status, home_team_id, away_team_id, home_goals, away_goals, venue_id, venue_name, venue_city",
       )
+      .lt("id", 9_000_000) // hide sentinel test fixtures (only the /sandbox page shows them)
       .order("kickoff_at"),
     getCachedTeams(),
     getCachedPlayers(),

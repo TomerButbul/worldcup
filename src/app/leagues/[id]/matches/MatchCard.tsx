@@ -51,6 +51,10 @@ interface Props {
   // Official lineups once posted (~40 min pre-kickoff); null → full squad.
   homeLineup?: Lineup | null;
   awayLineup?: Lineup | null;
+  // Override the autosave target (same signature). Defaults to the normal
+  // fan-out savePrediction; the gated /sandbox page passes a single-league save
+  // so a test pick can never leak into the user's real leagues.
+  saveAction?: typeof savePrediction;
 }
 
 export default function MatchCard({
@@ -61,6 +65,7 @@ export default function MatchCard({
   initial,
   homeLineup,
   awayLineup,
+  saveAction,
 }: Props) {
   // Every match — group and knockout — captures a full scoreline here now (the
   // upfront bracket is table-order only). Locks at kickoff.
@@ -182,8 +187,8 @@ export default function MatchCard({
 
   const saveFn = useCallback(
     () =>
-      savePrediction(leagueId, match.id, home, away, scorerGoals, !isGroup && home === away ? penWinner : null),
-    [leagueId, match.id, isGroup, home, away, scorerGoals, penWinner],
+      (saveAction ?? savePrediction)(leagueId, match.id, home, away, scorerGoals, !isGroup && home === away ? penWinner : null),
+    [saveAction, leagueId, match.id, isGroup, home, away, scorerGoals, penWinner],
   );
   // Auto-save ~0.8s after the last tap — no Save button.
   const signature = `${home}-${away}-${penWinner ?? ""}|${JSON.stringify(scorerGoals)}`;

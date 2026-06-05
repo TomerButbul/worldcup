@@ -79,6 +79,7 @@ export const getCachedMatchdayFlags = unstable_cache(
       .from("matches")
       .select("home_team_id, away_team_id, kickoff_at")
       .gt("kickoff_at", new Date().toISOString())
+      .lt("id", 9_000_000) // hide sentinel test fixtures
       .order("kickoff_at")
       .limit(10);
     const ids: number[] = [];

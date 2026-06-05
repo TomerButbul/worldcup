@@ -34,6 +34,7 @@ export default async function MatchesPage({
     supabase
       .from("matches")
       .select("id, kickoff_at, status, home_team_id, away_team_id, home_goals, away_goals")
+      .lt("id", 9_000_000) // hide sentinel test fixtures
       .order("kickoff_at"),
     getCachedTeams(),
   ]);
