@@ -92,6 +92,16 @@ export function fetchLiveFixtures() {
   return apiGet<AfFixture>("/fixtures", { league: LEAGUE(), season: SEASON(), live: "all" }, 20);
 }
 
+// A single fixture by its API id (score/status/elapsed). Used by the proxy
+// "dress-rehearsal" match to pull a REAL fixture's live data (any competition).
+// status.short ("1H"/"HT"/"2H"/"FT"…) rides along for the half-time UI.
+export interface AfFixtureFull extends AfFixture {
+  fixture: AfFixture["fixture"] & { status: { short: string; elapsed: number | null } };
+}
+export function fetchFixtureById(fixtureId: number) {
+  return apiGet<AfFixtureFull>("/fixtures", { id: fixtureId }, 15);
+}
+
 // A team's most recent fixture in ANY competition — for its "latest lineup".
 // Cache 6h (lineups change roughly weekly).
 export function fetchTeamLastFixture(teamId: number) {

@@ -41,16 +41,22 @@ export async function GET(request: NextRequest) {
     // lineups and events (for the pitch). The full sync (every 10 min) owns
     // teams/standings/squads/scoring — this stays cheap so it can run often.
     if (request.nextUrl.searchParams.get("mode") === "live") {
+      // Heartbeat: prove the 60s cron (cron-job.org) is actually firing, and how
+      // often — a recent mode='live' stamp means the live pinger is alive.
+      await supabase
+        .from("sync_heartbeat")
+        .upsert({ mode: "live", last_run: new Date().toISOString() }, { onConflict: "mode" });
       const liveFixtures = await fetchLiveFixtures();
 
       // Read the score we last *pushed* for each live fixture BEFORE the upsert
       // overwrites home_goals/away_goals, so we can tell whether a new goal
       // happened this run. (null notified = nothing pushed yet → treat as 0.)
       const notifiedBefore = new Map<number, { home: number; away: number }>();
+      const prevHalftime = new Map<number, string | null>(); // id → existing second_half_at
       if (liveFixtures.length) {
         const { data: prev } = await supabase
           .from("matches")
-          .select("id, notified_home_goals, notified_away_goals")
+          .select("id, notified_home_goals, notified_away_goals, second_half_at")
           .in(
             "id",
             liveFixtures.map((f) => f.fixture.id),
@@ -60,23 +66,36 @@ export async function GET(request: NextRequest) {
             home: r.notified_home_goals ?? 0,
             away: r.notified_away_goals ?? 0,
           });
+          prevHalftime.set(r.id, r.second_half_at ?? null);
         }
 
         await supabase.from("matches").upsert(
-          liveFixtures.map((f) => ({
-            id: f.fixture.id,
-            status: mapStatus(f.fixture.status.short),
-            home_goals: f.goals.home,
-            away_goals: f.goals.away,
-            // Live minute (status.elapsed isn't in the shared AfFixture type).
-            elapsed: (f.fixture.status as { elapsed?: number | null }).elapsed ?? null,
-            winner_team_id: f.teams.home?.winner
-              ? (f.teams.home?.id ?? null)
-              : f.teams.away?.winner
-                ? (f.teams.away?.id ?? null)
-                : null,
-            updated_at: new Date().toISOString(),
-          })),
+          liveFixtures.map((f) => {
+            const short = f.fixture.status.short;
+            return {
+              id: f.fixture.id,
+              status: mapStatus(short),
+              status_short: short, // raw API state (1H/HT/2H/FT…) for the half-time UI
+              home_goals: f.goals.home,
+              away_goals: f.goals.away,
+              // Live minute (status.elapsed isn't in the shared AfFixture type).
+              elapsed: (f.fixture.status as { elapsed?: number | null }).elapsed ?? null,
+              // Half-time: stamp the expected 2nd-half time on FIRST detection and
+              // keep it stable (so the UI can count down); clear once play resumes.
+              second_half_at:
+                short === "HT"
+                  ? (prevHalftime.get(f.fixture.id) ?? new Date(Date.now() + 15 * 60 * 1000).toISOString())
+                  : ["2H", "ET", "BT", "P"].includes(short)
+                    ? null
+                    : (prevHalftime.get(f.fixture.id) ?? null),
+              winner_team_id: f.teams.home?.winner
+                ? (f.teams.home?.id ?? null)
+                : f.teams.away?.winner
+                  ? (f.teams.away?.id ?? null)
+                  : null,
+              updated_at: new Date().toISOString(),
+            };
+          }),
         );
       }
 
@@ -97,6 +116,9 @@ export async function GET(request: NextRequest) {
       let stats = 0;
       for (const f of liveFixtures) {
         const fid = f.fixture.id;
+        // Half-time: nothing changes during the break, so skip the per-fixture
+        // lineup/event/stat calls — saves ~2 API calls per game for the whole HT.
+        if (f.fixture.status.short === "HT") continue;
         const lus = await fetchLineups(fid);
         if (lus.length) {
           await supabase.from("match_lineups").upsert(
