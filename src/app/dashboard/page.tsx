@@ -40,7 +40,7 @@ export default async function DashboardPage({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("display_name, team_name, avatar_url, favorite_team_id")
+    .select("display_name, team_name, avatar_url, favorite_team_id, notif_prefs")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -347,7 +347,10 @@ export default async function DashboardPage({
           </Reveal>
 
           <Reveal>
-            <NotificationToggle placement="bottom" />
+            <NotificationToggle
+              placement="bottom"
+              initialPrefs={(profile as { notif_prefs?: Record<string, boolean> } | null)?.notif_prefs ?? {}}
+            />
           </Reveal>
 
           <Reveal>

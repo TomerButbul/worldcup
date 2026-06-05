@@ -3,6 +3,15 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Bell } from "@/components/icons";
+import { saveNotifPrefs } from "@/app/dashboard/actions";
+
+// The toggleable notification categories (opt-out: on unless switched off).
+const CATEGORIES: { key: string; label: string; desc: string }[] = [
+  { key: "deadlines", label: "🏆 Pick deadlines", desc: "Bracket & awards lock reminders" },
+  { key: "matches", label: "⚽ Match reminders", desc: "~1 hour before each kickoff" },
+  { key: "goals", label: "⚽ Live goals", desc: "When your favourite teams score" },
+  { key: "results", label: "⚽ Full-time results", desc: "Final scores + how your picks did" },
+];
 
 function urlB64ToUint8Array(base64: string) {
   const padding = "=".repeat((4 - (base64.length % 4)) % 4);
@@ -23,9 +32,23 @@ const INSTALL_LINE: Record<Device, string> = {
 // `top` placement = the prominent install-first card, shown until reminders are
 // on. `bottom` placement = a compact "on · turn off" row, shown only once on.
 // So a new user gets a big nudge up top; once set up it tucks to the bottom.
-export default function NotificationToggle({ placement = "top" }: { placement?: "top" | "bottom" }) {
+export default function NotificationToggle({
+  placement = "top",
+  initialPrefs = {},
+}: {
+  placement?: "top" | "bottom";
+  initialPrefs?: Record<string, boolean>;
+}) {
   const [state, setState] = useState<State>("idle");
   const [device, setDevice] = useState<Device>("desktop");
+  const [prefs, setPrefs] = useState<Record<string, boolean>>(initialPrefs);
+
+  function toggleCategory(key: string) {
+    const on = prefs[key] !== false;
+    const next = { ...prefs, [key]: !on };
+    setPrefs(next);
+    void saveNotifPrefs(next);
+  }
 
   useEffect(() => {
     const ua = navigator.userAgent;
@@ -100,14 +123,42 @@ export default function NotificationToggle({ placement = "top" }: { placement?: 
   if (placement === "bottom") {
     if (state !== "granted") return null;
     return (
-      <div className="glass flex items-center justify-between gap-3 rounded-2xl p-3">
-        <span className="inline-flex items-center gap-1.5 text-xs text-chalk-dim"><Bell size={13} /> Match &amp; lock reminders are on.</span>
-        <button
-          onClick={disable}
-          className="text-xs text-chalk-dim underline underline-offset-2 hover:text-chalk"
-        >
-          Turn off
-        </button>
+      <div className="glass space-y-3 rounded-2xl p-3.5">
+        <div className="flex items-center justify-between gap-3">
+          <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-chalk">
+            <Bell size={14} /> Notifications are on
+          </span>
+          <button
+            onClick={disable}
+            className="text-xs text-chalk-dim underline underline-offset-2 hover:text-chalk"
+          >
+            Turn off
+          </button>
+        </div>
+        <div className="space-y-1 border-t border-night/5 pt-2.5">
+          <p className="px-1 text-[11px] font-semibold uppercase tracking-wide text-chalk-dim">What to send me</p>
+          {CATEGORIES.map((c) => {
+            const on = prefs[c.key] !== false;
+            return (
+              <button
+                key={c.key}
+                type="button"
+                role="switch"
+                aria-checked={on}
+                onClick={() => toggleCategory(c.key)}
+                className="flex w-full items-center justify-between gap-3 rounded-xl px-1 py-1.5 text-left transition hover:bg-night/5"
+              >
+                <span className="min-w-0">
+                  <span className="block text-sm text-chalk">{c.label}</span>
+                  <span className="block text-[11px] text-chalk-dim">{c.desc}</span>
+                </span>
+                <span className={`relative h-5 w-9 shrink-0 rounded-full transition ${on ? "bg-grass" : "bg-night/20"}`}>
+                  <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${on ? "left-[18px]" : "left-0.5"}`} />
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
     );
   }

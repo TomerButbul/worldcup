@@ -3,7 +3,7 @@ import { revalidateTag } from "next/cache";
 import { createServiceClient } from "@/lib/supabase/server";
 import { recomputeAllScores } from "@/lib/scoring-engine";
 import { TOURNAMENT_TAG } from "@/lib/tournamentData";
-import { sendToUsers } from "@/lib/push";
+import { sendToUsersCategory } from "@/lib/push";
 import { teamAt } from "@/lib/draft";
 import { draftTeamIds } from "@/lib/draft-scoring";
 import {
@@ -241,7 +241,7 @@ export async function GET(request: NextRequest) {
               const body = g.scorerName
                 ? `${g.scorerName} — ${homeName} ${g.newHome}–${g.newAway} ${awayName}`
                 : `${homeName} ${g.newHome}–${g.newAway} ${awayName}`;
-              await sendToUsers([...recipients], {
+              await sendToUsersCategory([...recipients], "goals", {
                 title: `⚽ ${scoringName} GOAL!`,
                 body,
                 url: "/dashboard",

@@ -58,6 +58,25 @@ export async function saveFavoriteTeam(teamId: number | null) {
   return { ok: true };
 }
 
+// Persist which notification categories the user wants. Opt-out model: senders
+// treat a missing key as enabled, so this just records explicit choices. Only the
+// known category keys are stored, keeping the column clean.
+export async function saveNotifPrefs(prefs: Record<string, boolean>) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Not signed in" };
+
+  const allowed = ["deadlines", "matches", "goals", "results"];
+  const clean: Record<string, boolean> = {};
+  for (const k of allowed) if (k in prefs) clean[k] = prefs[k] !== false;
+
+  const { error } = await supabase.from("profiles").update({ notif_prefs: clean }).eq("id", user.id);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}
+
 export async function createLeague(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   if (!name) redirect("/dashboard?error=Name+required");

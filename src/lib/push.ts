@@ -76,3 +76,61 @@ export async function sendToUsers(userIds: string[], payload: PushPayload): Prom
   if (!subs?.length) return 0;
   return sendAndPrune(s, subs, payload);
 }
+
+// Of the given users, those who have NOT switched off this category. Opt-out /
+// default-on: a missing pref (or true) means enabled, so a user with no prefs
+// row still gets everything. Keys: deadlines | matches | goals | results.
+async function enabledFor(
+  s: ReturnType<typeof createServiceClient>,
+  category: string,
+  userIds: string[],
+): Promise<Set<string>> {
+  const ids = [...new Set(userIds)];
+  if (!ids.length) return new Set();
+  const { data } = await s.from("profiles").select("id, notif_prefs").in("id", ids);
+  const seen = new Set<string>();
+  const out = new Set<string>();
+  for (const p of data ?? []) {
+    seen.add(p.id as string);
+    const prefs = (p.notif_prefs ?? {}) as Record<string, boolean>;
+    if (prefs[category] !== false) out.add(p.id as string);
+  }
+  for (const id of ids) if (!seen.has(id)) out.add(id); // no profile row → default on
+  return out;
+}
+
+// Broadcast, but only to subscribers who have `category` enabled.
+export async function broadcastCategory(category: string, payload: PushPayload): Promise<number> {
+  if (!ensure()) return 0;
+  const s = createServiceClient();
+  const { data: subs } = await s
+    .from("push_subscriptions")
+    .select("endpoint, p256dh, auth, user_id");
+  if (!subs?.length) return 0;
+  const enabled = await enabledFor(s, category, subs.map((x) => x.user_id as string));
+  const filtered = subs.filter((x) => enabled.has(x.user_id as string));
+  if (!filtered.length) return 0;
+  return sendAndPrune(
+    s,
+    filtered.map(({ endpoint, p256dh, auth }) => ({ endpoint, p256dh, auth })),
+    payload,
+  );
+}
+
+// Targeted send to specific users, filtered to those with `category` enabled.
+export async function sendToUsersCategory(
+  userIds: string[],
+  category: string,
+  payload: PushPayload,
+): Promise<number> {
+  if (!userIds.length || !ensure()) return 0;
+  const s = createServiceClient();
+  const enabled = await enabledFor(s, category, userIds);
+  if (!enabled.size) return 0;
+  const { data: subs } = await s
+    .from("push_subscriptions")
+    .select("endpoint, p256dh, auth")
+    .in("user_id", [...enabled]);
+  if (!subs?.length) return 0;
+  return sendAndPrune(s, subs, payload);
+}
