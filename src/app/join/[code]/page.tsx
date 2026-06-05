@@ -71,7 +71,7 @@ export default async function JoinPage({ params }: Params) {
           </p>
           <Link
             href="/"
-            className="mt-5 inline-flex min-h-11 items-center justify-center rounded-xl px-5 text-sm font-semibold text-night shine hover:brightness-105"
+            className="mt-5 inline-flex min-h-11 items-center justify-center rounded-xl px-5 text-sm font-semibold text-night bg-gradient-to-b from-gold-bright to-gold glow-gold shine transition hover:brightness-105"
           >
             Explore World Cup 2026 →
           </Link>
@@ -158,7 +158,7 @@ export default async function JoinPage({ params }: Params) {
           {isMember ? (
             <Link
               href={`/leagues/${league.id}`}
-              className="flex min-h-12 w-full items-center justify-center rounded-2xl px-5 text-base font-bold text-night shine hover:brightness-105"
+              className="flex min-h-12 w-full items-center justify-center rounded-2xl px-5 text-base font-bold text-night bg-gradient-to-b from-gold-bright to-gold glow-gold shine transition hover:brightness-105"
             >
               {memberLabel}
             </Link>
@@ -167,7 +167,7 @@ export default async function JoinPage({ params }: Params) {
               <input type="hidden" name="code" value={code} />
               <button
                 type="submit"
-                className="flex min-h-12 w-full items-center justify-center rounded-2xl px-5 text-base font-bold text-night shine hover:brightness-105"
+                className="flex min-h-12 w-full items-center justify-center rounded-2xl px-5 text-base font-bold text-night bg-gradient-to-b from-gold-bright to-gold glow-gold shine transition hover:brightness-105"
               >
                 {joinLabel}
               </button>

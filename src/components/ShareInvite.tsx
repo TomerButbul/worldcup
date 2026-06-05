@@ -79,7 +79,7 @@ export default function ShareInvite({ code }: { code: string }) {
       <button
         type="button"
         onClick={() => void copy("link")}
-        className={`${base} text-night shine hover:brightness-105`}
+        className={`${base} text-night bg-gradient-to-b from-gold-bright to-gold glow-gold shine hover:brightness-105`}
         aria-label="Copy invite link"
       >
         {copied === "link" ? (
