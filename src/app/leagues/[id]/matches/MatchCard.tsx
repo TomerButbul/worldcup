@@ -369,7 +369,13 @@ export default function MatchCard({
               )}
             </div>
           )}
-          <div className="mt-4 flex items-center justify-end">
+          <div className="mt-4 flex items-center justify-between gap-2">
+            <Link
+              href={`/leagues/${leagueId}/matches/${match.id}`}
+              className="shrink-0 text-xs font-semibold text-chalk-dim transition hover:text-gold"
+            >
+              Stats &amp; lineups &rarr;
+            </Link>
             <SaveStatus state={saveState} error={saveErr} />
           </div>
         </>

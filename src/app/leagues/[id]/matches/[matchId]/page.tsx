@@ -3,6 +3,8 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import Flag from "@/components/Flag";
 import { TeamCardButton } from "@/components/TeamCard";
+import { VenueButton } from "@/components/VenueCard";
+import { venueImage } from "@/lib/venues";
 import Ball from "@/components/art/Ball";
 import Pitch, { type EventRow, type LineupRow } from "./Pitch";
 import MatchPredictions from "./MatchPredictions";
@@ -45,7 +47,7 @@ export default async function MatchSummaryPage({
 
   const { data: match } = await supabase
     .from("matches")
-    .select("id, stage, kickoff_at, status, home_team_id, away_team_id, home_goals, away_goals, winner_team_id")
+    .select("id, stage, kickoff_at, status, home_team_id, away_team_id, home_goals, away_goals, winner_team_id, venue_id, venue_name, venue_city")
     .eq("id", matchNum)
     .maybeSingle();
   if (!match) notFound();
@@ -549,6 +551,42 @@ export default async function MatchSummaryPage({
             </span>
           )}
         </div>
+
+        {match.venue_name && (
+          <div className="mt-4 flex justify-center">
+            <VenueButton
+              venue={{ id: match.venue_id, name: match.venue_name, city: match.venue_city }}
+              className="group inline-flex max-w-full items-center gap-1.5 rounded-full bg-night/5 py-0.5 pl-0.5 pr-2.5 text-[11px] text-chalk-dim transition hover:bg-night/10 hover:text-chalk"
+            >
+              {match.venue_id != null && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={venueImage(match.venue_id) ?? undefined}
+                  alt=""
+                  width={24}
+                  height={16}
+                  loading="lazy"
+                  className="h-4 w-6 shrink-0 rounded-full object-cover"
+                />
+              )}
+              <span className="truncate">
+                {match.venue_name}
+                {match.venue_city ? ` · ${match.venue_city}` : ""}
+              </span>
+            </VenueButton>
+          </div>
+        )}
+
+        {!locked && (
+          <div className="mt-3 flex justify-center">
+            <Link
+              href={`/predict#match-${match.id}`}
+              className="rounded-full bg-gold px-4 py-1.5 text-xs font-semibold text-night shadow-sm transition hover:brightness-110"
+            >
+              ⚽ Predict this match →
+            </Link>
+          </div>
+        )}
       </div>
 
       <MatchTabs
