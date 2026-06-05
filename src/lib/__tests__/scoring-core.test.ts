@@ -233,6 +233,18 @@ describe("scoreUpfront", () => {
     ).toBe(0);
   });
 
+  it("awards third-place points only for the exact bronze winner (match 103)", () => {
+    // Third-place playoff: team 5 beats team 6 → actual bronze winner is 5.
+    const actual = computeActuals([ko(21, "third_place", 5, 6, 2, 1, "finished")], new Map());
+    expect(actual.thirdPlace).toBe(5);
+    expect(
+      scoreUpfront(cfg, actual, { group_scores: {}, knockout: { "103": 5 }, champion_team_id: null }, ctx()),
+    ).toBe(cfg.upfront.third_place);
+    expect(
+      scoreUpfront(cfg, actual, { group_scores: {}, knockout: { "103": 6 }, champion_team_id: null }, ctx()),
+    ).toBe(0);
+  });
+
   it("returns 0 for a null bracket", () => {
     const actual = computeActuals(groupA, new Map());
     expect(scoreUpfront(cfg, actual, null, ctx(groupA))).toBe(0);

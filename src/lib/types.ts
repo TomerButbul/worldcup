@@ -57,6 +57,7 @@ export interface ScoringConfig {
     advance_semi: number;
     advance_final: number;
     champion: number;
+    third_place: number;          // called the third-place playoff (bronze) winner
     golden_boot: number;
     golden_ball: number;
     golden_glove: number;
@@ -126,6 +127,7 @@ export const DEFAULT_SCORING: ScoringConfig = {
     advance_semi: 6,
     advance_final: 8,
     champion: 25,
+    third_place: 4,
     golden_boot: 12,
     golden_ball: 10,
     golden_glove: 8,

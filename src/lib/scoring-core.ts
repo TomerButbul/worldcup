@@ -20,6 +20,7 @@ export interface ActualOutcomes {
   groupStandings: Record<string, number[]>;
   advancers: Record<string, Set<number>>;
   champion: number | null;
+  thirdPlace?: number | null; // winner of the third-place playoff (stage "third_place")
   results: Map<number, { home: number; away: number; scorers: Map<number, number>; stage: MatchStage; winner: number | null }>;
   // Individual-award winners (award key -> player id). Golden Boot is derived
   // from goal data; the rest are filled from admin-entered results.
@@ -204,6 +205,7 @@ export function computeActuals(
 ): ActualOutcomes {
   const advancers: Record<string, Set<number>> = {};
   let champion: number | null = null;
+  let thirdPlace: number | null = null;
   const results = new Map<number, { home: number; away: number; scorers: Map<number, number>; stage: MatchStage; winner: number | null }>();
 
   for (const m of matches) {
@@ -230,6 +232,7 @@ export function computeActuals(
         winner,
       });
       if (m.stage === "final") champion = winner;
+      else if (m.stage === "third_place") thirdPlace = winner;
     }
   }
 
@@ -251,9 +254,21 @@ export function computeActuals(
     groupStandings: computeGroupStandings(matches),
     advancers,
     champion,
+    thirdPlace,
     results,
     awards: { golden_boot: topScorer },
   };
+}
+
+// Third-place playoff (canonical match 103): the bronze winner the manager picked
+// among the two losing semi-finalists, scored against the actual third_place
+// result. Defended with the default so leagues predating this still score it.
+function scoreThirdPlace(cfg: ScoringConfig, actual: ActualOutcomes, bracket: BracketPick): number {
+  const pick = bracket.knockout?.["103"];
+  if (pick != null && actual.thirdPlace != null && pick === actual.thirdPlace) {
+    return cfg.upfront.third_place ?? DEFAULT_SCORING.upfront.third_place ?? 0;
+  }
+  return 0;
 }
 
 // Table-pick upfront scoring: derive the bracket from the predicted group ORDER
@@ -308,6 +323,8 @@ function scoreUpfrontFromOrder(cfg: ScoringConfig, actual: ActualOutcomes, brack
 
   const predictedChampion = adv.champion ?? bracket.champion_team_id;
   if (actual.champion != null && predictedChampion === actual.champion) pts += cfg.upfront.champion;
+
+  pts += scoreThirdPlace(cfg, actual, bracket);
 
   for (const key of AWARD_KEYS) {
     const pick = bracket.awards?.[key];
@@ -420,6 +437,9 @@ export function scoreUpfront(
   if (actual.champion != null && predictedChampion === actual.champion) {
     pts += cfg.upfront.champion;
   }
+
+  // Third-place playoff: the bronze winner picked under knockout key "103".
+  pts += scoreThirdPlace(cfg, actual, bracket);
 
   // Individual awards: a correct player pick scores its configured points.
   for (const key of AWARD_KEYS) {
