@@ -330,18 +330,22 @@ export default function KnockoutBracket({
   const thirdTeam = thirdId != null ? (teamsById[thirdId] ?? null) : null;
 
   // Final/3rd connector origins: each semifinal's WINNER row feeds the Final and
-  // its LOSER row feeds the 3rd place — so the two lines leave the match from the
-  // actual winning + losing teams (not a shared point). A card row sits ±ROW from
-  // its centre (top row above, bottom row below).
-  const ROW = isDesktop ? 12 : 9;
+  // its LOSER row feeds the 3rd place — so the two lines leave the actual winning
+  // and losing teams. Measured offsets from the cluster centre: the SF card sits
+  // +SF_C below it (its column label pushes the card down), and its two team rows
+  // are centred at TOP / BOT. The Final is dropped to SF_C so it lines up.
+  const SF_C = isDesktop ? 7.5 : 6.5;
+  const TOP = isDesktop ? -4 : -2;
+  const BOT = isDesktop ? 19 : 15;
   const lSemi = mget(101);
   const rSemi = mget(102);
   const lWinTop = lSemi.winner != null && lSemi.winner === lSemi.home;
   const rWinTop = rSemi.winner != null && rSemi.winner === rSemi.home;
-  const lWinY = lWinTop ? -ROW : ROW;
-  const lLoseY = lWinTop ? ROW : -ROW;
-  const rWinY = rWinTop ? -ROW : ROW;
-  const rLoseY = rWinTop ? ROW : -ROW;
+  const lWinY = lWinTop ? TOP : BOT;
+  const lLoseY = lWinTop ? BOT : TOP;
+  const rWinY = rWinTop ? TOP : BOT;
+  const rLoseY = rWinTop ? BOT : TOP;
+  const finalLabelY = SF_C - (isDesktop ? 50 : 44);
 
   if (!round) return <div className="glass rounded-2xl p-6 text-center text-sm text-chalk-dim">No bracket yet.</div>;
 
@@ -425,11 +429,17 @@ export default function KnockoutBracket({
                 <span aria-hidden className="absolute right-0 bottom-[58px] w-[22px] rounded-br-md border-b border-r border-dashed border-[#cd7f32]/70 lg:bottom-[162px] lg:w-[38px]" style={{ top: `calc(50% + ${rLoseY}px)` }} />
 
                 {/* FINAL label */}
-                <div className="absolute left-1/2 top-[calc(50%-44px)] -translate-x-1/2 whitespace-nowrap font-display text-[11px] uppercase tracking-[0.15em] text-gold lg:top-[calc(50%-52px)]">
+                <div
+                  className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap font-display text-[11px] uppercase tracking-[0.15em] text-gold"
+                  style={{ top: `calc(50% + ${finalLabelY}px)` }}
+                >
                   Final
                 </div>
-                {/* Final card — the showpiece */}
-                <div className="absolute left-1/2 top-1/2 w-[148px] -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white/90 p-2 shadow-md ring-2 ring-gold glow-gold lg:w-[198px]">
+                {/* Final card — the showpiece, dropped to sit level with the semis */}
+                <div
+                  className="absolute left-1/2 w-[148px] -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white/90 p-2 shadow-md ring-2 ring-gold glow-gold lg:w-[198px]"
+                  style={{ top: `calc(50% + ${SF_C}px)` }}
+                >
                   {[finalMatch.home, finalMatch.away].map((tid, i) => {
                     const isW = finalMatch.winner != null && tid === finalMatch.winner;
                     const t = tid != null ? teamsById[tid] : null;
