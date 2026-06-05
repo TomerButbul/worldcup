@@ -1,5 +1,7 @@
 "use client";
 
+import InfoTip from "@/components/InfoTip";
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, Reorder, useDragControls } from "motion/react";
 import type { MatchStage } from "@/lib/types";
@@ -529,7 +531,13 @@ export default function BracketEditor({
               <motion.div key={g} layout initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="glass rounded-2xl p-3 sm:p-4">
                 <div className="mb-2 flex items-center justify-between">
                   <h3 className="font-display text-base text-gold">Group {g}</h3>
-                  <span className="text-xs text-chalk-dim">Top 2 advance · 3rd may qualify</span>
+                  <span className="text-xs text-chalk-dim">
+                    Top 2 advance ·{" "}
+                    <InfoTip label="3rd may qualify">
+                      The top 2 in every group advance. On top of that, the <b>8 best of the 12
+                      third-placed teams</b> also sneak into the Round of 32.
+                    </InfoTip>
+                  </span>
                 </div>
 
                 <Reorder.Group
