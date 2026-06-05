@@ -2,7 +2,7 @@
 
 import { useState, type JSX } from "react";
 import Flag from "@/components/Flag";
-import { Trophy } from "@/components/icons";
+import Trophy from "@/components/art/Trophy";
 import { openTeamCard } from "@/components/TeamCard";
 import { useLongPress } from "@/lib/useLongPress";
 
@@ -36,6 +36,7 @@ const SHORT_LABEL: Record<string, string> = {
   round_of_16: "R16",
   quarter: "QF",
   semi: "SF",
+  third_place: "🥉 3rd",
   final: "Final",
 };
 
@@ -192,14 +193,20 @@ export default function KnockoutBracket({
     const onTrail =
       (m.home != null && highlight.has(m.home)) || (m.away != null && highlight.has(m.away));
     const isFinal = championNo != null && m.no === championNo;
+    const isThird = m.no === 103;
     return (
       <div
         key={m.no}
         className={`glass relative overflow-hidden rounded-xl p-2 ${onTrail ? "ring-1 ring-gold/70" : ""} ${
-          isFinal ? "ring-1 ring-gold" : ""
+          isFinal ? "ring-1 ring-gold" : isThird ? "ring-1 ring-[#cd7f32]/70" : ""
         }`}
       >
         {onTrail && <span aria-hidden className="absolute inset-y-1 left-0 w-1 rounded-full bg-gold" />}
+        {isThird && (
+          <p className="mb-1 text-center text-[10px] font-semibold uppercase tracking-wide text-[#b87333]">
+            🥉 Bronze · losing semi-finalists
+          </p>
+        )}
         <div className="space-y-1">
           {teamRow(m.no, m.home, m.winner != null && m.winner === m.home)}
           {teamRow(m.no, m.away, m.winner != null && m.winner === m.away)}
@@ -295,6 +302,34 @@ export default function KnockoutBracket({
     </div>
   );
 
+  // Podium for the final phase: runner-up = the team that lost the final; third =
+  // the bronze-match winner (canonical match 103).
+  const finalMatch = championNo != null ? mget(championNo) : mget(104);
+  const runnerUpId =
+    finalMatch.winner != null
+      ? finalMatch.home === finalMatch.winner
+        ? finalMatch.away
+        : finalMatch.home
+      : null;
+  const runnerUpTeam = runnerUpId != null ? (teamsById[runnerUpId] ?? null) : null;
+  const thirdId = mget(103).winner;
+  const thirdTeam = thirdId != null ? (teamsById[thirdId] ?? null) : null;
+
+  const podiumCard = (team: BracketTeam | null, medal: string, label: string, cls: string) => (
+    <div className={`glass flex flex-col items-center gap-1 rounded-xl border p-2.5 text-center ${cls}`}>
+      <span className="text-base leading-none">{medal}</span>
+      {team ? (
+        <>
+          <Flag teamId={team.id} logoUrl={team.logo_url} code={team.code} name={team.name} size={20} />
+          <span className="max-w-full truncate text-xs font-semibold text-chalk">{team.name}</span>
+        </>
+      ) : (
+        <span className="text-[10px] text-chalk-dim">—</span>
+      )}
+      <span className="text-[9px] uppercase tracking-wide text-chalk-dim">{label}</span>
+    </div>
+  );
+
   if (!round) return <div className="glass rounded-2xl p-6 text-center text-sm text-chalk-dim">No bracket yet.</div>;
 
   return (
@@ -348,7 +383,7 @@ export default function KnockoutBracket({
               <div className="flex w-[70px] flex-col px-0.5">
                 <div className="mb-1 text-center font-display text-[9px] uppercase tracking-wide text-gold">Final</div>
                 <div className="flex flex-1 flex-col items-center justify-center gap-1">
-                  {championTeamId != null && <Trophy size={14} className="text-gold" />}
+                  {championTeamId != null && <Trophy size={22} />}
                   <div className="w-full rounded-md ring-1 ring-gold">{treeCard(mget(104))}</div>
                   <span className="font-display text-[10px] leading-none text-gold">
                     {championTeamId != null ? codeOf(championTeamId) : "Champion"}
@@ -367,6 +402,14 @@ export default function KnockoutBracket({
               {treeCol(BRACKET_RIGHT[3].nos, BRACKET_RIGHT[3].label)}
             </div>
           </div>
+
+          {/* Third-place playoff — compact, in the bracket's own style. */}
+          {mget(103).home != null && (
+            <div className="mx-auto w-[132px] pt-0.5 text-center">
+              <div className="mb-0.5 font-display text-[9px] uppercase tracking-wide text-[#b87333]">🥉 3rd-place playoff</div>
+              {treeCard(mget(103))}
+            </div>
+          )}
         </div>
       ) : (
         /* --------------------------- PAGED, ROUND BY ROUND --------------------------- */
@@ -418,22 +461,28 @@ export default function KnockoutBracket({
             {round.matches.map((m) => matchCard(m))}
           </div>
 
-          {/* Champion reveal on the final phase. */}
+          {/* Podium on the final phase: champion (WC trophy) + silver + bronze. */}
           {isFinalRound && (
-            <div className="pt-1">
+            <div className="space-y-2 pt-1">
               {champTeam ? (
                 <div className="glass-strong mx-auto flex max-w-sm flex-col items-center gap-1.5 rounded-2xl border border-gold bg-gold/15 p-4 text-center text-gold glow-gold">
-                  <Trophy size={20} className="text-gold" />
+                  <Trophy size={44} />
                   <Flag teamId={champTeam.id} logoUrl={champTeam.logo_url} code={champTeam.code} name={champTeam.name} size={32} />
                   <span className="font-display text-lg leading-tight">{champTeam.name}</span>
-                  <span className="text-[11px] uppercase tracking-wide text-gold/80">Champion</span>
+                  <span className="text-[11px] uppercase tracking-wide text-gold/80">🥇 Champion</span>
                 </div>
               ) : (
                 <div className="glass mx-auto flex max-w-sm flex-col items-center gap-1 rounded-2xl border border-dashed border-gold/40 p-4 text-center">
-                  <Trophy size={20} className="text-gold opacity-60" />
+                  <span className="opacity-50"><Trophy size={32} /></span>
                   <span className="font-display text-xs uppercase tracking-wide text-chalk-dim">
                     Win the Final to crown a champion
                   </span>
+                </div>
+              )}
+              {(runnerUpTeam || thirdTeam) && (
+                <div className="mx-auto grid max-w-sm grid-cols-2 gap-2">
+                  {podiumCard(runnerUpTeam, "🥈", "Runner-up", "border-slate-300 bg-slate-300/10")}
+                  {podiumCard(thirdTeam, "🥉", "Third place", "border-[#cd7f32]/60 bg-[#cd7f32]/10")}
                 </div>
               )}
             </div>

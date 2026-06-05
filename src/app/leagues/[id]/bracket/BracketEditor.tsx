@@ -260,24 +260,37 @@ export default function BracketEditor({
       }),
     [koParticipants, eff],
   );
-  const bronzeReady = semiLosers[0] != null && semiLosers[1] != null;
   const thirdPlacePick = knockout[103] ?? null;
+  // Validated bronze winner (drops a stale pick if a semi changed). Threaded into
+  // the bracket as its own "3rd-place playoff" round below.
+  const bronzeWinner =
+    thirdPlacePick != null && (thirdPlacePick === semiLosers[0] || thirdPlacePick === semiLosers[1])
+      ? thirdPlacePick
+      : null;
 
   // Rounds fed to the visual bracket: resolved participants + validated picks.
-  const bracketRounds = useMemo<BracketRound[]>(
-    () =>
-      koRounds.map((r) => ({
-        stage: r.stage,
-        label: r.label,
-        matches: r.matches.map((no) => ({
-          no,
-          home: koParticipants[no]?.home ?? null,
-          away: koParticipants[no]?.away ?? null,
-          winner: eff[no] ?? null,
-        })),
+  const bracketRounds = useMemo<BracketRound[]>(() => {
+    const base: BracketRound[] = koRounds.map((r) => ({
+      stage: r.stage,
+      label: r.label,
+      matches: r.matches.map((no) => ({
+        no,
+        home: koParticipants[no]?.home ?? null,
+        away: koParticipants[no]?.away ?? null,
+        winner: eff[no] ?? null,
       })),
-    [koRounds, koParticipants, eff],
-  );
+    }));
+    // The third-place playoff is its own step, slotted right before the Final.
+    const third: BracketRound = {
+      stage: "third_place",
+      label: "3rd-place playoff",
+      matches: [{ no: 103, home: semiLosers[0], away: semiLosers[1], winner: bronzeWinner }],
+    };
+    const finalIdx = base.findIndex((r) => r.stage === "final");
+    if (finalIdx >= 0) base.splice(finalIdx, 0, third);
+    else base.push(third);
+    return base;
+  }, [koRounds, koParticipants, eff, semiLosers, bronzeWinner]);
 
   const highlightIds = useMemo(
     () => (favoriteTeamId != null ? [favoriteTeamId] : []),
@@ -710,40 +723,6 @@ export default function BracketEditor({
                 championNo={104}
                 fifaRank={fifaRank}
               />
-
-              {/* Third-place playoff — quietly appears once both semis are decided. */}
-              {bronzeReady && (
-                <div className="rounded-2xl border border-[#cd7f32]/40 bg-[#cd7f32]/[0.07] p-3.5">
-                  <p className="mb-2.5 text-center text-xs font-semibold text-[#b87333]">
-                    🥉 Third-place playoff — the losing semi-finalists meet for bronze
-                  </p>
-                  <div className="flex items-stretch justify-center gap-2">
-                    {semiLosers.map((tid) => {
-                      if (tid == null) return null;
-                      const t = teamsById.get(tid);
-                      if (!t) return null;
-                      const picked = thirdPlacePick === tid;
-                      return (
-                        <button
-                          key={tid}
-                          type="button"
-                          disabled={locked}
-                          onClick={() => pickWinner(103, tid)}
-                          className={`flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm font-semibold transition ${
-                            picked
-                              ? "border-[#cd7f32] bg-[#cd7f32]/20 text-chalk"
-                              : "border-night/10 text-chalk-dim hover:bg-night/5"
-                          } ${locked ? "cursor-default" : ""}`}
-                        >
-                          <Flag teamId={t.id} logoUrl={t.logo_url} code={t.code} name={t.name} size={20} />
-                          <span className="truncate">{t.name}</span>
-                          {picked && <span className="shrink-0">🥉</span>}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
 
               <div className="flex items-center justify-between gap-2 text-sm">
                 <button
