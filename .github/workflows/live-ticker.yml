@@ -1,0 +1,56 @@
+name: Live ticker (60s)
+
+# WHY THIS EXISTS: GitHub throttles scheduled workflows hard. On this repo a
+# "*/5" schedule actually fires only ~every 90 min (check the Actions history),
+# so the 5-min burst in live-sync.yml leaves ~85-min blind spots — a goal could
+# go unseen for over an hour. Per-trigger throttling can't be tuned away. So
+# instead ONE job loops every 60s for ~5.5 hours, and a frequent schedule plus a
+# single-slot concurrency queue keeps a fresh run ready to start the instant the
+# current one ends → near-continuous true-60s sync with NO external pinger.
+# Public repo ⇒ Actions minutes are free. (For guaranteed-exact 60s an external
+# pinger such as cron-job.org hitting the same URL is still the gold standard,
+# and runs happily alongside this — the sync is idempotent.)
+#
+# WHY 60s (not 30s): football scores don't move faster than ~once/minute, and up
+# to 4 simultaneous live matches at 60s stay comfortably under the API-Football
+# Pro 7500/day cap; 30s would double the spend for no real benefit.
+#
+# OFF-SEASON: after the tournament, disable this workflow (or delete its
+# schedule) to stop the ~1 call/min baseline.
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: "*/15 * * * *"
+
+concurrency:
+  group: live-ticker
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    env:
+      BASE: https://worldcup-liart.vercel.app
+      SYNC_SECRET: ${{ secrets.SYNC_SECRET }}
+    steps:
+      - name: Ping mode=live every 60s (+ a full sync every ~10 min) for ~5.5h
+        run: |
+          end=$((SECONDS + 340*60))
+          i=0
+          while [ "$SECONDS" -lt "$end" ]; do
+            i=$((i+1))
+            code=$(curl -fsS --max-time 50 -o live.json -w "%{http_code}" \
+              -H "Authorization: Bearer $SYNC_SECRET" \
+              "$BASE/api/sync?mode=live" || echo ERR)
+            echo "tick $i live [$code]: $(head -c 200 live.json 2>/dev/null)"
+            # Every ~10 min also run the full sync (finished-match goal import,
+            # standings, scoring) so results/points stay fresh during games too.
+            if [ $((i % 10)) -eq 0 ]; then
+              fcode=$(curl -fsS --max-time 110 -o full.json -w "%{http_code}" \
+                -H "Authorization: Bearer $SYNC_SECRET" \
+                "$BASE/api/sync" || echo ERR)
+              echo "tick $i FULL [$fcode]: $(head -c 200 full.json 2>/dev/null)"
+            fi
+            sleep 60
+          done
