@@ -9,6 +9,7 @@ import Ball from "@/components/art/Ball";
 import { Medal } from "@/components/icons";
 import { primaryPredictionLeague } from "@/lib/predictionSync";
 import NoPredictionLeague from "@/components/NoPredictionLeague";
+import ShareBracket from "@/components/ShareBracket";
 
 export const metadata = { title: "Your bracket" };
 
@@ -36,7 +37,7 @@ export default async function BracketPage() {
       .eq("league_id", leagueId)
       .eq("user_id", user.id)
       .maybeSingle(),
-    supabase.from("profiles").select("favorite_team_id").eq("id", user.id).maybeSingle(),
+    supabase.from("profiles").select("favorite_team_id, share_slug").eq("id", user.id).maybeSingle(),
   ]);
 
   const teamList = teams as (Team & { fifa_rank: number | null })[];
@@ -79,6 +80,14 @@ export default async function BracketPage() {
         >
           <span className="inline-flex items-center gap-1.5"><Medal size={15} /> Predict individual awards →</span>
         </Link>
+        {profile?.share_slug && (
+          <div className="mt-4 border-t border-night/10 pt-4">
+            <p className="mb-2 text-xs text-chalk-dim">
+              Show off your bracket — a public link anyone can open (no account needed):
+            </p>
+            <ShareBracket slug={profile.share_slug} />
+          </div>
+        )}
       </div>
 
       {!hasGroups ? (

@@ -306,3 +306,71 @@ export function predictedBracketRounds(
   }));
   return { rounds, champion };
 }
+
+// Full read-only bracket view: like predictedBracketRounds, but also threads in the
+// 3rd-place playoff (canonical match 103 — the two losing semi-finalists) as its own
+// round slotted right before the Final, and resolves the podium (champion / runner-up
+// / 3rd). This is the exact shape BracketEditor feeds <KnockoutBracket>, so a
+// read-only embed (the public /b/<slug> share) renders identically to the editor's
+// tree. `stage` is a plain string here because the 3rd-place round isn't one of the
+// five MatchStage values.
+export interface ViewBracket {
+  rounds: {
+    stage: string;
+    label: string;
+    matches: { no: number; home: number | null; away: number | null; winner: number | null }[];
+  }[];
+  champion: number | null;
+  runnerUp: number | null;
+  third: number | null;
+}
+
+export function predictedBracketView(
+  groupOrder: Record<string, number[]>,
+  thirdGroups: Iterable<string>,
+  knockoutPicks: Record<number, number>,
+): ViewBracket {
+  const { participants, winners, champion } = resolvePredictedBracket(groupOrder, thirdGroups, knockoutPicks);
+
+  const byStage = new Map<MatchStage, number[]>();
+  for (const no of Object.keys(KNOCKOUT_TEMPLATE).map(Number).sort((a, b) => a - b)) {
+    const st = stageOf(no);
+    if (!byStage.has(st)) byStage.set(st, []);
+    byStage.get(st)!.push(no);
+  }
+  const rounds: ViewBracket["rounds"] = KO_VIEW_ORDER.filter((s) => byStage.has(s)).map((s) => ({
+    stage: s,
+    label: KO_VIEW_LABELS[s],
+    matches: byStage.get(s)!.map((no) => ({
+      no,
+      home: participants[no]?.home ?? null,
+      away: participants[no]?.away ?? null,
+      winner: winners[no] ?? null,
+    })),
+  }));
+
+  // 3rd-place playoff (match 103): the two semi losers; bronze = its winner, kept
+  // only while the stored pick is still one of them.
+  const semiLosers = [101, 102].map((no) => {
+    const p = participants[no];
+    const win = winners[no];
+    if (!p || p.home == null || p.away == null || win == null) return null;
+    return p.home === win ? p.away : p.home;
+  });
+  const tp = knockoutPicks[103];
+  const third = tp != null && (tp === semiLosers[0] || tp === semiLosers[1]) ? tp : null;
+  const thirdRound = {
+    stage: "third_place",
+    label: "3rd-place playoff",
+    matches: [{ no: 103, home: semiLosers[0], away: semiLosers[1], winner: third }],
+  };
+  const finalIdx = rounds.findIndex((r) => r.stage === "final");
+  if (finalIdx >= 0) rounds.splice(finalIdx, 0, thirdRound);
+  else rounds.push(thirdRound);
+
+  // Runner-up = the Final's loser.
+  const finalP = participants[104];
+  const runnerUp = finalP && champion != null ? (finalP.home === champion ? finalP.away : finalP.home) : null;
+
+  return { rounds, champion, runnerUp, third };
+}

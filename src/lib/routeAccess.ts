@@ -24,6 +24,10 @@ export function isPublicPath(pathname: string): boolean {
     // the invite_code cookie and *then* sends them to sign up. If we gated it here,
     // the proxy would redirect to /signup first and the code would be lost.
     pathname.startsWith("/join") ||
+    // Public read-only bracket shares (/b/<slug>) — must reach logged-out visitors;
+    // that's the whole point of a share link. The trailing slash is deliberate so we
+    // don't accidentally make the auth-gated /bracket page public.
+    pathname.startsWith("/b/") ||
     isAuthPath(pathname) ||
     // API routes self-authenticate (e.g. /api/sync via SYNC_SECRET) and must return
     // JSON, never an HTML redirect to /login — otherwise the cron silently 307s.
