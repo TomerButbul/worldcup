@@ -159,7 +159,13 @@ export default function MatchCard({
           aria-label={`Pick ${tName} scorers — hold for team details`}
           className={`flex min-w-0 flex-1 select-none flex-col gap-0.5 border-b-2 px-1 pb-1 transition ${
             isHome ? "items-end" : "items-start"
-          } ${isActive ? "border-gold/70" : "border-transparent opacity-45 hover:opacity-80"}`}
+          } ${
+            isActive
+              ? "border-gold/70"
+              : activeTeam !== null
+                ? "border-transparent opacity-45 hover:opacity-80"
+                : "border-transparent"
+          }`}
         >
           <span className={`flex w-full items-center gap-1.5 text-sm font-semibold text-chalk sm:text-base ${rowAlign}`}>
             {inner}
