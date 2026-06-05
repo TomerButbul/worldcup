@@ -84,7 +84,15 @@ export default function KnockoutBracket({
   // Two ways to read the same bracket:
   //  • "rounds" — paged, one phase at a time (best for picking on mobile)
   //  • "tree"   — a compact connected bracket from R16 → Final (the big picture)
-  const [view, setView] = useState<"rounds" | "tree">(treeOnly || locked ? "tree" : "rounds");
+  // Default to the full bracket once the champion is picked — so at a glance (on
+  // mobile too) you see your finished bracket — or when locked. While still
+  // picking, the pager (step-through) has bigger tap targets, so it leads there.
+  const finalPicked = rounds.some(
+    (r) => r.matches.some((m) => m.no === (championNo ?? 104) && m.winner != null),
+  );
+  const [view, setView] = useState<"rounds" | "tree">(
+    treeOnly || locked || finalPicked ? "tree" : "rounds",
+  );
 
   // Desktop defaults to the full bracket and gets a larger tree; mobile keeps the
   // paged picker (the tree is cramped on a phone). Once locked there's no picking,
