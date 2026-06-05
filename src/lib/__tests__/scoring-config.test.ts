@@ -12,20 +12,39 @@ describe("DEFAULT_SCORING", () => {
     expect("group_qualifier" in DEFAULT_SCORING.upfront).toBe(false);
   });
 
-  it("keeps existing advancement + champion tiers", () => {
+  it("uses March Madness advancement values (1-2-4-8-16-32)", () => {
     expect(DEFAULT_SCORING.upfront.group_winner).toBe(3);
+    expect(DEFAULT_SCORING.upfront.advance_round_of_32).toBe(1);
     expect(DEFAULT_SCORING.upfront.advance_round_of_16).toBe(2);
     expect(DEFAULT_SCORING.upfront.advance_quarter).toBe(4);
-    expect(DEFAULT_SCORING.upfront.advance_semi).toBe(6);
-    expect(DEFAULT_SCORING.upfront.advance_final).toBe(8);
-    expect(DEFAULT_SCORING.upfront.champion).toBe(25);
+    expect(DEFAULT_SCORING.upfront.advance_semi).toBe(8);
+    expect(DEFAULT_SCORING.upfront.advance_final).toBe(16);
+    expect(DEFAULT_SCORING.upfront.champion).toBe(32);
+    expect(DEFAULT_SCORING.upfront.third_place).toBe(8);
   });
 
-  it("scores group-stage live games lighter than knockouts", () => {
-    expect(DEFAULT_SCORING.live.group_exact_score).toBe(2);
+  it("doubles every knockout tier (equal aggregate weight per round)", () => {
+    const u = DEFAULT_SCORING.upfront;
+    const tiers = [
+      u.advance_round_of_32,
+      u.advance_round_of_16,
+      u.advance_quarter,
+      u.advance_semi,
+      u.advance_final,
+      u.champion,
+    ];
+    for (let i = 1; i < tiers.length; i++) expect(tiers[i]).toBe(tiers[i - 1] * 2);
+  });
+
+  it("scales live points up but keeps group games lighter than knockouts", () => {
+    expect(DEFAULT_SCORING.live.exact_score).toBe(8); // knockout exact
+    expect(DEFAULT_SCORING.live.correct_result).toBe(3);
+    expect(DEFAULT_SCORING.live.goal_scorer).toBe(3);
+    expect(DEFAULT_SCORING.live.pen_winner).toBe(3);
+    expect(DEFAULT_SCORING.live.group_exact_score).toBe(3);
     expect(DEFAULT_SCORING.live.group_correct_result).toBe(1);
     expect(DEFAULT_SCORING.live.group_goal_scorer).toBe(1);
-    expect(DEFAULT_SCORING.live.exact_score).toBe(5); // knockout stays full-weight
+    expect(DEFAULT_SCORING.live.group_exact_score).toBeLessThan(DEFAULT_SCORING.live.exact_score);
   });
 
   it("defines group-order point defaults", () => {

@@ -121,13 +121,15 @@ export const DEFAULT_SCORING: ScoringConfig = {
     group_winner: 3,
     group_position: 1,
     group_order_bonus: 3,
+    // March Madness doubling: each tier has half the picks of the last, so
+    // doubling the per-pick value makes every round worth the same 32 aggregate.
     advance_round_of_32: 1,
     advance_round_of_16: 2,
     advance_quarter: 4,
-    advance_semi: 6,
-    advance_final: 8,
-    champion: 25,
-    third_place: 4, // bronze winner — scored like a normal knockout call, not special
+    advance_semi: 8,
+    advance_final: 16,
+    champion: 32,
+    third_place: 8, // bronze winner — a semi-depth call between the two SF losers
     golden_boot: 12,
     golden_ball: 10,
     golden_glove: 8,
@@ -137,12 +139,14 @@ export const DEFAULT_SCORING: ScoringConfig = {
     sweep_quarter: 12,
     sweep_semi: 15,
   },
+  // Live (per match, as games play) — scaled up to stay balanced against the
+  // bigger March Madness bracket. Group games stay lighter (72 of them).
   live: {
-    exact_score: 5,
-    correct_result: 2,
-    goal_scorer: 2,
-    pen_winner: 2,
-    group_exact_score: 2,
+    exact_score: 8,
+    correct_result: 3,
+    goal_scorer: 3,
+    pen_winner: 3,
+    group_exact_score: 3,
     group_correct_result: 1,
     group_goal_scorer: 1,
   },

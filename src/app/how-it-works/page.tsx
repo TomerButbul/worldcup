@@ -21,8 +21,8 @@ const STAGE_POINTS = [
   ["Round of 32", "+1"],
   ["Round of 16", "+2"],
   ["Quarter-final", "+4"],
-  ["Semi-final", "+6"],
-  ["Final", "+8"],
+  ["Semi-final", "+8"],
+  ["Final", "+16"],
 ];
 
 const AWARD_POINTS = [
@@ -33,11 +33,11 @@ const AWARD_POINTS = [
 ];
 
 const LIVE_POINTS = [
-  ["Exact score — knockout", "5"],
-  ["Exact score — group", "2"],
-  ["Correct result — knockout / group", "2 / 1"],
-  ["Each correct goal scorer — knockout / group", "2 / 1"],
-  ["Calling the penalty-shootout winner", "2"],
+  ["Exact score — knockout", "8"],
+  ["Exact score — group", "3"],
+  ["Correct result — knockout / group", "3 / 1"],
+  ["Each correct goal scorer — knockout / group", "3 / 1"],
+  ["Calling the penalty-shootout winner", "3"],
 ];
 
 type CrownEntry = { Icon: ComponentType<{ size?: number }>; name: string; desc: string };
@@ -141,7 +141,7 @@ export default function HowItWorksPage() {
                 <ScoreRow label="Each group finishing position (1st–4th)" points="1" />
                 <ScoreRow label="Perfect group order (all four)" points="+3" />
                 <ScoreRow label="Predict a group winner" points="3" />
-                <ScoreRow label="Champion" points="25" />
+                <ScoreRow label="Champion" points="32" />
               </div>
 
               <div className="mt-3 rounded-2xl bg-night/[0.03] p-3">
@@ -157,6 +157,9 @@ export default function HowItWorksPage() {
                     </span>
                   ))}
                 </div>
+                <p className="mt-2 text-xs text-chalk-dim">
+                  Each round doubles — March Madness style, so every tier is worth the same in total.
+                </p>
               </div>
 
               <div className="mt-3 rounded-2xl bg-night/[0.03] p-3">

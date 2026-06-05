@@ -71,9 +71,9 @@ export default function LeagueIntro() {
 
         <div className="mt-4 rounded-2xl bg-night/[0.04] p-3 text-xs leading-relaxed text-chalk-dim">
           <span className="text-chalk">Quick points:</span> exact group score{" "}
-          <b className="text-gold">+3</b>, champion <b className="text-gold">+15</b>, Golden Boot{" "}
-          <b className="text-gold">+12</b>, live exact score <b className="text-grass">+5</b>, each
-          goal scorer <b className="text-grass">+2</b>.
+          <b className="text-gold">+3</b>, champion <b className="text-gold">+32</b>, Golden Boot{" "}
+          <b className="text-gold">+12</b>, live exact score <b className="text-grass">+8</b>, each
+          goal scorer <b className="text-grass">+3</b>.
         </div>
 
         <div className="mt-4 flex items-center justify-between gap-3">
