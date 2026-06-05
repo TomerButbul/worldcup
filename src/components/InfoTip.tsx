@@ -13,10 +13,14 @@ export default function InfoTip({
   children,
   label,
   className = "",
+  wrapClassName = "",
+  bare = false,
 }: {
   children: ReactNode; // the explanation shown in the bubble
   label?: ReactNode; // the trigger; defaults to a small ⓘ
-  className?: string;
+  className?: string; // extra classes on the trigger button
+  wrapClassName?: string; // extra classes on the positioned outer wrapper
+  bare?: boolean; // render the label as-is (no underline / ⓘ chrome)
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLSpanElement>(null);
@@ -38,7 +42,7 @@ export default function InfoTip({
   }, [open]);
 
   return (
-    <span ref={ref} className="group relative inline-flex align-middle">
+    <span ref={ref} className={`group relative inline-flex align-middle ${wrapClassName}`}>
       <button
         type="button"
         aria-label="What's this?"
@@ -47,11 +51,15 @@ export default function InfoTip({
           e.stopPropagation();
           setOpen((o) => !o);
         }}
-        className={`inline-flex cursor-help items-center ${
-          label
-            ? "gap-0.5 underline decoration-dotted decoration-chalk-dim/50 underline-offset-2"
-            : "h-3.5 w-3.5 justify-center rounded-full bg-night/15 text-[9px] font-bold leading-none text-chalk-dim"
-        } ${className}`}
+        className={
+          bare
+            ? `cursor-help ${className}`
+            : `inline-flex cursor-help items-center ${
+                label
+                  ? "gap-0.5 underline decoration-dotted decoration-chalk-dim/50 underline-offset-2"
+                  : "h-3.5 w-3.5 justify-center rounded-full bg-night/15 text-[9px] font-bold leading-none text-chalk-dim"
+              } ${className}`
+        }
       >
         {label ?? "i"}
       </button>

@@ -1,5 +1,7 @@
 "use client";
 
+import InfoTip from "@/components/InfoTip";
+
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
@@ -248,13 +250,18 @@ function PlayerCardModal({ req, onClose }: { req: CardReq; onClose: () => void }
           <div className="relative">
             <PlayerAvatar playerId={playerId} name={name} size={96} className="border-4 border-white/80 shadow-lg" />
             {p?.ovr != null && (
-              <span
-                title="EA FC 26 overall rating"
-                className="absolute -right-1.5 -top-1.5 flex h-10 w-10 flex-col items-center justify-center rounded-full border-2 border-white/80 bg-gold font-display leading-none text-night shadow-md"
+              <InfoTip
+                bare
+                wrapClassName="absolute -right-1.5 -top-1.5"
+                label={
+                  <span className="flex h-10 w-10 flex-col items-center justify-center rounded-full border-2 border-white/80 bg-gold font-display leading-none text-night shadow-md">
+                    <span className="text-base font-bold tabular-nums">{p.ovr}</span>
+                    <span className="text-[7px] font-semibold uppercase tracking-wide">OVR</span>
+                  </span>
+                }
               >
-                <span className="text-base font-bold tabular-nums">{p.ovr}</span>
-                <span className="text-[7px] font-semibold uppercase tracking-wide">OVR</span>
-              </span>
+                <b>EA FC&nbsp;26 overall rating</b> — a player&apos;s all-round skill, 0–99 (higher is better).
+              </InfoTip>
             )}
           </div>
           <p className="mt-3 font-display text-2xl text-chalk">{name}</p>

@@ -1,5 +1,7 @@
 "use client";
 
+import InfoTip from "@/components/InfoTip";
+
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
@@ -169,9 +171,16 @@ function TeamCardModal({ req, onClose }: { req: CardReq; onClose: () => void }) 
               </span>
             )}
             {t?.fifa_rank != null && (
-              <span className="rounded-lg bg-night/10 px-2.5 py-1 font-semibold tabular-nums">
-                FIFA #{t.fifa_rank}
-              </span>
+              <InfoTip
+                bare
+                label={
+                  <span className="rounded-lg bg-night/10 px-2.5 py-1 font-semibold tabular-nums">
+                    FIFA #{t.fifa_rank}
+                  </span>
+                }
+              >
+                Their current <b>FIFA World Ranking</b> — #1 is the top-rated nation on the planet.
+              </InfoTip>
             )}
           </div>
         </div>
