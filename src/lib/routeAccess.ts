@@ -20,6 +20,9 @@ export function isPublicPath(pathname: string): boolean {
     pathname.startsWith("/reset-password") ||
     pathname.startsWith("/how-it-works") ||
     pathname.startsWith("/install") ||
+    // The "scan to play" page is meant to be shown to logged-out people (that's
+    // the whole point of a QR you point at strangers).
+    pathname === "/qr" ||
     // Invite links must reach logged-out visitors: the /join route handler stashes
     // the invite_code cookie and *then* sends them to sign up. If we gated it here,
     // the proxy would redirect to /signup first and the code would be lost.
