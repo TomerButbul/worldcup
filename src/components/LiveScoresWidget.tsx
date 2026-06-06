@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
+import Link from "next/link";
 import Flag from "@/components/Flag";
 
 type Mini = { id: number; name: string; code: string | null; logo_url: string | null } | null;
@@ -150,21 +151,27 @@ export default function LiveScoresWidget() {
             </div>
             <ul className="max-h-[40vh] divide-y divide-night/5 overflow-y-auto">
               {games.map((g) => (
-                <li key={g.id} className="flex items-center gap-2 px-3 py-2 text-xs">
-                  <span className="flex min-w-0 flex-1 items-center justify-end gap-1.5">
-                    <span className="truncate font-semibold text-chalk">{code(g.home)}</span>
-                    <Flag teamId={g.home?.id ?? null} logoUrl={g.home?.logo_url ?? null} code={g.home?.code ?? null} name={g.home?.name ?? "?"} size={16} />
-                  </span>
-                  <span className="shrink-0 rounded-md bg-night/5 px-2 py-0.5 font-display text-sm text-chalk">
-                    {g.homeGoals}–{g.awayGoals}
-                  </span>
-                  <span className="flex min-w-0 flex-1 items-center gap-1.5">
-                    <Flag teamId={g.away?.id ?? null} logoUrl={g.away?.logo_url ?? null} code={g.away?.code ?? null} name={g.away?.name ?? "?"} size={16} />
-                    <span className="truncate font-semibold text-chalk">{code(g.away)}</span>
-                  </span>
-                  <span className="w-7 shrink-0 text-right font-semibold tabular-nums text-red-600">
-                    {g.elapsed != null ? `${g.elapsed}'` : ""}
-                  </span>
+                <li key={g.id}>
+                  <Link
+                    href={`/match/${g.id}`}
+                    className="flex items-center gap-2 px-3 py-2 text-xs transition hover:bg-night/5"
+                  >
+                    <span className="flex min-w-0 flex-1 items-center justify-end gap-1.5">
+                      <span className="truncate font-semibold text-chalk">{code(g.home)}</span>
+                      <Flag teamId={g.home?.id ?? null} logoUrl={g.home?.logo_url ?? null} code={g.home?.code ?? null} name={g.home?.name ?? "?"} size={16} />
+                    </span>
+                    <span className="shrink-0 rounded-md bg-night/5 px-2 py-0.5 font-display text-sm text-chalk">
+                      {g.homeGoals}–{g.awayGoals}
+                    </span>
+                    <span className="flex min-w-0 flex-1 items-center gap-1.5">
+                      <Flag teamId={g.away?.id ?? null} logoUrl={g.away?.logo_url ?? null} code={g.away?.code ?? null} name={g.away?.name ?? "?"} size={16} />
+                      <span className="truncate font-semibold text-chalk">{code(g.away)}</span>
+                    </span>
+                    <span className="w-6 shrink-0 text-right font-semibold tabular-nums text-red-600">
+                      {g.elapsed != null ? `${g.elapsed}'` : ""}
+                    </span>
+                    <span className="shrink-0 text-[10px] text-chalk-dim">›</span>
+                  </Link>
                 </li>
               ))}
             </ul>
