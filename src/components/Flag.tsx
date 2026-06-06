@@ -34,14 +34,39 @@ export default function Flag({
     logoUrl ||
     (teamId ? `https://media.api-sports.io/football/teams/${teamId}.png` : null);
 
+  // Size-only flags render as a uniform circular crest: object-cover fills the
+  // circle so a 3:2 country flag and a square federation badge end up the SAME
+  // on-screen size (contain used to letterbox the wide ones, making them look
+  // smaller). Callers that pass explicit w/h (the team-card hero) keep a
+  // rectangular render with their own framing.
+  const circular = w == null && h == null;
+
   if (!src || failed) {
     return (
       <span
-        className={`inline-flex shrink-0 items-center justify-center rounded-sm bg-night/10 text-[8px] font-bold text-chalk-dim ${className}`}
+        className={`inline-flex shrink-0 items-center justify-center ${circular ? "rounded-full" : "rounded-sm"} bg-night/10 text-[8px] font-bold text-chalk-dim ${className}`}
         style={{ width, height }}
         title={name}
       >
-        {code ?? <Ball size={14} />}
+        {code ?? <Ball size={Math.max(10, Math.round(Math.min(width, height) * 0.6))} />}
+      </span>
+    );
+  }
+
+  if (circular) {
+    return (
+      <span
+        className={`inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full ${className}`}
+        style={{ width, height }}
+        title={name}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={src}
+          alt={name ?? "flag"}
+          onError={() => setFailed(true)}
+          className="h-full w-full object-cover"
+        />
       </span>
     );
   }
