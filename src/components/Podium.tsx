@@ -130,10 +130,16 @@ export default function Podium({
   champion,
   runnerUp,
   third,
+  title = "Predicted podium",
+  pending = "Win the Final to crown your champion",
 }: {
   champion: BracketTeam | null;
   runnerUp: BracketTeam | null;
   third: BracketTeam | null;
+  // Overridable so the live results bracket reads "Final podium" instead of the
+  // prediction-framed default used by the upfront bracket editor / share page.
+  title?: string;
+  pending?: string;
 }) {
   return (
     <div className="glass-strong relative mx-auto max-w-sm overflow-hidden rounded-2xl p-4 pt-3">
@@ -143,7 +149,7 @@ export default function Podium({
         className="pointer-events-none absolute -top-10 left-1/2 h-44 w-44 -translate-x-1/2 rounded-full bg-gold/25 blur-3xl"
       />
       <p className="relative mb-3 text-center font-display text-[11px] uppercase tracking-[0.2em] text-chalk-dim">
-        Predicted podium
+        {title}
       </p>
       <div className="relative flex items-end gap-2 sm:gap-3">
         <Step place={2} team={runnerUp} delay={0.05} />
@@ -152,7 +158,7 @@ export default function Podium({
       </div>
       {!champion && (
         <p className="relative mt-3 text-center text-[11px] uppercase tracking-wide text-chalk-dim">
-          Win the Final to crown your champion
+          {pending}
         </p>
       )}
     </div>

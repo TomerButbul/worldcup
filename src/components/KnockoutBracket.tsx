@@ -68,6 +68,7 @@ export default function KnockoutBracket({
   championNo,
   treeOnly,
   fifaRank = {},
+  actual,
 }: {
   rounds: BracketRound[]; // in tournament order: R32 … Final
   teamsById: Record<number, BracketTeam>; // lookup for ids in the matches
@@ -77,6 +78,7 @@ export default function KnockoutBracket({
   championNo?: number; // canonical no of the final (104) — its winner is crowned
   treeOnly?: boolean; // force the connected-tree view + hide the toggle (read-only displays)
   fifaRank?: Record<number, number>; // teamId → FIFA rank, shown as #N (hold a team for its card)
+  actual?: boolean; // real results bracket → neutral podium wording (not "predicted")
 }): JSX.Element {
   const highlight = new Set(highlightIds ?? []);
   const interactive = typeof onPick === "function" && !locked;
@@ -555,7 +557,13 @@ export default function KnockoutBracket({
           {/* Podium on the final phase — the climax: gold / silver / bronze. */}
           {isFinalRound && (
             <div className="pt-1">
-              <Podium champion={champTeam} runnerUp={runnerUpTeam} third={thirdTeam} />
+              <Podium
+                champion={champTeam}
+                runnerUp={runnerUpTeam}
+                third={thirdTeam}
+                title={actual ? "Final podium" : undefined}
+                pending={actual ? "Crowned when the Final is played" : undefined}
+              />
             </div>
           )}
 

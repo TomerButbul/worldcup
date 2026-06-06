@@ -251,7 +251,11 @@ function FixtureRow({ f, teamsById }: { f: FixtureView; teamsById: Record<number
         ) : finished ? (
           <span className="rounded bg-night/10 px-1.5 py-0.5 font-semibold text-chalk-dim">FT</span>
         ) : (
-          <span className="tabular-nums">{fmtTime(f.kickoff_at)}</span>
+          // Kick-off time is rendered in the viewer's local timezone, which the
+          // server (UTC) can't match — suppress the (self-correcting) hydration diff.
+          <span className="tabular-nums" suppressHydrationWarning>
+            {fmtTime(f.kickoff_at)}
+          </span>
         )}
       </div>
       <div className="flex items-center gap-2">
@@ -515,7 +519,7 @@ function BracketView({
         )}
       </div>
       <div className="glass-strong rounded-3xl p-3 sm:p-5">
-        <KnockoutBracket rounds={rounds} teamsById={teamsById} championNo={104} locked fifaRank={fifaRank} />
+        <KnockoutBracket rounds={rounds} teamsById={teamsById} championNo={104} locked fifaRank={fifaRank} actual />
       </div>
     </div>
   );
