@@ -157,23 +157,25 @@ function PlayerChip({
         detailPos={label}
         className="flex w-full flex-col items-center gap-0.5"
       >
-        {/* Circular face shot with a jersey-number badge — falls back to a number
-            disc when we have no photo. */}
-        <span className={`relative grid h-8 w-8 place-items-center overflow-hidden rounded-full bg-night/25 shadow ring-2 ${ring} sm:h-11 sm:w-11`}>
-          {photo ? (
-            // eslint-disable-next-line @next/next/no-img-element -- next/image not worth it for a tiny avatar
-            <img src={photo} alt="" loading="lazy" className="h-full w-full object-cover" />
-          ) : (
-            <span
-              className={`grid h-full w-full place-items-center text-[11px] font-bold tabular-nums ${
-                tone === "home" ? "bg-grass text-night" : "bg-white text-night"
-              }`}
-            >
-              {p.number ?? "•"}
-            </span>
-          )}
+        {/* Outer box = positioning context only (NOT clipped), so the corner
+            badges can overhang the photo. Inner span clips the photo into a circle. */}
+        <span className="relative grid h-8 w-8 place-items-center sm:h-11 sm:w-11">
+          <span className={`h-full w-full overflow-hidden rounded-full bg-night/25 shadow ring-2 ${ring}`}>
+            {photo ? (
+              // eslint-disable-next-line @next/next/no-img-element -- next/image not worth it for a tiny avatar
+              <img src={photo} alt="" loading="lazy" className="h-full w-full object-cover" />
+            ) : (
+              <span
+                className={`grid h-full w-full place-items-center text-[11px] font-bold tabular-nums ${
+                  tone === "home" ? "bg-grass text-night" : "bg-white text-night"
+                }`}
+              >
+                {p.number ?? "•"}
+              </span>
+            )}
+          </span>
           {photo && p.number != null && (
-            <span className="absolute -bottom-1 -right-1 grid h-[15px] w-[15px] place-items-center rounded-full bg-night text-[8px] font-bold leading-none tabular-nums text-white ring-1 ring-white/50">
+            <span className="absolute -bottom-1 -right-1 grid h-[15px] w-[15px] place-items-center rounded-full bg-night text-[8px] font-bold leading-none tabular-nums text-white ring-2 ring-white/70">
               {p.number}
             </span>
           )}
