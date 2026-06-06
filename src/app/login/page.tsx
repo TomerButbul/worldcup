@@ -13,24 +13,25 @@ export default async function LoginPage({
   return (
     <main className="flex flex-1 items-center justify-center p-6">
       <Reveal className="w-full max-w-sm">
-        <div className="glass-strong rounded-3xl p-6 space-y-6 sm:p-8">
-          <Link href="/" className="-mb-2 block text-sm text-chalk-dim hover:text-chalk">
+        <div className="glass-strong rounded-3xl p-6 sm:p-8">
+          <Link href="/" className="block text-sm text-chalk-dim hover:text-chalk">
             &larr; Home
           </Link>
-          <div className="text-center">
-            <div className="mb-2 text-4xl">🏟️</div>
-            <h1 className="font-display text-3xl text-chalk">Welcome back</h1>
-            <p className="text-sm text-chalk-dim">Log in to enter the tournament</p>
+
+          <div className="mt-6 text-center">
+            <div className="text-4xl">🏟️</div>
+            <h1 className="mt-2 font-display text-3xl text-chalk">Welcome back</h1>
+            <p className="mt-1 text-sm text-chalk-dim">Log in to enter the tournament</p>
           </div>
 
           {info && (
-            <p className="rounded-lg bg-grass/15 px-3 py-2 text-sm text-grass">{info}</p>
+            <p className="mt-6 rounded-lg bg-grass/15 px-3 py-2 text-sm text-grass">{info}</p>
           )}
           {error && (
-            <p className="rounded-lg bg-red-500/15 px-3 py-2 text-sm text-red-600">{error}</p>
+            <p className="mt-6 rounded-lg bg-red-500/15 px-3 py-2 text-sm text-red-600">{error}</p>
           )}
 
-          <form action={login} className="space-y-4">
+          <form action={login} className="mt-6 space-y-3">
             <input
               name="email"
               type="email"
@@ -49,25 +50,28 @@ export default async function LoginPage({
               autoComplete="current-password"
               className="w-full rounded-xl border border-night/10 bg-white px-3 py-2.5 text-sm text-chalk outline-none placeholder:text-chalk-dim focus:border-grass focus:ring-2 focus:ring-grass/30"
             />
-            <GameButton type="submit" variant="primary" className="w-full">
-              Log in
-            </GameButton>
+            <div className="pt-1">
+              <GameButton type="submit" variant="primary" className="w-full">
+                Log in
+              </GameButton>
+            </div>
           </form>
 
-          <p className="text-center text-sm">
-            <Link href="/forgot-password" className="text-chalk-dim hover:text-gold hover:underline">
-              Forgot password?
-            </Link>
-          </p>
+          <div className="mt-5 space-y-2 text-center text-sm text-chalk-dim">
+            <p>
+              <Link href="/forgot-password" className="hover:text-gold hover:underline">
+                Forgot password?
+              </Link>
+            </p>
+            <p>
+              No account?{" "}
+              <Link href="/signup" className="font-semibold text-gold hover:underline">
+                Sign up
+              </Link>
+            </p>
+          </div>
 
-          <p className="text-center text-sm text-chalk-dim">
-            No account?{" "}
-            <Link href="/signup" className="font-semibold text-gold hover:underline">
-              Sign up
-            </Link>
-          </p>
-
-          <form action={playAsGuest} className="border-t border-night/10 pt-4">
+          <form action={playAsGuest} className="mt-5 border-t border-night/10 pt-5">
             <button type="submit" className="w-full text-center text-sm font-semibold text-grass hover:underline">
               Skip — keep playing as a guest &rarr;
             </button>

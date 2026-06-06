@@ -16,7 +16,6 @@ import {
 import { btnClass, GOLD_GRADIENT } from "@/components/buttonStyles";
 import Reveal from "@/components/Reveal";
 import Ball from "@/components/art/Ball";
-import Trophy from "@/components/art/Trophy";
 import { Upfront, Live, Trophy as TrophyIcon, Medal } from "@/components/icons";
 import AutoRefresh from "@/components/AutoRefresh";
 import LeagueIntro from "@/components/LeagueIntro";
@@ -409,19 +408,16 @@ export default async function LeaguePage({
                 </div>
               )}
             </div>
+            {/* Just the two destinations the bottom nav doesn't already cover:
+                your league recap (/me) + the primary predict CTA. Matches & Bracket
+                live in the bottom LeagueNav, so they're dropped here. */}
             <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:shrink-0">
-              <Link href={`/leagues/${id}/matches`} className={`${btnClass("ghost")} flex-1 text-center sm:flex-none`}>
-                <span className="inline-flex items-center justify-center gap-1.5"><Ball size={15} /> Matches</span>
-              </Link>
               <Link href={`/leagues/${id}/me`} className={`${btnClass("ghost")} flex-1 text-center sm:flex-none`}>
                 <span className="inline-flex items-center justify-center gap-1.5"><Upfront size={15} /> My picks</span>
               </Link>
-              <Link href="/bracket" className={`${btnClass("ghost")} flex-1 text-center sm:flex-none`}>
-                <span className="inline-flex items-center justify-center gap-1.5"><Trophy size={15} /> Bracket</span>
-              </Link>
               <Link
                 href="/predict"
-                className={`${btnClass("gold")} w-full text-center sm:w-auto`}
+                className={`${btnClass("gold")} flex-1 text-center sm:w-auto sm:flex-none`}
                 style={{ background: GOLD_GRADIENT, boxShadow: "var(--shadow-glow-gold)" }}
               >
                 {locked ? "View predictions" : <span className="inline-flex items-center justify-center gap-1.5"><Ball size={15} /> Edit predictions</span>}

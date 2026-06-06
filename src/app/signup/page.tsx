@@ -24,23 +24,24 @@ export default async function SignupPage({
   return (
     <main className="flex flex-1 items-center justify-center p-6">
       <Reveal className="w-full max-w-sm">
-        <div className="glass-strong rounded-3xl p-6 space-y-6 sm:p-8">
-          <Link href="/" className="-mb-2 block text-sm text-chalk-dim hover:text-chalk">
+        <div className="glass-strong rounded-3xl p-6 sm:p-8">
+          <Link href="/" className="block text-sm text-chalk-dim hover:text-chalk">
             &larr; Home
           </Link>
-          <div className="text-center">
-            <div className="mb-2 flex justify-center"><Ball size={44} /></div>
-            <h1 className="font-display text-3xl text-chalk">{upgrading ? "Save your picks" : "Join the game"}</h1>
-            <p className="text-sm text-chalk-dim">
+
+          <div className="mt-6 text-center">
+            <div className="flex justify-center"><Ball size={44} /></div>
+            <h1 className="mt-2 font-display text-3xl text-chalk">{upgrading ? "Save your picks" : "Join the game"}</h1>
+            <p className="mt-1 text-sm text-chalk-dim">
               {upgrading ? "Add an email to keep your guest progress and compete." : "Create your World Cup account"}
             </p>
           </div>
 
           {error && (
-            <p className="rounded-lg bg-red-500/15 px-3 py-2 text-sm text-red-600">{error}</p>
+            <p className="mt-6 rounded-lg bg-red-500/15 px-3 py-2 text-sm text-red-600">{error}</p>
           )}
 
-          <form action={signup} className="space-y-4">
+          <form action={signup} className="mt-6 space-y-3">
             <input name="display_name" type="text" required placeholder="Display name" aria-label="Display name" autoComplete="name" className={inputClass} />
             <input name="email" type="email" required placeholder="Email" aria-label="Email" autoComplete="email" className={inputClass} />
             <input
@@ -53,12 +54,14 @@ export default async function SignupPage({
               autoComplete="new-password"
               className={inputClass}
             />
-            <GameButton type="submit" variant="gold" className="w-full">
-              Sign up
-            </GameButton>
+            <div className="pt-1">
+              <GameButton type="submit" variant="gold" className="w-full">
+                Sign up
+              </GameButton>
+            </div>
           </form>
 
-          <p className="text-center text-sm text-chalk-dim">
+          <p className="mt-5 text-center text-sm text-chalk-dim">
             Already have an account?{" "}
             <Link href="/login" className="font-semibold text-gold hover:underline">
               Log in
@@ -68,12 +71,12 @@ export default async function SignupPage({
           {upgrading ? (
             <Link
               href="/dashboard"
-              className="block border-t border-night/10 pt-4 text-center text-sm font-semibold text-grass hover:underline"
+              className="mt-5 block border-t border-night/10 pt-5 text-center text-sm font-semibold text-grass hover:underline"
             >
               &larr; Back to your picks (stay a guest)
             </Link>
           ) : (
-            <form action={playAsGuest} className="border-t border-night/10 pt-4">
+            <form action={playAsGuest} className="mt-5 border-t border-night/10 pt-5">
               <button type="submit" className="w-full text-center text-sm font-semibold text-grass hover:underline">
                 Skip — keep playing as a guest &rarr;
               </button>

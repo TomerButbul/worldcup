@@ -1,0 +1,32 @@
+refactor(ui): mobile-first pass across every screen — declutter, consistency, amplify
+
+Continues the navigation cleanup with a pass over the whole app. Layout, copy and
+navigation only — no prediction, scoring, bracket or lineup logic was touched.
+
+Navigation & in-league:
+- League landing header: dropped the redundant Matches/Bracket buttons (both already
+  in the bottom LeagueNav); kept just "My picks" (the only destination the nav
+  doesn't cover) + the primary predict CTA. Two buttons instead of four.
+- Renamed the predicted-bracket nav tab "Bracket" -> "My Bracket" (Global + League
+  nav) so it reads distinctly from the live "Tournament" (real) bracket.
+
+Amplify the showpieces:
+- Match centre now leads with the formation Pitch for upcoming/live games
+  (MatchTabs gains a defaultTab; the page points it at Lineups when an XI exists and
+  the match isn't finished — Summary still leads once it's over). The Home "Next up"
+  card already opens the match centre, so Home -> pitch is now one tap.
+
+Per-screen polish (calmer hierarchy, tighter copy, consistent headers, Reveal
+entrances, mobile-first):
+- /rankings (+ RankingsBoard), /awards: drop emoji from headings, one-line intros.
+- /how-it-works: scannable sections, tightened scoring copy, staggered reveals.
+- /login, /signup: clearer title -> form -> secondary-links hierarchy.
+- /leagues/[id]/me: folded the standalone completeness card into the header,
+  grouped champion + awards, added a group-order legend.
+- /leagues/[id]/matches: consistent section headings + one-line intro.
+
+Built with three parallel frontend subagents (rankings/awards, how-it-works/auth,
+league me/matches) + own work on the structural screens. Gate green: tsc / lint /
+test (149) / build all 0. Verified /how-it-works on mobile.
+
+Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>

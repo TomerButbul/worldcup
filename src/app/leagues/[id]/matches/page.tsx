@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCachedTeams } from "@/lib/tournamentData";
 import FixturesList, { type FixtureDay } from "@/components/FixturesList";
 import AutoRefresh from "@/components/AutoRefresh";
+import Reveal from "@/components/Reveal";
 import Flag from "@/components/Flag";
 import Ball from "@/components/art/Ball";
 import { nowMs, KICKOFF_MS } from "@/lib/clock";
@@ -74,16 +75,17 @@ export default async function MatchesPage({
   return (
     <main className="mx-auto w-full max-w-2xl lg:max-w-[1600px] flex-1 space-y-4 p-4 sm:space-y-6 sm:p-6 lg:p-8">
       <AutoRefresh enabled={now >= KICKOFF_MS} />
-      <div className="glass-strong rounded-3xl p-4 sm:p-6">
-        <Link href={`/leagues/${id}`} className="text-sm text-chalk-dim hover:text-chalk">
-          &larr; {league.name}
-        </Link>
-        <h1 className="mt-1 font-display text-3xl text-gradient-gold">Matches</h1>
-        <p className="text-sm text-chalk-dim">
-          Follow every game — live scores, results, and the full schedule. Tap a match for lineups,
-          stats &amp; predictions.
-        </p>
-      </div>
+      <Reveal>
+        <div className="glass-strong rounded-3xl p-4 sm:p-6">
+          <Link href={`/leagues/${id}`} className="text-sm text-chalk-dim hover:text-chalk">
+            &larr; {league.name}
+          </Link>
+          <h1 className="mt-1 font-display text-3xl text-gradient-gold">Matches</h1>
+          <p className="mt-1 text-sm text-chalk-dim">
+            Live scores, results &amp; the full schedule. Tap any match for lineups, stats &amp; predictions.
+          </p>
+        </div>
+      </Reveal>
 
       {(matches ?? []).length === 0 ? (
         <p className="glass rounded-2xl p-8 text-center text-sm text-chalk-dim">
@@ -92,12 +94,13 @@ export default async function MatchesPage({
       ) : (
         <>
           {live.length > 0 && (
-            <section className="space-y-3">
-              <h2 className="flex items-center gap-2 font-display text-xl text-red-600">
-                <span className="inline-block h-2.5 w-2.5 animate-pulse rounded-full bg-red-600" />
-                Live now
-              </h2>
-              <div className="grid gap-2 lg:grid-cols-2">
+            <Reveal index={1}>
+              <section className="space-y-3">
+                <h2 className="flex items-center gap-2 font-display text-xl text-red-600">
+                  <span className="inline-block h-2.5 w-2.5 animate-pulse rounded-full bg-red-600" />
+                  Live now
+                </h2>
+                <div className="grid gap-2 lg:grid-cols-2">
                 {live.map((m) => (
                   <Link
                     key={m.id}
@@ -129,20 +132,23 @@ export default async function MatchesPage({
                     </span>
                   </Link>
                 ))}
-              </div>
-            </section>
+                </div>
+              </section>
+            </Reveal>
           )}
 
           {/* Full schedule — every fixture grouped by day. Upcoming rows show
               kickoff time, finished rows show the result; each taps through to
               its match card. */}
-          <section className="glass rounded-2xl p-4 sm:p-5">
-            <h2 className="font-display text-chalk">Full schedule</h2>
-            <p className="mb-3 mt-1 text-[11px] text-chalk-dim">
-              Every fixture, grouped by day — tap any game to open its match card.
-            </p>
-            <FixturesList leagueId={id} days={scheduleDays} />
-          </section>
+          <Reveal index={2}>
+            <section className="glass rounded-2xl p-4 sm:p-5">
+              <h2 className="font-display text-xl text-chalk">Full schedule</h2>
+              <p className="mb-3 mt-1 text-xs text-chalk-dim">
+                Every fixture, grouped by day — tap any game to open its match card.
+              </p>
+              <FixturesList leagueId={id} days={scheduleDays} />
+            </section>
+          </Reveal>
         </>
       )}
     </main>

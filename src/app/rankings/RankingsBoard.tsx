@@ -62,9 +62,9 @@ export default function RankingsBoard({
   const half = Math.ceil(sorted.length / 2);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4">
       {/* Crown tabs — switch which leaderboard you're viewing. */}
-      <div className="flex flex-col items-center gap-1.5">
+      <div className="flex flex-col items-center gap-2">
         <div className="inline-flex rounded-xl bg-night/5 p-0.5 text-sm font-semibold">
           {TABS.map(({ key, label, Icon }) => (
             <button
@@ -80,9 +80,7 @@ export default function RankingsBoard({
             </button>
           ))}
         </div>
-        <p className="text-xs text-chalk-dim">
-          Ranked by best <span className="font-semibold text-chalk">{active.label}</span> score · {active.blurb}
-        </p>
+        <p className="text-xs text-chalk-dim">{active.blurb}</p>
       </div>
 
       {sorted.length === 0 ? (

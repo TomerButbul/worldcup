@@ -5,6 +5,7 @@ import { nowMs } from "@/lib/clock";
 import AwardsPicker, { type AwardPlayer } from "@/app/leagues/[id]/awards/AwardsPicker";
 import Ball from "@/components/art/Ball";
 import { Star } from "@/components/icons";
+import Reveal from "@/components/Reveal";
 import { primaryPredictionLeague } from "@/lib/predictionSync";
 import NoPredictionLeague from "@/components/NoPredictionLeague";
 
@@ -82,24 +83,31 @@ export default async function AwardsPage() {
   const initial = (pred?.awards ?? {}) as Record<string, number>;
 
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 space-y-4 p-4 sm:p-6 lg:max-w-5xl lg:p-8">
-      <div className="glass-strong rounded-3xl p-5 sm:p-6">
-        <Link href="/dashboard" className="text-sm text-chalk-dim hover:text-chalk">
-          &larr; Home
-        </Link>
-        <h1 className="mt-1 font-display text-3xl text-gradient-gold">Individual awards</h1>
-        <p className="inline-flex items-center gap-1.5 text-sm text-chalk-dim">
-          Predict the tournament&apos;s individual award winners — they score into your Upfront total in every league.{" "}
-          {locked ? "🔒 Locked." : "Locks with your bracket at kickoff."} <Star size={14} />
-        </p>
-      </div>
+    <main className="mx-auto w-full max-w-2xl flex-1 space-y-4 p-4 sm:space-y-6 sm:p-6 lg:max-w-5xl lg:p-8">
+      <Reveal>
+        <div className="glass-strong rounded-3xl p-5 sm:p-6">
+          <Link href="/dashboard" className="text-sm text-chalk-dim hover:text-chalk">
+            &larr; Home
+          </Link>
+          <h1 className="mt-1 inline-flex items-center gap-2 font-display text-3xl text-gradient-gold">
+            <Star size={22} /> Individual awards
+          </h1>
+          <p className="text-sm text-chalk-dim">
+            {locked
+              ? "🔒 Locked. Award picks score into your Upfront total in every league."
+              : "Pick the award winners — they score into your Upfront total in every league. Locks at kickoff."}
+          </p>
+        </div>
+      </Reveal>
 
       {awardPlayers.length === 0 ? (
         <p className="glass rounded-2xl p-8 text-center text-sm text-chalk-dim">
           <Ball size={14} className="mr-1 inline-block align-[-2px]" />Player list loads once squads are synced.
         </p>
       ) : (
-        <AwardsPicker leagueId={leagueId} players={awardPlayers} initial={initial} locked={locked} />
+        <Reveal index={1}>
+          <AwardsPicker leagueId={leagueId} players={awardPlayers} initial={initial} locked={locked} />
+        </Reveal>
       )}
     </main>
   );

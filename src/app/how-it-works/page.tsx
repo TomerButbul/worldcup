@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Upfront, Live, Trophy, Bell } from "@/components/icons";
 import type { ComponentType } from "react";
 import { SUPPORT_URL } from "@/lib/site";
+import Reveal from "@/components/Reveal";
 
 export const metadata = {
   title: "How it works",
@@ -62,136 +63,152 @@ function ScoreRow({ label, points, grass = false }: { label: string; points: str
 
 export default function HowItWorksPage() {
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 space-y-4 p-4 sm:p-6 lg:max-w-5xl lg:p-8">
+    <main className="mx-auto w-full max-w-2xl flex-1 space-y-5 p-4 sm:p-6 lg:max-w-5xl lg:p-8">
       <Link href="/dashboard" className="text-sm text-chalk-dim hover:text-chalk">
         &larr; Home
       </Link>
 
       {/* Header */}
-      <div className="glass-strong rounded-3xl p-5">
-        <h1 className="font-display text-3xl text-gradient-gold">How it works</h1>
-        <p className="mt-1 text-sm text-chalk-dim">
-          Predict, play, and climb — everything you need to win the World Cup pool.
-        </p>
-      </div>
+      <Reveal>
+        <header className="glass-strong rounded-3xl p-5 sm:p-6">
+          <p className="font-display text-xs tracking-widest text-gold/80">World Cup 2026 pool</p>
+          <h1 className="mt-1 font-display text-3xl text-gradient-gold sm:text-4xl">How it works</h1>
+          <p className="mt-2 text-sm text-chalk-dim">
+            Predict, play, and climb — everything you need to win.
+          </p>
+        </header>
+      </Reveal>
 
       {/* Desktop 2-col: left = The game + Three crowns + Stay on top; right = Scoring */}
       <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start lg:gap-6">
         {/* Left column */}
-        <div className="space-y-4">
+        <div className="space-y-5">
           {/* The game */}
-          <section className="glass rounded-3xl p-5 sm:p-6">
-            <h2 className="font-display text-2xl text-chalk">The game</h2>
-            <ol className="mt-3 space-y-3">
-              {GAME_STEPS.map((step, i) => (
-                <li key={i} className="flex gap-3">
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gold/15 font-display text-sm tabular-nums text-gold">
-                    {i + 1}
-                  </span>
-                  <span className="text-sm text-chalk-dim sm:text-base">{step}</span>
-                </li>
-              ))}
-            </ol>
-          </section>
+          <Reveal index={1}>
+            <section className="glass rounded-3xl p-5 sm:p-6">
+              <h2 className="font-display text-xl text-chalk sm:text-2xl">The game</h2>
+              <ol className="mt-4 space-y-4">
+                {GAME_STEPS.map((step, i) => (
+                  <li key={i} className="flex gap-3">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gold/15 font-display text-sm tabular-nums text-gold">
+                      {i + 1}
+                    </span>
+                    <span className="pt-0.5 text-sm leading-relaxed text-chalk-dim sm:text-base">{step}</span>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          </Reveal>
 
           {/* Three crowns */}
-          <section className="glass rounded-3xl p-5 sm:p-6">
-            <h2 className="font-display text-2xl text-chalk">Three crowns</h2>
-            <div className="mt-3 grid gap-3 sm:grid-cols-3">
-              {CROWNS.map(({ Icon, name, desc }) => (
-                <div key={name} className="rounded-2xl bg-night/[0.03] p-3 text-center">
-                  <div className="flex justify-center text-chalk"><Icon size={24} /></div>
-                  <div className="mt-1 font-display text-lg text-chalk">{name}</div>
-                  <div className="text-xs text-chalk-dim">{desc}</div>
-                </div>
-              ))}
-            </div>
-            <p className="mt-3 text-sm text-chalk-dim">
-              The leaderboard ranks by each crown; ties are broken by{" "}
-              <span className="text-chalk">Upfront</span> points, then name.
-            </p>
-          </section>
+          <Reveal index={2}>
+            <section className="glass rounded-3xl p-5 sm:p-6">
+              <h2 className="font-display text-xl text-chalk sm:text-2xl">Three crowns</h2>
+              <p className="mt-1 text-sm text-chalk-dim">Three separate leaderboards to top.</p>
+              <div className="mt-4 grid grid-cols-3 gap-2 sm:gap-3">
+                {CROWNS.map(({ Icon, name, desc }) => (
+                  <div key={name} className="rounded-2xl bg-night/[0.03] p-3 text-center">
+                    <div className="flex justify-center text-chalk"><Icon size={24} /></div>
+                    <div className="mt-1.5 font-display text-base text-chalk sm:text-lg">{name}</div>
+                    <div className="mt-0.5 text-xs text-chalk-dim">{desc}</div>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-4 text-sm text-chalk-dim">
+                Each crown ranks on its own. Ties break by{" "}
+                <span className="text-chalk">Upfront</span> points, then name.
+              </p>
+            </section>
+          </Reveal>
 
           {/* Stay on top */}
-          <section className="glass rounded-3xl p-5 sm:p-6">
-            <h2 className="font-display text-2xl text-chalk">Stay on top</h2>
-            <p className="mt-2 text-sm text-chalk-dim sm:text-base">
-              Enable <span className="text-chalk">notifications</span> on your dashboard to get pinged
-              before picks lock and before each kickoff.{" "}
-              <span className="inline-flex items-center gap-1.5"><Bell size={14} /></span>
-            </p>
-          </section>
+          <Reveal index={3}>
+            <section className="glass rounded-3xl p-5 sm:p-6">
+              <div className="flex items-center gap-2">
+                <Bell size={18} className="text-gold" />
+                <h2 className="font-display text-xl text-chalk sm:text-2xl">Stay on top</h2>
+              </div>
+              <p className="mt-2 text-sm leading-relaxed text-chalk-dim sm:text-base">
+                Turn on <span className="text-chalk">notifications</span> from your dashboard to get
+                pinged before picks lock and before every kickoff.
+              </p>
+            </section>
+          </Reveal>
         </div>
 
         {/* Right column: Scoring */}
-        <div className="mt-4 lg:mt-0">
-          <section className="glass rounded-3xl p-5 sm:p-6">
-            <h2 className="font-display text-2xl text-chalk">Scoring</h2>
+        <div className="mt-5 lg:mt-0">
+          <Reveal index={4}>
+            <section className="glass rounded-3xl p-5 sm:p-6">
+              <h2 className="font-display text-xl text-chalk sm:text-2xl">Scoring</h2>
 
-            {/* Upfront */}
-            <div className="mt-4">
-              <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 text-gold"><Upfront size={16} /></span>
-                <h3 className="font-display text-lg text-gold">Upfront</h3>
-              </div>
-              <p className="mt-0.5 text-xs text-chalk-dim">
-                Your bracket + awards — locked at kickoff.
-              </p>
-              <div className="mt-2">
-                <ScoreRow label="Each group finishing position (1st–4th)" points="1" />
-                <ScoreRow label="Perfect group order (all four)" points="+3" />
-                <ScoreRow label="Predict a group winner" points="3" />
-                <ScoreRow label="Champion" points="32" />
-              </div>
-
-              <div className="mt-3 rounded-2xl bg-night/[0.03] p-3">
-                <p className="text-sm text-chalk">Each team you correctly send through</p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {STAGE_POINTS.map(([stage, pts]) => (
-                    <span
-                      key={stage}
-                      className="rounded-full bg-grass/10 px-2.5 py-1 text-xs text-chalk"
-                    >
-                      {stage}{" "}
-                      <span className="font-display tabular-nums text-grass">{pts}</span>
-                    </span>
-                  ))}
+              {/* Upfront */}
+              <div className="mt-5">
+                <div className="flex items-center gap-2">
+                  <Upfront size={18} className="text-gold" />
+                  <h3 className="font-display text-lg text-gold">Upfront</h3>
                 </div>
-                <p className="mt-2 text-xs text-chalk-dim">
-                  Each round doubles — March Madness style, so every tier is worth the same in total.
+                <p className="mt-1 text-xs text-chalk-dim">
+                  Your bracket + awards, locked at kickoff.
                 </p>
+                <div className="mt-3">
+                  <ScoreRow label="Each group finishing position (1st–4th)" points="1" />
+                  <ScoreRow label="Perfect group order (all four)" points="+3" />
+                  <ScoreRow label="Predict a group winner" points="3" />
+                  <ScoreRow label="Champion" points="32" />
+                </div>
+
+                <div className="mt-4 rounded-2xl bg-night/[0.03] p-3.5">
+                  <p className="text-sm font-semibold text-chalk">Each team you send through</p>
+                  <div className="mt-2.5 flex flex-wrap gap-2">
+                    {STAGE_POINTS.map(([stage, pts]) => (
+                      <span
+                        key={stage}
+                        className="rounded-full bg-grass/10 px-2.5 py-1 text-xs text-chalk"
+                      >
+                        {stage}{" "}
+                        <span className="font-display tabular-nums text-grass">{pts}</span>
+                      </span>
+                    ))}
+                  </div>
+                  <p className="mt-2.5 text-xs text-chalk-dim">
+                    Points double each round, so every tier is worth the same in total.
+                  </p>
+                </div>
+
+                <div className="mt-3 rounded-2xl bg-night/[0.03] p-3.5">
+                  <p className="text-sm font-semibold text-chalk">Individual awards</p>
+                  <div className="mt-2.5 flex flex-wrap gap-2">
+                    {AWARD_POINTS.map(([award, pts]) => (
+                      <span
+                        key={award}
+                        className="rounded-full bg-gold/10 px-2.5 py-1 text-xs text-chalk"
+                      >
+                        {award}{" "}
+                        <span className="font-display tabular-nums text-gold">{pts}</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
               </div>
 
-              <div className="mt-3 rounded-2xl bg-night/[0.03] p-3">
-                <p className="text-sm text-chalk">Individual awards</p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {AWARD_POINTS.map(([award, pts]) => (
-                    <span
-                      key={award}
-                      className="rounded-full bg-gold/10 px-2.5 py-1 text-xs text-chalk"
-                    >
-                      {award}{" "}
-                      <span className="font-display tabular-nums text-gold">{pts}</span>
-                    </span>
+              {/* Live */}
+              <div className="mt-6 border-t border-night/5 pt-5">
+                <div className="flex items-center gap-2">
+                  <Live size={18} className="text-grass" />
+                  <h3 className="font-display text-lg text-grass">Live</h3>
+                </div>
+                <p className="mt-1 text-xs text-chalk-dim">
+                  Per match as games play — group games score lighter than knockouts.
+                </p>
+                <div className="mt-3">
+                  {LIVE_POINTS.map(([label, pts]) => (
+                    <ScoreRow key={label} label={label} points={pts} grass />
                   ))}
                 </div>
               </div>
-            </div>
-
-            {/* Live */}
-            <div className="mt-5 border-t border-night/5 pt-4">
-              <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 text-grass"><Live size={16} /></span>
-                <h3 className="font-display text-lg text-grass">Live</h3>
-              </div>
-              <p className="mt-0.5 text-xs text-chalk-dim">Per match, as games play — group games score lighter than knockouts.</p>
-              <div className="mt-2">
-                {LIVE_POINTS.map(([label, pts]) => (
-                  <ScoreRow key={label} label={label} points={pts} grass />
-                ))}
-              </div>
-            </div>
-          </section>
+            </section>
+          </Reveal>
         </div>
       </div>
 

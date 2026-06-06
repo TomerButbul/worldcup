@@ -21,11 +21,16 @@ export default function MatchTabs({
   lineups,
   stats,
   predictions,
+  defaultTab,
 }: {
   summary: ReactNode | null;
   lineups: ReactNode | null;
   stats: ReactNode | null;
   predictions: ReactNode | null;
+  // Which tab opens first. The page points this at "lineups" for upcoming/live
+  // matches so the formation pitch (the showpiece) leads; falls back to the first
+  // available tab when the requested one isn't present.
+  defaultTab?: TabKey;
 }) {
   const content: Record<TabKey, ReactNode | null> = {
     summary,
@@ -36,7 +41,8 @@ export default function MatchTabs({
   const order: TabKey[] = ["summary", "lineups", "stats", "predictions"];
   const tabs = order.filter((k) => content[k] != null);
 
-  const [active, setActive] = useState<TabKey>(tabs[0] ?? "summary");
+  const initial = defaultTab && content[defaultTab] != null ? defaultTab : (tabs[0] ?? "summary");
+  const [active, setActive] = useState<TabKey>(initial);
   // Guard against the active tab vanishing across a refresh (e.g. predictions
   // tab disappears) — fall back to the first available tab.
   const current = tabs.includes(active) ? active : (tabs[0] ?? "summary");

@@ -9,6 +9,7 @@ import Trophy from "@/components/art/Trophy";
 import ShareButton from "./ShareButton";
 import ShareBracket from "@/components/ShareBracket";
 import KnockoutBracket from "@/components/KnockoutBracket";
+import Reveal from "@/components/Reveal";
 import { predictedBracketRounds } from "@/lib/bracket-core";
 import { Boot, Glove, Star, Medal } from "@/components/icons";
 import type { ComponentType } from "react";
@@ -155,95 +156,101 @@ export default async function MyPredictionsPage({
   const hasChampion = championId != null;
 
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 space-y-4 p-4 sm:p-6 lg:max-w-6xl lg:p-8">
-      <Link href={`/leagues/${id}`} className="text-sm text-chalk-dim hover:text-chalk">
-        &larr; {league.name}
-      </Link>
-
-      {/* Header card */}
-      <div className="glass-strong rounded-3xl p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="font-display text-2xl text-gradient-gold">Your predictions</h1>
-          <div className="flex flex-wrap items-center gap-2">
-            {myProfile?.share_slug && <ShareBracket slug={myProfile.share_slug} />}
-            <ShareButton />
+    <main className="mx-auto w-full max-w-2xl lg:max-w-[1600px] flex-1 space-y-4 p-4 sm:space-y-6 sm:p-6 lg:p-8">
+      {/* Header — back link, title, status, share, and an at-a-glance completeness line */}
+      <Reveal>
+        <div className="glass-strong rounded-3xl p-4 sm:p-6">
+          <Link href={`/leagues/${id}`} className="text-sm text-chalk-dim hover:text-chalk">
+            &larr; {league.name}
+          </Link>
+          <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h1 className="font-display text-3xl text-gradient-gold">Your predictions</h1>
+              <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-chalk-dim">
+                {locked ? (
+                  <span className="inline-flex items-center gap-1.5 font-semibold text-chalk-dim">
+                    <span className="inline-block size-2 rounded-full bg-night/30" /> Locked
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 font-semibold text-grass">
+                    <span className="inline-block size-2 rounded-full bg-grass" /> Open
+                  </span>
+                )}
+                <span aria-hidden className="text-chalk-dim/50">·</span>
+                <span>
+                  Groups <span className="font-display tabular-nums text-chalk">{groupsOrdered}/12</span>
+                </span>
+                <span aria-hidden className="text-chalk-dim/50">·</span>
+                <span>
+                  Awards <span className="font-display tabular-nums text-chalk">{awardsFilled}/4</span>
+                </span>
+                <span aria-hidden className="text-chalk-dim/50">·</span>
+                <span>
+                  Champion <span className="font-display text-chalk">{hasChampion ? "✓" : "—"}</span>
+                </span>
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {myProfile?.share_slug && <ShareBracket slug={myProfile.share_slug} />}
+              <ShareButton />
+            </div>
           </div>
         </div>
-        <div className="mt-2">
-          {locked ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-night/10 px-2.5 py-1 text-xs font-semibold text-chalk-dim">
-              🔒 Locked
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-grass/15 px-2.5 py-1 text-xs font-semibold text-grass">
-              <span className="inline-block size-2 rounded-full bg-grass" /> Open
-            </span>
-          )}
-        </div>
-      </div>
+      </Reveal>
 
       {/* Predicted knockout bracket — the headline of your picks. On desktop the
           card hugs the bracket (centered) instead of floating in a wide empty box. */}
       {prediction && (
-        <section className="glass-strong rounded-3xl p-4 sm:p-5 lg:mx-auto lg:w-fit lg:max-w-full">
-          <h2 className="mb-1 flex items-center gap-1.5 font-display text-xl text-chalk">
-            <Trophy size={20} />Your knockout bracket
-          </h2>
-          <p className="mb-3 text-xs text-chalk-dim">
-            {favoriteTeamId != null
-              ? "Your full bracket — gold traces your favorite's path to the final."
-              : "Your full bracket, R32 to the final."}
-          </p>
-          <KnockoutBracket
-            rounds={bracketRounds}
-            teamsById={bracketTeams}
-            highlightIds={favoriteTeamId != null ? [favoriteTeamId] : []}
-            championNo={104}
-            treeOnly
-          />
-        </section>
+        <Reveal index={1}>
+          <section className="glass-strong rounded-3xl p-4 sm:p-5 lg:mx-auto lg:w-fit lg:max-w-full">
+            <h2 className="mb-1 flex items-center gap-1.5 font-display text-xl text-chalk">
+              <Trophy size={20} />Your knockout bracket
+            </h2>
+            <p className="mb-3 text-xs text-chalk-dim">
+              {favoriteTeamId != null
+                ? "Gold traces your favorite's path to the final."
+                : "From the Round of 32 to the final."}
+            </p>
+            <KnockoutBracket
+              rounds={bracketRounds}
+              teamsById={bracketTeams}
+              highlightIds={favoriteTeamId != null ? [favoriteTeamId] : []}
+              championNo={104}
+              treeOnly
+            />
+          </section>
+        </Reveal>
       )}
 
-      {/* Desktop 2-column grid: left col = completeness + champion + awards + match picks; right col = group order */}
-      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start lg:gap-6">
+      {/* Desktop 2-column grid: left col = champion + awards + match picks; right col = group order */}
+      <Reveal index={2}>
+        <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start lg:gap-6">
         {/* Left column */}
         <div className="space-y-4">
-          {/* Completeness */}
-          <section className="glass rounded-2xl p-4">
-            <p className="text-sm text-chalk-dim">
-              <span className="font-semibold text-chalk">Groups ordered</span>{" "}
-              <span className="font-display tabular-nums text-chalk">{groupsOrdered}/12</span>
-              {" · "}
-              <span className="font-semibold text-chalk">Awards</span>{" "}
-              <span className="font-display tabular-nums text-chalk">{awardsFilled}/4</span>
-              {" · "}
-              <span className="font-semibold text-chalk">Champion</span>{" "}
-              <span className="font-display text-chalk">{hasChampion ? "✓" : "—"}</span>
-            </p>
-          </section>
+          {/* Champion + Awards — the tournament-long outcome picks, grouped */}
+          <section className="glass rounded-2xl p-4 sm:p-5">
+            <h2 className="mb-3 flex items-center gap-1.5 font-display text-lg text-chalk"><Trophy size={18} />Champion &amp; awards</h2>
 
-          {/* Champion */}
-          <section className="glass rounded-2xl p-4">
-            <h2 className="mb-2 flex items-center gap-1.5 font-display text-lg text-chalk"><Trophy size={18} />Champion</h2>
-            {champTeam ? (
-              <p className="flex items-center gap-2 text-chalk">
-                <Flag
-                  teamId={champTeam.id}
-                  logoUrl={champTeam.logo_url}
-                  code={champTeam.code}
-                  name={champTeam.name}
-                  size={22}
-                />
-                <span className="font-semibold">{champTeam.name}</span>
-              </p>
-            ) : (
-              <p className="text-sm text-chalk-dim">—</p>
-            )}
-          </section>
+            <div className="mb-3 flex items-center gap-2 rounded-xl bg-gold/10 px-3 py-2.5">
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-chalk-dim">
+                <Trophy size={14} className="text-gold" />Champion
+              </span>
+              {champTeam ? (
+                <span className="ml-auto flex min-w-0 items-center gap-2 text-chalk">
+                  <Flag
+                    teamId={champTeam.id}
+                    logoUrl={champTeam.logo_url}
+                    code={champTeam.code}
+                    name={champTeam.name}
+                    size={22}
+                  />
+                  <span className="truncate font-semibold">{champTeam.name}</span>
+                </span>
+              ) : (
+                <span className="ml-auto text-sm text-chalk-dim">Not picked</span>
+              )}
+            </div>
 
-          {/* Awards */}
-          <section className="glass rounded-2xl p-4">
-            <h2 className="mb-3 flex items-center gap-1.5 font-display text-lg text-chalk"><Medal size={18} />Awards</h2>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {awardEntries.map((a) => (
                 <div
@@ -263,7 +270,7 @@ export default async function MyPredictionsPage({
 
           {/* Knockout match picks — usually empty pre-tournament (fixtures TBD). */}
           {knockoutPicks.length > 0 && (
-            <section className="glass rounded-2xl p-4">
+            <section className="glass rounded-2xl p-4 sm:p-5">
               <h2 className="mb-3 flex items-center gap-1.5 font-display text-lg text-chalk"><Ball size={16} />Match score picks</h2>
               <ul className="space-y-2">
                 {knockoutPicks.map((p) => {
@@ -305,11 +312,16 @@ export default async function MyPredictionsPage({
 
         {/* Right column: group order */}
         <div className="mt-4 lg:mt-0">
-          <section className="glass rounded-2xl p-4">
-            <h2 className="mb-3 flex items-center gap-1.5 font-display text-lg text-chalk"><Ball size={16} />Group order</h2>
+          <section className="glass rounded-2xl p-4 sm:p-5">
+            <h2 className="mb-1 flex items-center gap-1.5 font-display text-lg text-chalk"><Ball size={16} />Group order</h2>
             {orderedGroups.length === 0 ? (
-              <p className="text-sm text-chalk-dim">No group order predicted yet.</p>
+              <p className="mt-2 text-sm text-chalk-dim">No group order predicted yet.</p>
             ) : (
+              <>
+              <p className="mb-3 text-xs text-chalk-dim">
+                <span className="text-grass">●</span> top two advance ·{" "}
+                <span className="text-gold">●</span> 3rd-place hopeful. Tap a group to expand.
+              </p>
               <div className="space-y-2">
                 {orderedGroups.map(([group, ids]) => (
                   <details key={group} className="group rounded-xl bg-night/5 px-3 py-2">
@@ -337,10 +349,12 @@ export default async function MyPredictionsPage({
                   </details>
                 ))}
               </div>
+              </>
             )}
           </section>
         </div>
-      </div>
+        </div>
+      </Reveal>
     </main>
   );
 }

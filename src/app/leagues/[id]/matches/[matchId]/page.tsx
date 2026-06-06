@@ -638,6 +638,9 @@ export default async function MatchSummaryPage({
         lineups={lineupsTab}
         stats={statsTab}
         predictions={predictionsTab}
+        // Lead with the formation pitch for upcoming/live games (its best moment);
+        // once finished, the Summary story leads instead.
+        defaultTab={lineupsTab != null && !finished ? "lineups" : undefined}
       />
     </main>
   );

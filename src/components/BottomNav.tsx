@@ -77,7 +77,7 @@ export function GlobalNav(): JSX.Element | null {
     { href: "/tournament", label: "Tournament", icon: "pitch", active: pathname.startsWith("/tournament") },
     {
       href: "/bracket",
-      label: "Bracket",
+      label: "My Bracket",
       icon: "bracket",
       active: pathname.startsWith("/bracket") || pathname.startsWith("/awards"),
     },
@@ -115,7 +115,7 @@ export function LeagueNav({ leagueId, kind }: { leagueId: string; kind: string }
       active: pathname === base || pathname.startsWith(`${base}/players`) || pathname.startsWith(`${base}/me`),
     },
     { href: "/predict", label: "Predict", icon: "target", active: false },
-    { href: "/bracket", label: "Bracket", icon: "bracket", active: false },
+    { href: "/bracket", label: "My Bracket", icon: "bracket", active: false },
     { href: `${base}/matches`, label: "Matches", icon: "ball", active: pathname.startsWith(`${base}/matches`) },
   ];
   return <Bar tabs={tabs} />;
