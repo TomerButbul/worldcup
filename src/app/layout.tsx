@@ -9,6 +9,7 @@ import { VenueCardHost } from "@/components/VenueCard";
 import { GlobalNav } from "@/components/BottomNav";
 import GuestBanner from "@/components/GuestBanner";
 import LiveScoresWidget from "@/components/LiveScoresWidget";
+import { MyTeamsProvider } from "@/components/MyTeams";
 import { getCachedMatchdayFlags } from "@/lib/tournamentData";
 import { createClient } from "@/lib/supabase/server";
 import { SITE_URL, SITE_DESCRIPTION } from "@/lib/site";
@@ -101,6 +102,7 @@ export default async function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} ${anton.variable} h-full antialiased`}
     >
       <body className="relative min-h-full flex flex-col overflow-x-hidden">
+        <MyTeamsProvider>
         <AnimatedBackground />
         {/* Festive bunting on mobile/tablet; desktop gets the clean top nav instead. */}
         <div className="fixed inset-x-0 top-[env(safe-area-inset-top)] z-30 lg:hidden">
@@ -127,6 +129,7 @@ export default async function RootLayout({
         <PlayerCardHost />
         <TeamCardHost />
         <VenueCardHost />
+        </MyTeamsProvider>
       </body>
     </html>
   );

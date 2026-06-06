@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Ball from "@/components/art/Ball";
+import { useMyTeams } from "@/components/MyTeams";
 
 // National-team flag from API-Football's media CDN (by team id), or a stored logo_url.
 export default function Flag({
@@ -13,6 +14,7 @@ export default function Flag({
   w,
   h,
   fit = "contain",
+  highlight,
   className = "",
 }: {
   teamId?: number | null;
@@ -25,6 +27,8 @@ export default function Flag({
   h?: number;
   /** `cover` fills the box (good when w/h match the flag's ~3:2 ratio). */
   fit?: "contain" | "cover";
+  /** Pass false to suppress the "your drafted team" ring even if it's one of yours. */
+  highlight?: boolean;
   className?: string;
 }) {
   const [failed, setFailed] = useState(false);
@@ -41,11 +45,19 @@ export default function Flag({
   // rectangular render with their own framing.
   const circular = w == null && h == null;
 
+  // Subtly ring a crest that's one of the viewer's drafted teams, so "your teams"
+  // stand out wherever they appear. Empty set for non-draft users → no ring.
+  const myTeams = useMyTeams();
+  const ring =
+    teamId != null && highlight !== false && myTeams.has(teamId)
+      ? { outline: "2px solid var(--color-gold)", outlineOffset: "1.5px" }
+      : undefined;
+
   if (!src || failed) {
     return (
       <span
         className={`inline-flex shrink-0 items-center justify-center ${circular ? "rounded-full" : "rounded-sm"} bg-night/10 text-[8px] font-bold text-chalk-dim ${className}`}
-        style={{ width, height }}
+        style={{ width, height, ...ring }}
         title={name}
       >
         {code ?? <Ball size={Math.max(10, Math.round(Math.min(width, height) * 0.6))} />}
@@ -57,7 +69,7 @@ export default function Flag({
     return (
       <span
         className={`inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full ${className}`}
-        style={{ width, height }}
+        style={{ width, height, ...ring }}
         title={name}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -80,7 +92,7 @@ export default function Flag({
       height={height}
       onError={() => setFailed(true)}
       className={`inline-block shrink-0 rounded-sm ${fit === "cover" ? "object-cover" : "object-contain"} ${className}`}
-      style={{ width, height }}
+      style={{ width, height, ...ring }}
     />
   );
 }
