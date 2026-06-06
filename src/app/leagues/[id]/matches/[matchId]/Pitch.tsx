@@ -109,7 +109,7 @@ function positioned(xi: LineupPlayer[], half: "top" | "bottom") {
       out.push({
         p: x.p,
         x: ((i + 0.5) / sorted.length) * 100,
-        y: half === "bottom" ? 93 - frac * 40 : 7 + frac * 40,
+        y: half === "bottom" ? 94 - frac * 42 : 6 + frac * 42,
         label: labels[i] ?? "",
       });
     });
@@ -159,7 +159,7 @@ function PlayerChip({
       >
         {/* Circular face shot with a jersey-number badge — falls back to a number
             disc when we have no photo. */}
-        <span className={`relative grid h-9 w-9 place-items-center overflow-hidden rounded-full bg-night/25 shadow ring-2 ${ring} sm:h-11 sm:w-11`}>
+        <span className={`relative grid h-8 w-8 place-items-center overflow-hidden rounded-full bg-night/25 shadow ring-2 ${ring} sm:h-11 sm:w-11`}>
           {photo ? (
             // eslint-disable-next-line @next/next/no-img-element -- next/image not worth it for a tiny avatar
             <img src={photo} alt="" loading="lazy" className="h-full w-full object-cover" />
@@ -227,7 +227,7 @@ export default function Pitch({
       </div>
 
       {/* Vertical pitch */}
-      <div className="relative mx-auto aspect-[5/7] w-full max-w-sm overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-grass/70 to-grass/55">
+      <div className="relative mx-auto aspect-[3/5] w-full max-w-sm overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-grass/70 to-grass/55">
         {/* markings */}
         <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-white/30" />
         <div className="absolute left-1/2 top-1/2 h-20 w-20 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/30" />

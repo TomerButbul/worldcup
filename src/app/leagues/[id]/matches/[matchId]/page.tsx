@@ -261,14 +261,18 @@ export default async function MatchSummaryPage({
   let predRows: PredRow[];
   if (isGroup) {
     // Group: the prediction is the bracket scoreline + any live scorer picks.
-    const scorersByUser = new Map<string, Record<string, number>>(
-      (preds ?? []).map((p) => [p.user_id, (p.scorer_goals ?? {}) as Record<string, number>]),
-    );
+    const predByUser = new Map((preds ?? []).map((p) => [p.user_id, p]));
     predRows = (brackets ?? [])
       .map((b): PredRow | null => {
         const prof = b.profiles as unknown as PredProfile | null;
-        const gs = (b.group_scores as Record<string, { h: number; a: number }> | null)?.[String(matchNum)];
-        const sg = scorersByUser.get(b.user_id) ?? {};
+        const mp = predByUser.get(b.user_id);
+        const gsRaw = (b.group_scores as Record<string, { h: number; a: number }> | null)?.[String(matchNum)];
+        // Fall back to the live match_predictions scoreline when the upfront bracket
+        // has no group score for this match (e.g. the sandbox fixture, which isn't
+        // part of anyone's 72-game bracket).
+        const gs =
+          gsRaw ?? (mp?.home_goals != null && mp?.away_goals != null ? { h: mp.home_goals, a: mp.away_goals } : null);
+        const sg = (mp?.scorer_goals ?? {}) as Record<string, number>;
         if (!gs && Object.keys(sg).length === 0) return null; // no prediction for this match
         return {
           userId: b.user_id,
@@ -277,7 +281,7 @@ export default async function MatchSummaryPage({
           score: gs ? `${gs.h}–${gs.a}` : null,
           homeGoals: gs?.h ?? null,
           awayGoals: gs?.a ?? null,
-          penWinnerTeamId: null,
+          penWinnerTeamId: mp?.pen_winner_team_id ?? null,
           scorers: scorersOf(sg),
           points: finished
             ? scoreLive(cfg, actual, [{ match_id: matchNum, home_goals: null, away_goals: null, scorer_goals: sg }])
