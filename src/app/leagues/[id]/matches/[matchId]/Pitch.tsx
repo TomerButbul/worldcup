@@ -177,17 +177,14 @@ function PlayerChip({
               {p.number}
             </span>
           )}
-          {ovr != null && (
-            <span className="absolute -left-1 -top-1 grid h-[15px] min-w-[15px] place-items-center rounded-full bg-gold px-0.5 text-[8px] font-bold leading-none tabular-nums text-night ring-1 ring-white/60">
-              {ovr}
-            </span>
-          )}
           <Badges s={stat.get(p.player_id)} />
         </span>
-        <span className="max-w-[3.25rem] truncate text-[9px] leading-tight text-chalk sm:max-w-[3.75rem]">{first}</span>
-        {label && (
-          <span className="hidden rounded bg-night/40 px-1 text-[7px] font-bold uppercase leading-none text-gold sm:block">
-            {label}
+        <span className="max-w-[3.5rem] truncate text-[9px] leading-tight text-chalk sm:max-w-[3.75rem]">{first}</span>
+        {(label || ovr != null) && (
+          <span className="flex items-center gap-0.5 rounded bg-night/55 px-1 text-[7px] font-bold uppercase leading-none">
+            {label && <span className="text-white/90">{label}</span>}
+            {label && ovr != null && <span className="text-white/40">·</span>}
+            {ovr != null && <span className="text-gold">{ovr}</span>}
           </span>
         )}
       </PlayerCardButton>
