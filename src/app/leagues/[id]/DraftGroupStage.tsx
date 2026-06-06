@@ -37,7 +37,7 @@ export default function DraftGroupStage({
 
   if (groups.length === 0) {
     return (
-      <div className="glass rounded-2xl p-6 text-center text-sm text-chalk-dim">
+      <div className="glass rounded-3xl p-6 text-center text-sm text-chalk-dim">
         <Ball size={14} className="mr-1 inline-block align-[-2px]" />
         Group draw hasn&apos;t been loaded yet.
       </div>
@@ -48,21 +48,20 @@ export default function DraftGroupStage({
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="glass rounded-2xl p-4 sm:p-5"
+      className="glass rounded-3xl p-4 sm:p-5"
     >
-      <h3 className="font-display text-lg text-chalk">Group stage</h3>
-      <p className="mb-3 text-xs text-chalk-dim">
-        Your drafted nations are marked <span className="text-gold">★</span> —{" "}
-        {hasResults ? "live standings; " : ""}top 2 of each group advance.
-      </p>
+      <header className="mb-3">
+        <h2 className="font-display text-xl text-chalk">Group stage</h2>
+        <p className="mt-0.5 text-xs text-chalk-dim">
+          {hasResults ? "Live standings · t" : "T"}op 2 of each group advance. Your nations marked{" "}
+          <span className="text-gold">★</span>.
+        </p>
+      </header>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {groups.map((g) => (
           <div key={g.group} className="glass rounded-2xl p-3">
-            <div className="mb-2 flex items-center justify-between">
-              <h4 className="font-display text-base text-gold">Group {g.group}</h4>
-              <span className="text-[10px] uppercase tracking-wide text-chalk-dim">Top 2 advance</span>
-            </div>
+            <h3 className="mb-2 font-display text-base text-gold">Group {g.group}</h3>
 
             <ol className="space-y-1">
               {g.teams.map((t, i) => {

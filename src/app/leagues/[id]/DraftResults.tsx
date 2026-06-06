@@ -4,9 +4,10 @@ import { useState } from "react";
 import { motion } from "motion/react";
 import Avatar from "@/components/Avatar";
 import AutoRefresh from "@/components/AutoRefresh";
+import Reveal from "@/components/Reveal";
 import Trophy from "@/components/art/Trophy";
 import TeamFormation, { type TeamLineup } from "./TeamFormation";
-import { DRAFT_POTS, POT_LABELS, teamAt, type Pot } from "@/lib/draft";
+import { POT_LABELS, teamAt, type Pot } from "@/lib/draft";
 import DraftFixtures, { type FixtureDay } from "./DraftFixtures";
 import DraftGroupStage, { type GroupStageGroup } from "./DraftGroupStage";
 import KnockoutBracket, { type BracketRound, type BracketTeam } from "@/components/KnockoutBracket";
@@ -64,35 +65,40 @@ export default function DraftResults({
     <div className="space-y-6">
       {tab === "board" && (
       <>
+      <Reveal>
       <section className="glass-strong rounded-3xl p-4 sm:p-5">
         {/* Re-fetches periodically so points tick up live during the tournament. */}
         <AutoRefresh enabled />
-        <div className="mb-3 flex items-baseline justify-between gap-3">
-          <h2 className="font-display text-2xl text-gradient-gold">Scoreboard</h2>
-          {!tournamentStarted && (
-            <span className="text-[11px] text-chalk-dim">Live points start at kickoff (Jun 11)</span>
-          )}
-        </div>
+        <header className="mb-4">
+          <h2 className="font-display text-2xl text-gradient-gold sm:text-3xl">Scoreboard</h2>
+          <p className="mt-0.5 text-xs text-chalk-dim">
+            {tournamentStarted
+              ? "Three pot races — winner of each takes a crown."
+              : "Live points start at kickoff · Jun 11."}
+          </p>
+        </header>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {POTS.map((pot) => {
             const rows = standings.perPot[pot] ?? [];
             return (
-              <div key={pot} className="glass rounded-2xl p-3">
-                <h3 className="mb-2 font-display text-sm text-chalk">{POT_LABELS[pot]}</h3>
-                <ul className="space-y-1.5">
+              <div key={pot} className="glass rounded-2xl p-3.5">
+                <h3 className="mb-2.5 font-display text-xs uppercase tracking-wide text-chalk-dim">
+                  {POT_LABELS[pot]}
+                </h3>
+                <ul className="space-y-2">
                   {rows.map((r, i) => {
                     const m = memberById.get(r.userId);
                     const isWinner = i === 0 && r.points > 0;
                     const isSpoon = i === rows.length - 1 && rows.length > 1 && r.points > 0;
                     return (
                       <li key={r.userId} className="flex items-center gap-2 text-sm">
-                        <span className="w-4 shrink-0 text-center text-chalk-dim">{i + 1}</span>
+                        <span className="w-4 shrink-0 text-center text-xs tabular-nums text-chalk-dim">{i + 1}</span>
                         <Avatar url={m?.avatarUrl} name={m?.name ?? "?"} size={20} />
                         <span className="min-w-0 flex-1 truncate text-chalk">{m?.name ?? "?"}</span>
                         {isWinner && <Trophy size={13} className="inline-block align-[-2px]" />}
                         {isSpoon && <span title="Wooden Spoon — worst team in the pot">🥄</span>}
-                        <span className="font-display text-gold">{r.points}</span>
+                        <span className="font-display tabular-nums text-gold">{r.points}</span>
                       </li>
                     );
                   })}
@@ -102,38 +108,42 @@ export default function DraftResults({
           })}
         </div>
 
-        <div className="glass mt-3 rounded-2xl p-3">
-          <div className="mb-2 flex items-baseline justify-between gap-3">
-            <h3 className="font-display text-sm text-chalk">🍻 Bragging-rights total</h3>
-            <span className="text-[11px] text-chalk-dim">All three pots combined — just for fun</span>
+        <div className="glass mt-3 rounded-2xl p-3.5">
+          <div className="mb-2.5 flex items-baseline justify-between gap-3">
+            <h3 className="font-display text-xs uppercase tracking-wide text-chalk-dim">
+              🍻 Bragging rights
+            </h3>
+            <span className="text-[11px] text-chalk-dim">All pots · just for fun</span>
           </div>
-          <ul className="grid grid-cols-1 gap-x-4 gap-y-1.5 sm:grid-cols-2">
+          <ul className="grid grid-cols-1 gap-x-5 gap-y-2 sm:grid-cols-2">
             {standings.totals.map((r, i) => {
               const m = memberById.get(r.userId);
               return (
                 <li key={r.userId} className="flex items-center gap-2 text-sm">
-                  <span className="w-4 shrink-0 text-center text-chalk-dim">{i + 1}</span>
+                  <span className="w-4 shrink-0 text-center text-xs tabular-nums text-chalk-dim">{i + 1}</span>
                   <Avatar url={m?.avatarUrl} name={m?.name ?? "?"} size={20} />
                   <span className="min-w-0 flex-1 truncate text-chalk">{m?.name ?? "?"}</span>
-                  <span className="font-display text-gold">{r.points}</span>
+                  <span className="font-display tabular-nums text-gold">{r.points}</span>
                 </li>
               );
             })}
           </ul>
         </div>
       </section>
+      </Reveal>
 
       {/* Squads — the managers' drafted teams; shares the "board" tab with the
           scoreboard. Tap a nation to peek its formation. */}
-      <section className="glass rounded-2xl p-4">
-        <div className="flex items-baseline justify-between gap-3">
-          <h2 className="font-display text-chalk">Squads</h2>
+      <Reveal index={1}>
+      <section className="glass rounded-3xl p-4 sm:p-5">
+        <header className="mb-3 flex items-baseline justify-between gap-3">
+          <h2 className="font-display text-xl text-chalk">Squads</h2>
           <span className="text-xs text-chalk-dim">
-            {roster.length} managers · {DRAFT_POTS[1].length * POTS.length} teams
+            {roster.length} managers · 3 picks each
           </span>
-        </div>
+        </header>
 
-        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {roster.map((m, i) => {
           const squad = byUser.get(m.userId);
           return (
@@ -145,7 +155,7 @@ export default function DraftResults({
               className="glass rounded-2xl p-4"
             >
               <div className="flex items-center gap-2.5">
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-night/10 font-display text-xs text-chalk">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gold/15 font-display text-xs tabular-nums text-gold">
                   {m.seat}
                 </span>
                 <Avatar url={m.avatarUrl} name={m.name} size={28} />
@@ -194,6 +204,7 @@ export default function DraftResults({
         })}
         </div>
       </section>
+      </Reveal>
       </>
       )}
 
@@ -205,13 +216,14 @@ export default function DraftResults({
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="glass rounded-2xl p-4 sm:p-5"
+          className="glass rounded-3xl p-4 sm:p-5"
         >
-          <h3 className="font-display text-lg text-chalk">Your nations&apos; road to the final</h3>
-          <p className="mb-3 text-xs text-chalk-dim">
-            Fills in as the tournament plays — your drafted nations light up gold along their path.
-            Mostly TBD until the knockouts begin.
-          </p>
+          <header className="mb-3">
+            <h3 className="font-display text-lg text-chalk">Road to the final</h3>
+            <p className="mt-0.5 text-xs text-chalk-dim">
+              Your drafted nations light up gold along their path. TBD until the knockouts begin.
+            </p>
+          </header>
           <KnockoutBracket
             rounds={koRounds}
             teamsById={bracketTeams}

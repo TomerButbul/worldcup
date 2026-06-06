@@ -176,8 +176,7 @@ export default async function PredictPage() {
         </Link>
         <h1 className="mt-1 font-display text-3xl text-gradient-gold">Match predictions</h1>
         <p className="text-sm text-chalk-dim">
-          Predict the score and goal scorers. You set these once — they count in every
-          league you&apos;re in. Each match locks at kickoff.
+          Predict scores &amp; goal scorers — set once, they count in every league. Each match locks at kickoff.
         </p>
       </div>
 

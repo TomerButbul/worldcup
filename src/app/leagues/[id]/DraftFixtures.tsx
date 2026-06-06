@@ -1,4 +1,5 @@
 import FixturesList, { type FixtureDay as FixtureDayLite } from "@/components/FixturesList";
+import Reveal from "@/components/Reveal";
 
 // One fixture, fully resolved on the server (no Maps cross the client boundary):
 // both teams + the manager who drafted each (null if undrafted / TBD knockout).
@@ -47,13 +48,17 @@ export default function DraftFixtures({
   // Renders in full as its own tab (the bottom nav gates visibility), so it's a
   // plain section rather than a collapsible — every fixture is shown at once.
   return (
-    <section className="glass rounded-2xl p-4">
-      <h2 className="font-display text-chalk">Fixtures &amp; managers</h2>
-      <p className="mb-2 mt-1 text-[11px] text-chalk-dim">
-        Every game is a manager-vs-manager matchup — the gold name under each nation is who drafted
-        it. Tap any fixture for the match card.
-      </p>
+    <Reveal>
+    <section className="glass rounded-3xl p-4 sm:p-5">
+      <header className="mb-3">
+        <h2 className="font-display text-xl text-chalk">Fixtures</h2>
+        <p className="mt-0.5 text-xs text-chalk-dim">
+          Every game is manager vs manager — the gold name is who drafted that nation. Tap for the
+          match card.
+        </p>
+      </header>
       <FixturesList leagueId={leagueId} days={liteDays} />
     </section>
+    </Reveal>
   );
 }
