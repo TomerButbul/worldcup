@@ -38,12 +38,6 @@ export default async function ProfilePage() {
 
   return (
     <main className="mx-auto w-full max-w-2xl lg:max-w-[1600px] flex-1 space-y-4 p-4 sm:space-y-6 sm:p-6 lg:p-8">
-      <Reveal>
-        <Link href="/dashboard" className="text-sm text-chalk-dim hover:text-chalk">
-          &larr; Home
-        </Link>
-      </Reveal>
-
       {/* Header card — who you are at a glance */}
       <Reveal>
         <header className="glass-strong rounded-3xl p-5 sm:p-6">

@@ -10,7 +10,7 @@ import RankingsHub, { type LeagueBoard } from "./RankingsHub";
 // Per-user (it lists YOUR private leagues) + the realtime league boards, so this
 // renders fresh each request.
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Rankings" };
+export const metadata = { title: "Leagues" };
 
 type LeagueRow = {
   id: string;

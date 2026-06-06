@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { nowMs } from "@/lib/clock";
@@ -86,9 +85,6 @@ export default async function AwardsPage() {
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-4 p-4 sm:space-y-6 sm:p-6 lg:max-w-5xl lg:p-8">
       <Reveal>
         <div className="glass-strong rounded-3xl p-5 sm:p-6">
-          <Link href="/dashboard" className="text-sm text-chalk-dim hover:text-chalk">
-            &larr; Home
-          </Link>
           <h1 className="mt-1 inline-flex items-center gap-2 font-display text-3xl text-gradient-gold">
             <Star size={22} /> Individual awards
           </h1>

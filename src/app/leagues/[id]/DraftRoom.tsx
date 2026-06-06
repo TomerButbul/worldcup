@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { turnFor, SEATS } from "@/lib/draft";
@@ -267,9 +266,6 @@ export default function DraftRoom({
     <main className="mx-auto w-full max-w-4xl flex-1 space-y-6 p-4 pb-24 sm:space-y-8 sm:p-6 sm:pb-24">
       {state.status === "in_progress" && <ReactionShower leagueId={leagueId} />}
       <div className="glass-strong rounded-3xl p-5 sm:p-6">
-        <Link href="/dashboard" className="text-sm text-chalk-dim hover:text-chalk">
-          &larr; Home
-        </Link>
         <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 className="font-display text-3xl text-gradient-gold sm:text-4xl">{leagueName}</h1>

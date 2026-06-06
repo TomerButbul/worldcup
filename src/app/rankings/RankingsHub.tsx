@@ -54,14 +54,11 @@ export default function RankingsHub({
     <>
       <Reveal>
         <div className="glass-strong rounded-3xl p-5 sm:p-6">
-          <Link href="/dashboard" className="text-sm text-chalk-dim hover:text-chalk">
-            &larr; Home
-          </Link>
-
           {/* Switcher: Global + your prediction leagues flip the board inline; draft
               leagues are a different game (their own room + 3-pot standings), so
-              their pills link out to that room instead of swapping the board. */}
-          <div className="mt-3 flex gap-1.5 overflow-x-auto pb-1">
+              their pills link out to that room instead of swapping the board. Wraps
+              to new lines (no horizontal scroll) so no league pill ever gets clipped. */}
+          <div className="flex flex-wrap gap-1.5">
             <button type="button" onClick={() => setSel("global")} className={pill(sel === "global")}>
               🌍 Global
             </button>
@@ -76,7 +73,7 @@ export default function RankingsHub({
                 href={`/leagues/${d.id}`}
                 className="flex shrink-0 items-center gap-1 rounded-full bg-electric/15 px-3.5 py-1.5 text-sm font-semibold text-electric ring-1 ring-inset ring-electric/30 transition hover:bg-electric/25"
               >
-                🎲 {d.name} <span aria-hidden className="text-xs opacity-70">↗</span>
+                ⚽ {d.name} <span aria-hidden className="text-xs opacity-70">↗</span>
               </Link>
             ))}
             <Link

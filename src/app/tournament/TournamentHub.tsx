@@ -68,9 +68,6 @@ export default function TournamentHub({
       {/* Header */}
       <header className="glass-strong overflow-hidden rounded-3xl">
         <div className="relative p-5 sm:p-6">
-          <Link href="/dashboard" className="text-sm text-chalk-dim transition hover:text-chalk">
-            &larr; Home
-          </Link>
           <div className="mt-1 flex flex-wrap items-end justify-between gap-3">
             <div>
               <h1 className="font-display text-3xl text-gradient-fifa sm:text-4xl">The Tournament</h1>

@@ -85,7 +85,7 @@ export function GlobalNav({ force = false }: { force?: boolean } = {}): JSX.Elem
       icon: "bracket",
       active: pathname.startsWith("/bracket") || pathname.startsWith("/awards"),
     },
-    { href: "/rankings", label: "Rankings", icon: "globe", active: pathname.startsWith("/rankings") },
+    { href: "/rankings", label: "Leagues", icon: "globe", active: pathname.startsWith("/rankings") },
   ];
   return <Bar tabs={tabs} />;
 }

@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCachedTeams, getCachedPlayers } from "@/lib/tournamentData";
@@ -171,9 +170,6 @@ export default async function PredictPage() {
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-4 p-4 sm:space-y-6 sm:p-6 lg:max-w-[1600px] lg:p-8">
       <AutoRefresh enabled={now >= KICKOFF_MS} />
       <div className="glass-strong rounded-3xl p-5 sm:p-6">
-        <Link href="/dashboard" className="text-sm text-chalk-dim hover:text-chalk">
-          &larr; Home
-        </Link>
         <h1 className="mt-1 font-display text-3xl text-gradient-gold">Matches</h1>
         <p className="text-sm text-chalk-dim">
           Every game — predict the score &amp; scorers before kickoff, then follow it live. Tap a match for

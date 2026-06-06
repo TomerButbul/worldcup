@@ -65,9 +65,6 @@ export default async function BracketPage() {
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 space-y-6 p-4 sm:p-6 lg:max-w-[1600px] lg:p-8">
       <div className="glass-strong rounded-3xl p-5 sm:p-6">
-        <Link href="/dashboard" className="text-sm text-chalk-dim hover:text-chalk">
-          &larr; Home
-        </Link>
         <h1 className="mt-1 font-display text-3xl text-gradient-gold">Your upfront bracket</h1>
         <p className="text-sm text-chalk-dim">
           {locked

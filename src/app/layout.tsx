@@ -9,6 +9,7 @@ import { VenueCardHost } from "@/components/VenueCard";
 import { GlobalNav } from "@/components/BottomNav";
 import GuestBanner from "@/components/GuestBanner";
 import LiveScoresWidget from "@/components/LiveScoresWidget";
+import SwipeNav from "@/components/SwipeNav";
 import { MyTeamsProvider } from "@/components/MyTeams";
 import { getCachedMatchdayFlags } from "@/lib/tournamentData";
 import { createClient } from "@/lib/supabase/server";
@@ -125,6 +126,7 @@ export default async function RootLayout({
         {/* GlobalNav self-hides on auth/landing/league routes; LeagueNav (in the
             league layout) takes over inside a league. */}
         {user && <GlobalNav />}
+        {user && <SwipeNav />}
         {user && <LiveScoresWidget />}
         <PlayerCardHost />
         <TeamCardHost />
