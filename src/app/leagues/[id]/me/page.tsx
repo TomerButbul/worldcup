@@ -160,7 +160,7 @@ export default async function MyPredictionsPage({
       {/* Header — back link, title, status, share, and an at-a-glance completeness line */}
       <Reveal>
         <div className="glass-strong rounded-3xl p-4 sm:p-6">
-          <Link href={`/leagues/${id}`} className="text-sm text-chalk-dim hover:text-chalk">
+          <Link href={`/rankings?league=${id}`} className="text-sm text-chalk-dim hover:text-chalk">
             &larr; {league.name}
           </Link>
           <div className="mt-2 flex flex-wrap items-start justify-between gap-3">

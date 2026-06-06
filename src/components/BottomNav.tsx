@@ -68,9 +68,13 @@ function Bar({ tabs }: { tabs: Tab[] }): JSX.Element {
 // --- Global (top-level) nav ------------------------------------------------
 const GLOBAL_HIDE = ["/leagues/", "/login", "/signup", "/forgot-password", "/reset-password", "/preview"];
 
-export function GlobalNav(): JSX.Element | null {
-  const pathname = usePathname();
-  if (!pathname || pathname === "/" || GLOBAL_HIDE.some((p) => pathname.startsWith(p))) return null;
+// `force` renders the global bar even on routes it normally hides (used by the
+// league layout to give prediction-context pages — match centre, a manager's
+// picks — the ONE global nav instead of a parallel league nav). Drafts still get
+// their own LeagueNav.
+export function GlobalNav({ force = false }: { force?: boolean } = {}): JSX.Element | null {
+  const pathname = usePathname() ?? "";
+  if (!force && (pathname === "" || pathname === "/" || GLOBAL_HIDE.some((p) => pathname.startsWith(p)))) return null;
   const tabs: Tab[] = [
     { href: "/dashboard", label: "Home", icon: "home", active: pathname.startsWith("/dashboard") },
     { href: "/predict", label: "Predict", icon: "target", active: pathname.startsWith("/predict") },

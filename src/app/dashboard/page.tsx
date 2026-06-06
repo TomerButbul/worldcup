@@ -262,7 +262,7 @@ export default async function DashboardPage({
             <p className="rounded-lg bg-red-500/15 px-3 py-2 text-sm text-red-600">{error}</p>
           )}
 
-          <section className="space-y-2">
+          <section id="leagues" className="scroll-mt-24 space-y-2">
             <h2 className="font-display text-lg text-chalk">Your Leagues</h2>
             {friendsLeagues.length === 0 ? (
               <div className="space-y-3">
@@ -278,7 +278,7 @@ export default async function DashboardPage({
                   {friendsLeagues.map((l, i) => (
                     <Reveal key={l.id} index={i}>
                       <Link
-                        href={`/leagues/${l.id}`}
+                        href={l.kind === "draft" ? `/leagues/${l.id}` : `/rankings?league=${l.id}`}
                         className="group flex items-center justify-between rounded-2xl glass p-3.5 transition hover:border-grass/50 hover:bg-night/5"
                       >
                         <span className="flex min-w-0 items-center gap-2.5">

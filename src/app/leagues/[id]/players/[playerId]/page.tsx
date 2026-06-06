@@ -54,7 +54,7 @@ export default async function ManagerProfilePage({
     .select("display_name, team_name, avatar_url, favorite_team_id")
     .eq("id", playerId)
     .maybeSingle();
-  if (!profile) redirect(`/leagues/${id}`);
+  if (!profile) redirect(`/rankings?league=${id}`);
 
   const { data: score } = await supabase
     .from("scores")
@@ -125,7 +125,7 @@ export default async function ManagerProfilePage({
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-4 p-4 sm:p-6 lg:max-w-6xl lg:p-8">
-      <Link href={`/leagues/${id}`} className="text-sm text-chalk-dim hover:text-chalk">
+      <Link href={`/rankings?league=${id}`} className="text-sm text-chalk-dim hover:text-chalk">
         &larr; Leaderboard
       </Link>
 

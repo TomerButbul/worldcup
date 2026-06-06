@@ -154,6 +154,12 @@ export default async function LeaguePage({
   // the worldwide board, so send anyone who lands on it to /rankings instead.
   if (league.is_global) redirect("/rankings");
 
+  // A prediction (friend) league is now just a filtered leaderboard — same
+  // account-level picks, same scoring, only the member list differs — so its board
+  // lives in the Rankings hub. No separate "league page" to get lost in. Only draft
+  // leagues (a different game) keep their own room below.
+  if ((league.kind ?? "classic") !== "draft") redirect(`/rankings?league=${id}`);
+
   if (league.kind === "draft") {
     const [stateRes, picksRes, membersRes] = await Promise.all([
       supabase

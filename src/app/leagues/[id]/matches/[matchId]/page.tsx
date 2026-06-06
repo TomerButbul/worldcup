@@ -531,8 +531,8 @@ export default async function MatchSummaryPage({
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 p-4 sm:space-y-8 sm:p-6 lg:max-w-5xl">
       <AutoRefresh enabled={nowMs() >= KICKOFF_MS} />
       <div className="glass-strong rounded-3xl p-5 sm:p-6">
-        <Link href={`/leagues/${id}/matches`} className="text-sm text-chalk-dim hover:text-chalk">
-          &larr; Matches
+        <Link href="/tournament" className="text-sm text-chalk-dim hover:text-chalk">
+          &larr; Fixtures
         </Link>
         <div className="mt-2 flex items-center justify-between gap-2 text-xs text-chalk-dim">
           <span className="font-display text-gold">{stageLabel(match.stage)}</span>
