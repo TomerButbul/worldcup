@@ -35,9 +35,15 @@ function PlusGlyph() {
 // iOS install coach — pinned to the bottom so it stays put while you reach for
 // Safari's Share button, with the two exact taps spelled out using the real
 // glyphs. This is the closest iOS allows to "the site installs itself".
-export function IosInstallCoach({ onDismiss }: { onDismiss: () => void }) {
+export function IosInstallCoach({ onDismiss, aboveNav = false }: { onDismiss: () => void; aboveNav?: boolean }) {
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 flex justify-center px-3 pb-[calc(env(safe-area-inset-bottom)+0.6rem)]">
+    <div
+      className={`fixed inset-x-0 z-40 flex justify-center px-3 ${
+        aboveNav
+          ? "bottom-[calc(env(safe-area-inset-bottom)+4.25rem)] lg:bottom-4"
+          : "bottom-0 pb-[calc(env(safe-area-inset-bottom)+0.6rem)]"
+      }`}
+    >
       <div className="glass-strong relative w-full max-w-sm rounded-2xl p-4 shadow-2xl ring-1 ring-gold/40">
         <button
           onClick={onDismiss}
@@ -82,10 +88,11 @@ export function IosInstallCoach({ onDismiss }: { onDismiss: () => void }) {
   );
 }
 
-// Pre-signup install nudge for the landing page. Android/desktop get a real
-// one-tap install button; iOS gets the pinned coach. Hidden once installed or
-// dismissed.
-export default function InstallPrompt() {
+// Install nudge. `placement="landing"` is the pre-signup landing card; "home"
+// is the logged-in Home nudge for people who signed up in-browser and never
+// installed. Android/desktop get a real one-tap install; iOS gets the coach
+// (floated above the bottom nav on Home). Hidden once installed or dismissed.
+export default function InstallPrompt({ placement = "landing" }: { placement?: "landing" | "home" } = {}) {
   const [device, setDevice] = useState<Device>("desktop");
   const [show, setShow] = useState(false);
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
@@ -130,8 +137,12 @@ export default function InstallPrompt() {
     dismiss();
   }
 
-  // iOS: pinned, pointing coach (Apple allows no programmatic install).
-  if (device === "ios") return <IosInstallCoach onDismiss={dismiss} />;
+  // iOS: pinned, pointing coach (Apple allows no programmatic install). On Home
+  // it floats just above the bottom nav so it never covers navigation.
+  if (device === "ios") return <IosInstallCoach onDismiss={dismiss} aboveNav={placement === "home"} />;
+
+  // On Home, skip the desktop hint (least-important case — avoid clutter).
+  if (placement === "home" && device === "desktop") return null;
 
   // Android / desktop: inline card with a real one-tap install where supported.
   return (

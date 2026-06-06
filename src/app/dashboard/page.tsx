@@ -13,6 +13,7 @@ import FavoriteTeamStatus from "@/components/FavoriteTeamStatus";
 import Countdown from "@/components/Countdown";
 import NotificationToggle from "@/components/NotificationToggle";
 import NextMatchCard, { type NextMatchData } from "@/components/NextMatchCard";
+import InstallPrompt from "@/components/InstallPrompt";
 import { computeFavStatus } from "@/lib/favoriteStatus";
 import AutoRefresh from "@/components/AutoRefresh";
 import { nowMs, KICKOFF_MS } from "@/lib/clock";
@@ -170,6 +171,9 @@ export default async function DashboardPage({
   return (
     <main className="mx-auto w-full max-w-2xl lg:max-w-[1600px] flex-1 space-y-4 p-4 sm:space-y-6 sm:p-6 lg:p-8">
       <AutoRefresh enabled={nowMs() >= KICKOFF_MS} />
+      {/* Nudge in-browser users to install — iOS coach floats above the nav,
+          Android one-tap; self-hides once installed or dismissed. */}
+      <InstallPrompt placement="home" />
       <Reveal>
         <header>
           {/* Tap your avatar/name → Profile & settings (account controls moved off Home). */}
