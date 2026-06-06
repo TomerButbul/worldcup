@@ -13,7 +13,6 @@ import { VenueButton } from "@/components/VenueCard";
 import { venueImage } from "@/lib/venues";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import { PlayerCardButton, openPlayerCard } from "@/components/PlayerCard";
-import { useLongPress } from "@/lib/useLongPress";
 import Ball from "@/components/art/Ball";
 import MatchCountdown from "@/components/MatchCountdown";
 import { nowMs } from "@/lib/clock";
@@ -58,6 +57,19 @@ interface Props {
   saveAction?: typeof savePrediction;
 }
 
+// Small circled-ⓘ — the "view this team's card" affordance in the score row, so
+// the country card stays one reliable tap away even while the team pill is busy
+// doubling as the scorer-picker selector.
+function InfoCircle() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 11v5" />
+      <path d="M12 7.5h.01" />
+    </svg>
+  );
+}
+
 export default function MatchCard({
   leagueId,
   match,
@@ -85,7 +97,6 @@ export default function MatchCard({
   // stays compact — tap a team in the score row to expand its scorer picker.
   const [activeTeam, setActiveTeam] = useState<"home" | "away" | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
-  const teamLongPress = useLongPress();
 
   const kickoff = new Date(match.kickoff_at).toLocaleString(undefined, {
     weekday: "short",
@@ -136,8 +147,9 @@ export default function MatchCard({
 
   // One team "pill" in the score row. While picking it doubles as the squad
   // selector: tap to switch which team's scorers you're editing (active = green),
-  // hold for the team card, with the scorer count shown beneath the name. Locked /
-  // no-squad / TBD falls back to a plain tap-for-team-card label.
+  // with the scorer count shown beneath the name and a ⓘ button for the team card
+  // (the long-press that used to open it was unreliable). Locked / no-squad / TBD
+  // falls back to a plain tap-for-team-card label.
   function teamSide(side: "home" | "away") {
     const isHome = side === "home";
     const tName = isHome ? match.homeName : match.awayName;
@@ -152,13 +164,25 @@ export default function MatchCard({
       const tSum = isHome ? sumFor(homePlayers) : sumFor(awayPlayers);
       const need = tCap > 0 && tSum < tCap;
       const isActive = activeTeam === side;
-      return (
+      // Two clear targets (no flaky long-press): tap the team to pick its scorers,
+      // tap the ⓘ for the country's card (FIFA rank, squad, form). The ⓘ sits on
+      // the outer edge so it never crowds the score steppers in the middle.
+      const infoBtn = (
+        <button
+          type="button"
+          onClick={() => openTeamCard({ teamId: tId, name: tName })}
+          aria-label={`${tName} — team profile & FIFA rank`}
+          className="shrink-0 rounded-full p-1 text-chalk-dim transition hover:text-gold active:scale-90"
+        >
+          <InfoCircle />
+        </button>
+      );
+      const selectBtn = (
         <button
           type="button"
           onClick={() => setActiveTeam((cur) => (cur === side ? null : side))}
-          {...teamLongPress(() => openTeamCard({ teamId: tId, name: tName }))}
-          aria-label={`Pick ${tName} scorers — hold for team details`}
-          className={`flex min-w-0 flex-1 select-none flex-col gap-0.5 border-b-2 px-1 pb-1 transition ${
+          aria-label={`Pick ${tName} scorers`}
+          className={`flex min-w-0 select-none flex-col gap-0.5 border-b-2 px-1 pb-1 transition ${
             isHome ? "items-end" : "items-start"
           } ${
             isActive
@@ -177,6 +201,11 @@ export default function MatchCard({
             </span>
           )}
         </button>
+      );
+      return (
+        <div className={`flex min-w-0 flex-1 items-center gap-1 ${rowAlign}`}>
+          {isHome ? (<>{infoBtn}{selectBtn}</>) : (<>{selectBtn}{infoBtn}</>)}
+        </div>
       );
     }
 
