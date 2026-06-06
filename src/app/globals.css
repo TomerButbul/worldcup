@@ -179,12 +179,12 @@ body {
   50% { transform: translateY(-12px); }
 }
 
-/* Goal-net crosshatch texture (behind scoreboards). */
+/* Goal-net texture: a fine diagonal diamond mesh (like a real net), not a square
+   checkerboard grid. Subtle — it sits behind scores/tiles. */
 .net {
   background-image:
-    linear-gradient(rgba(12, 20, 48, 0.07) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(12, 20, 48, 0.07) 1px, transparent 1px);
-  background-size: 9px 9px;
+    repeating-linear-gradient(45deg, rgba(12, 20, 48, 0.05), rgba(12, 20, 48, 0.05) 1px, transparent 1px, transparent 12px),
+    repeating-linear-gradient(-45deg, rgba(12, 20, 48, 0.05), rgba(12, 20, 48, 0.05) 1px, transparent 1px, transparent 12px);
 }
 
 /* Big "GOAL!" celebration text (injected imperatively). */
