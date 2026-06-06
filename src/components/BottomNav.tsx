@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import type { JSX } from "react";
 
 // ---------------------------------------------------------------------------
 // A persistent, thumb-reachable bottom tab bar — the app's primary navigation.
-// Two flavours share one <Bar>: GlobalNav (top-level app pages) and LeagueNav
-// (inside a league; tabs differ for prediction vs draft leagues). Both are fixed
-// to the bottom; GlobalNav hides itself on league routes so only one shows.
+// GlobalNav builds the app-level tabs and renders them through <Bar> (fixed to the
+// bottom on mobile, a top bar on desktop). It hides itself on auth/landing/league
+// routes, but the league layout passes `force` so in-league pages still show it.
 // ---------------------------------------------------------------------------
 
 type Tab = { href: string; label: string; icon: IconName; active: boolean };
@@ -69,9 +69,8 @@ function Bar({ tabs }: { tabs: Tab[] }): JSX.Element {
 const GLOBAL_HIDE = ["/leagues/", "/login", "/signup", "/forgot-password", "/reset-password", "/preview"];
 
 // `force` renders the global bar even on routes it normally hides (used by the
-// league layout to give prediction-context pages — match centre, a manager's
-// picks — the ONE global nav instead of a parallel league nav). Drafts still get
-// their own LeagueNav.
+// league layout to give every in-league page — prediction boards and the draft
+// room alike — the ONE global nav instead of a parallel in-league bar).
 export function GlobalNav({ force = false }: { force?: boolean } = {}): JSX.Element | null {
   const pathname = usePathname() ?? "";
   if (!force && (pathname === "" || pathname === "/" || GLOBAL_HIDE.some((p) => pathname.startsWith(p)))) return null;
@@ -86,41 +85,6 @@ export function GlobalNav({ force = false }: { force?: boolean } = {}): JSX.Elem
       active: pathname.startsWith("/bracket") || pathname.startsWith("/awards"),
     },
     { href: "/rankings", label: "Leagues", icon: "globe", active: pathname.startsWith("/rankings") },
-  ];
-  return <Bar tabs={tabs} />;
-}
-
-// --- League nav (prediction vs draft) --------------------------------------
-export function LeagueNav({ leagueId, kind }: { leagueId: string; kind: string }): JSX.Element {
-  const pathname = usePathname();
-  const search = useSearchParams();
-  const base = `/leagues/${leagueId}`;
-
-  if (kind === "draft") {
-    const tab = search.get("tab") ?? "board";
-    const tabs: Tab[] = [
-      { href: `${base}?tab=board`, label: "Board", icon: "trophy", active: tab === "board" },
-      { href: `${base}?tab=groups`, label: "Groups", icon: "grid", active: tab === "groups" },
-      { href: `${base}?tab=bracket`, label: "Bracket", icon: "bracket", active: tab === "bracket" },
-      { href: `${base}?tab=fixtures`, label: "Fixtures", icon: "calendar", active: tab === "fixtures" },
-    ];
-    return <Bar tabs={tabs} />;
-  }
-
-  // Prediction league = leaderboard ("Table", with /me + /players folded in) plus
-  // the shared "Matches" view. Picks are account-level now, so "Predict" and
-  // "Bracket" jump to the single global pages shared across all your leagues
-  // (active never highlights here — they navigate out to the top-level pages).
-  const tabs: Tab[] = [
-    {
-      href: base,
-      label: "Table",
-      icon: "trophy",
-      active: pathname === base || pathname.startsWith(`${base}/players`) || pathname.startsWith(`${base}/me`),
-    },
-    { href: "/predict", label: "Predict", icon: "target", active: false },
-    { href: "/bracket", label: "My Bracket", icon: "bracket", active: false },
-    { href: `${base}/matches`, label: "Matches", icon: "ball", active: pathname.startsWith(`${base}/matches`) },
   ];
   return <Bar tabs={tabs} />;
 }

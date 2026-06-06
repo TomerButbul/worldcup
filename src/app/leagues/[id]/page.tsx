@@ -1,9 +1,5 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import Leaderboard from "./Leaderboard";
-import LeagueNameEditor from "./LeagueNameEditor";
-import ShareInvite from "@/components/ShareInvite";
 import DraftRoom from "./DraftRoom";
 import type { FixtureDay } from "./DraftFixtures";
 import type { GroupStageGroup } from "./DraftGroupStage";
@@ -13,12 +9,6 @@ import {
   type MemberQueryRow,
   mapMember,
 } from "./draftTypes";
-import { btnClass, GOLD_GRADIENT } from "@/components/buttonStyles";
-import Reveal from "@/components/Reveal";
-import Ball from "@/components/art/Ball";
-import { Upfront, Live, Trophy as TrophyIcon, Medal } from "@/components/icons";
-import AutoRefresh from "@/components/AutoRefresh";
-import LeagueIntro from "@/components/LeagueIntro";
 import { nowMs, KICKOFF_MS } from "@/lib/clock";
 import { computeActuals, computeGroupTables, type MatchRow } from "@/lib/scoring-core";
 import { teamAt } from "@/lib/draft";
@@ -120,8 +110,9 @@ function buildKnockoutRounds(matches: MatchRow[]): BracketRound[] {
   }));
 }
 
-// Tabs for the completed-draft view. A separate bottom nav links to these via
-// ?tab=…; we just gate which section renders. "board" is the default/fallback.
+// Tabs for the completed-draft view. The draft room's own section tabs drive the
+// ?tab= value; here we just read it and gate which section renders. "board" is the
+// default/fallback.
 const DRAFT_TABS = ["board", "groups", "bracket", "fixtures"] as const;
 type DraftTab = (typeof DRAFT_TABS)[number];
 
@@ -334,178 +325,4 @@ export default async function LeaguePage({
       />
     );
   }
-
-  const locked = new Date(league.bracket_lock_at).getTime() <= nowMs();
-
-  const { data: scores } = await supabase
-    .from("scores")
-    .select("user_id, upfront_points, live_points, total_points, profiles ( display_name, team_name, avatar_url, favorite_team_id )")
-    .eq("league_id", id)
-    .order("total_points", { ascending: false });
-
-  const rows = (scores ?? []).map((s) => {
-    const p = s.profiles as unknown as {
-      display_name: string;
-      team_name: string | null;
-      avatar_url: string | null;
-      favorite_team_id: number | null;
-    };
-    return {
-      user_id: s.user_id,
-      name: p?.team_name || p?.display_name || "?",
-      avatarUrl: p?.avatar_url ?? null,
-      favTeamId: p?.favorite_team_id ?? null,
-      upfront: s.upfront_points,
-      live: s.live_points,
-      total: s.total_points,
-    };
-  });
-
-  // Nudge toward the under-discovered awards picker (award picks count toward
-  // the Upfront score). Show the prompt until they've made at least one.
-  const { data: myPred } = await supabase
-    .from("bracket_predictions")
-    .select("awards")
-    .eq("league_id", id)
-    .eq("user_id", user.id)
-    .maybeSingle();
-  const awardCount = myPred?.awards
-    ? Object.values(myPred.awards as Record<string, unknown>).filter((v) => v != null).length
-    : 0;
-  const needAwards = !locked && awardCount === 0;
-
-  // Your standing, for the desktop aside (keeps the right column populated so it
-  // never sits empty; mobile already highlights "you" in the table itself).
-  const myIndex = rows.findIndex((r) => r.user_id === user.id);
-  const myRow = myIndex >= 0 ? rows[myIndex] : null;
-  const myRank = myIndex >= 0 ? myIndex + 1 : null;
-
-  return (
-    <main className="mx-auto w-full max-w-2xl lg:max-w-[1600px] flex-1 space-y-4 p-4 sm:space-y-6 sm:p-6 lg:p-8">
-      <AutoRefresh enabled={nowMs() >= KICKOFF_MS} />
-      <LeagueIntro />
-      {/* Header — always full-width */}
-      <Reveal>
-        <div className="glass-strong rounded-3xl p-4 sm:p-6">
-          <Link href="/dashboard" className="text-sm text-chalk-dim hover:text-chalk">
-            &larr; Home
-          </Link>
-          <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <LeagueNameEditor
-                leagueId={id}
-                initialName={league.name}
-                isOwner={league.owner_id === user.id}
-              />
-              <p className="mt-1 text-sm text-chalk-dim">
-                Code <span className="rounded bg-night/5 px-2 py-0.5 font-mono text-gold">{league.join_code}</span>
-                {"  ·  "}
-                <span className={`inline-flex items-center gap-1.5 ${locked ? "text-red-600" : "text-grass"}`}>
-                  <span className={`inline-block size-2 rounded-full ${locked ? "bg-red-500" : "bg-grass"}`} />
-                  {locked ? "Bracket locked" : "Bracket open"}
-                </span>
-              </p>
-              <p className="mt-1 text-xs text-chalk-dim">
-                Your bracket, match scores &amp; awards are set once on your account and count in every league.
-              </p>
-              {league.join_code && (
-                <div className="mt-3">
-                  <ShareInvite code={league.join_code} />
-                </div>
-              )}
-            </div>
-            {/* Just the two destinations the bottom nav doesn't already cover:
-                your league recap (/me) + the primary predict CTA. Matches & Bracket
-                live in the bottom LeagueNav, so they're dropped here. */}
-            <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:shrink-0">
-              <Link href={`/leagues/${id}/me`} className={`${btnClass("ghost")} flex-1 text-center sm:flex-none`}>
-                <span className="inline-flex items-center justify-center gap-1.5"><Upfront size={15} /> My picks</span>
-              </Link>
-              <Link
-                href="/predict"
-                className={`${btnClass("gold")} flex-1 text-center sm:w-auto sm:flex-none`}
-                style={{ background: GOLD_GRADIENT, boxShadow: "var(--shadow-glow-gold)" }}
-              >
-                {locked ? "View predictions" : <span className="inline-flex items-center justify-center gap-1.5"><Ball size={15} /> Edit predictions</span>}
-              </Link>
-            </div>
-          </div>
-        </div>
-      </Reveal>
-
-      {/* Desktop: leaderboard (main) + awards nudge / secondary (aside) */}
-      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-8 lg:items-start">
-        {/* Main column — leaderboard */}
-        <Reveal index={2}>
-          <section>
-            <h2 className="mb-3 font-display text-xl text-chalk">Leaderboard</h2>
-            <Leaderboard leagueId={id} initialRows={rows} meId={user.id} />
-            <p className="mt-2 text-xs text-chalk-dim">
-              Three crowns: top Upfront{" "}
-              <Upfront size={12} className="align-[-2px] text-gold" />, top Live{" "}
-              <Live size={12} className="align-[-2px] text-gold" />, top Total{" "}
-              <TrophyIcon size={12} className="align-[-2px] text-gold" />. Updates live. Ties break by Upfront
-              points, then name.{" "}
-              <Link href="/how-it-works" className="font-semibold text-gold hover:text-gold-bright">
-                How scoring works &rarr;
-              </Link>
-            </p>
-          </section>
-        </Reveal>
-
-        {/* Aside — your standing (desktop) + awards nudge. Always populated on
-            desktop so the right column never sits empty. */}
-        <div className="mt-4 space-y-4 lg:mt-0">
-          {myRow && (
-            <div className="hidden glass-strong rounded-2xl p-4 lg:block">
-              <h3 className="mb-2 font-display text-xs uppercase tracking-wider text-chalk-dim">
-                Your standing
-              </h3>
-              <div className="flex items-baseline gap-2">
-                <span className="font-display text-4xl text-gradient-gold">
-                  {myRank ? `#${myRank}` : "—"}
-                </span>
-                <span className="text-sm text-chalk-dim">of {rows.length}</span>
-              </div>
-              <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-                <div className="rounded-xl bg-night/5 py-2">
-                  <Upfront size={14} className="mx-auto text-gold" />
-                  <div className="mt-1 font-display tabular-nums text-chalk">{myRow.upfront}</div>
-                  <div className="text-[10px] text-chalk-dim">Upfront</div>
-                </div>
-                <div className="rounded-xl bg-night/5 py-2">
-                  <Live size={14} className="mx-auto text-gold" />
-                  <div className="mt-1 font-display tabular-nums text-chalk">{myRow.live}</div>
-                  <div className="text-[10px] text-chalk-dim">Live</div>
-                </div>
-                <div className="rounded-xl bg-night/5 py-2">
-                  <TrophyIcon size={14} className="mx-auto text-gold" />
-                  <div className="mt-1 font-display tabular-nums text-chalk">{myRow.total}</div>
-                  <div className="text-[10px] text-chalk-dim">Total</div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {needAwards && (
-            <Reveal index={1}>
-              <Link
-                href="/awards"
-                className="flex items-center gap-3 rounded-2xl border border-gold/30 bg-gold/10 p-4 transition hover:bg-gold/20"
-              >
-                <Medal size={26} className="text-gold" />
-                <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-semibold text-chalk">Predict the tournament awards</span>
-                  <span className="block text-xs text-chalk-dim">
-                    Golden Boot, Ball, Glove &amp; Young Player — they count toward your Upfront score.
-                  </span>
-                </span>
-                <span className="shrink-0 text-lg text-gold">&rarr;</span>
-              </Link>
-            </Reveal>
-          )}
-        </div>
-      </div>
-    </main>
-  );
 }
