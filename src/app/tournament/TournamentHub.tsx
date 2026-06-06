@@ -519,7 +519,9 @@ function BracketView({
         )}
       </div>
       <div className="glass-strong rounded-3xl p-3 sm:p-5">
-        <KnockoutBracket rounds={rounds} teamsById={teamsById} championNo={104} locked fifaRank={fifaRank} actual />
+        {/* treeOnly = the full two-sided connected bracket (scrolls sideways on a
+            phone) rather than the paged round-by-round view — the showpiece view. */}
+        <KnockoutBracket rounds={rounds} teamsById={teamsById} championNo={104} locked treeOnly fifaRank={fifaRank} actual />
       </div>
     </div>
   );
