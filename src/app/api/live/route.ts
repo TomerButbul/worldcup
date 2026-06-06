@@ -16,10 +16,14 @@ type MiniTeam = { id: number; name: string; code: string | null; logo_url: strin
 // `matches` table (no API-Football call), so it's cheap to poll. Public data.
 export async function GET() {
   const supabase = createServiceClient();
+  // Live games, PLUS any that finished in the last 30 min so a match's final score
+  // lingers in the widget when it ends (instead of the game vanishing on the whistle).
+  // Finished fixtures stop being re-synced, so their updated_at ≈ the final whistle.
+  const cutoff = new Date(Date.now() - 30 * 60 * 1000).toISOString();
   const { data: matches } = await supabase
     .from("matches")
-    .select("id, stage, home_team_id, away_team_id, home_goals, away_goals, elapsed, kickoff_at")
-    .eq("status", "live")
+    .select("id, stage, status, home_team_id, away_team_id, home_goals, away_goals, elapsed, kickoff_at, updated_at")
+    .or(`status.eq.live,and(status.eq.finished,updated_at.gte.${cutoff})`)
     .order("kickoff_at");
 
   const teams = await getCachedTeams();
@@ -30,15 +34,20 @@ export async function GET() {
     return t ? { id: t.id, name: t.name, code: t.code, logo_url: t.logo_url } : null;
   };
 
-  const games = (matches ?? []).map((m) => ({
-    id: m.id,
-    stage: m.stage as string,
-    elapsed: (m as { elapsed?: number | null }).elapsed ?? null,
-    home: mini(m.home_team_id),
-    away: mini(m.away_team_id),
-    homeGoals: m.home_goals ?? 0,
-    awayGoals: m.away_goals ?? 0,
-  }));
+  // Live first, then just-finished — both ordered by kickoff so the slate reads
+  // in the natural order.
+  const games = (matches ?? [])
+    .map((m) => ({
+      id: m.id,
+      stage: m.stage as string,
+      done: m.status === "finished",
+      elapsed: (m as { elapsed?: number | null }).elapsed ?? null,
+      home: mini(m.home_team_id),
+      away: mini(m.away_team_id),
+      homeGoals: m.home_goals ?? 0,
+      awayGoals: m.away_goals ?? 0,
+    }))
+    .sort((a, b) => Number(a.done) - Number(b.done));
 
   return NextResponse.json({ games });
 }

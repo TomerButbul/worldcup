@@ -74,6 +74,7 @@ export function GlobalNav(): JSX.Element | null {
   const tabs: Tab[] = [
     { href: "/dashboard", label: "Home", icon: "home", active: pathname.startsWith("/dashboard") },
     { href: "/predict", label: "Predict", icon: "target", active: pathname.startsWith("/predict") },
+    { href: "/tournament", label: "Tournament", icon: "pitch", active: pathname.startsWith("/tournament") },
     {
       href: "/bracket",
       label: "Bracket",
@@ -121,7 +122,7 @@ export function LeagueNav({ leagueId, kind }: { leagueId: string; kind: string }
 }
 
 // --- Icons (inline SVG, currentColor — no emoji) ----------------------------
-type IconName = "home" | "globe" | "help" | "trophy" | "bracket" | "ball" | "target" | "grid" | "calendar";
+type IconName = "home" | "globe" | "help" | "trophy" | "bracket" | "ball" | "target" | "grid" | "calendar" | "pitch";
 
 function NavIcon({ name, size = 22 }: { name: IconName; size?: number }): JSX.Element {
   const p = {
@@ -201,6 +202,14 @@ function NavIcon({ name, size = 22 }: { name: IconName; size?: number }): JSX.El
         <svg {...p}>
           <rect x="4" y="5" width="16" height="16" rx="2" />
           <path d="M4 9h16M8 3v4M16 3v4" />
+        </svg>
+      );
+    case "pitch":
+      return (
+        <svg {...p}>
+          <rect x="3" y="5" width="18" height="14" rx="2" />
+          <path d="M12 5v14" />
+          <circle cx="12" cy="12" r="2.4" />
         </svg>
       );
   }

@@ -9,6 +9,7 @@ type Mini = { id: number; name: string; code: string | null; logo_url: string | 
 type Game = {
   id: number;
   stage: string;
+  done: boolean; // finished in the last ~30 min — kept around so the final score shows
   elapsed: number | null;
   home: Mini;
   away: Mini;
@@ -69,6 +70,8 @@ export default function LiveScoresWidget() {
 
   if (games.length === 0) return null;
 
+  const liveCount = games.filter((g) => !g.done).length;
+  const hasLive = liveCount > 0;
   const code = (t: Mini) => (t ? (t.code ?? t.name.slice(0, 3)).toUpperCase() : "—");
   const spring = { type: "spring" as const, stiffness: 380, damping: 30 };
 
@@ -87,7 +90,7 @@ export default function LiveScoresWidget() {
             transition={spring}
             className="glass grid h-7 w-7 place-items-center rounded-full shadow-md ring-1 ring-night/10 transition hover:scale-110"
           >
-            <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-red-500" />
+            <span className={`h-2.5 w-2.5 rounded-full ${hasLive ? "animate-pulse bg-red-500" : "bg-chalk-dim"}`} />
           </motion.button>
         ) : mode === "pill" ? (
           <motion.div
@@ -102,10 +105,12 @@ export default function LiveScoresWidget() {
               type="button"
               onClick={() => go("panel")}
               aria-label="Open live scores"
-              className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold text-red-600 transition hover:bg-night/5"
+              className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold transition hover:bg-night/5 ${
+                hasLive ? "text-red-600" : "text-chalk-dim"
+              }`}
             >
-              <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
-              {games.length} LIVE
+              <span className={`h-2 w-2 rounded-full ${hasLive ? "animate-pulse bg-red-500" : "bg-chalk-dim"}`} />
+              {hasLive ? `${liveCount} LIVE` : "FT"}
             </button>
             <button
               type="button"
@@ -126,9 +131,15 @@ export default function LiveScoresWidget() {
             className="glass-strong w-64 max-w-full overflow-hidden rounded-2xl shadow-xl ring-1 ring-night/10"
           >
             <div className="flex items-center justify-between gap-2 border-b border-night/10 px-3 py-1.5">
-              <span className="flex items-center gap-1.5 text-xs font-bold text-red-600">
-                <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
-                LIVE <span className="font-normal text-chalk-dim">· {games.length}</span>
+              <span className={`flex items-center gap-1.5 text-xs font-bold ${hasLive ? "text-red-600" : "text-chalk-dim"}`}>
+                <span className={`h-2 w-2 rounded-full ${hasLive ? "animate-pulse bg-red-500" : "bg-chalk-dim"}`} />
+                {hasLive ? (
+                  <>
+                    LIVE <span className="font-normal text-chalk-dim">· {liveCount}</span>
+                  </>
+                ) : (
+                  "FULL TIME"
+                )}
               </span>
               <span className="flex items-center gap-0.5">
                 <button
@@ -167,8 +178,8 @@ export default function LiveScoresWidget() {
                       <Flag teamId={g.away?.id ?? null} logoUrl={g.away?.logo_url ?? null} code={g.away?.code ?? null} name={g.away?.name ?? "?"} size={16} />
                       <span className="truncate font-semibold text-chalk">{code(g.away)}</span>
                     </span>
-                    <span className="w-6 shrink-0 text-right font-semibold tabular-nums text-red-600">
-                      {g.elapsed != null ? `${g.elapsed}'` : ""}
+                    <span className={`w-7 shrink-0 text-right font-semibold tabular-nums ${g.done ? "text-chalk-dim" : "text-red-600"}`}>
+                      {g.done ? "FT" : g.elapsed != null ? `${g.elapsed}'` : ""}
                     </span>
                     <span className="shrink-0 text-[10px] text-chalk-dim">›</span>
                   </Link>
