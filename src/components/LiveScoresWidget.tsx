@@ -9,13 +9,16 @@ type Mini = { id: number; name: string; code: string | null; logo_url: string | 
 type Game = {
   id: number;
   stage: string;
-  done: boolean; // finished in the last ~30 min — kept around so the final score shows
+  done: boolean; // finished within the linger window — kept briefly so the final score shows
   elapsed: number | null;
   home: Mini;
   away: Mini;
   homeGoals: number;
   awayGoals: number;
 };
+// The feed sorts live-first (by elapsed) then most-recently-finished (capped server-side),
+// and reports how many are live / how many finished results are shown.
+type Feed = { games?: Game[]; liveCount?: number; finishedShown?: number };
 type Mode = "panel" | "pill" | "hidden";
 
 // A floating live-scores widget with three states: the full panel, a compact
@@ -24,6 +27,9 @@ type Mode = "panel" | "pill" | "hidden";
 // when no games are live. Your chosen state is remembered across reloads.
 export default function LiveScoresWidget() {
   const [games, setGames] = useState<Game[]>([]);
+  // Trust the feed's live count when present (it knows which finished rows were capped);
+  // fall back to counting client-side so a stale/old-shape response still works.
+  const [liveCountServer, setLiveCountServer] = useState<number | null>(null);
   const [mode, setMode] = useState<Mode>(() => {
     if (typeof window === "undefined") return "pill";
     try {
@@ -40,8 +46,11 @@ export default function LiveScoresWidget() {
       try {
         const res = await fetch("/api/live", { cache: "no-store" });
         if (!res.ok) return;
-        const json = (await res.json()) as { games?: Game[] };
-        if (alive) setGames(json.games ?? []);
+        const json = (await res.json()) as Feed;
+        if (alive) {
+          setGames(json.games ?? []);
+          setLiveCountServer(typeof json.liveCount === "number" ? json.liveCount : null);
+        }
       } catch {
         /* offline / transient — keep last known */
       }
@@ -70,7 +79,10 @@ export default function LiveScoresWidget() {
 
   if (games.length === 0) return null;
 
-  const liveCount = games.filter((g) => !g.done).length;
+  // Prefer the feed's count; fall back to counting locally (covers a stale CDN response
+  // served briefly after a deploy, before the new shape propagates).
+  const liveCount = liveCountServer ?? games.filter((g) => !g.done).length;
+  const finishedCount = games.length - liveCount;
   const hasLive = liveCount > 0;
   const code = (t: Mini) => (t ? (t.code ?? t.name.slice(0, 3)).toUpperCase() : "—");
   const spring = { type: "spring" as const, stiffness: 380, damping: 30 };
@@ -136,9 +148,15 @@ export default function LiveScoresWidget() {
                 {hasLive ? (
                   <>
                     LIVE <span className="font-normal text-chalk-dim">· {liveCount}</span>
+                    {finishedCount > 0 && (
+                      <span className="font-normal text-chalk-dim">· {finishedCount} FT</span>
+                    )}
                   </>
                 ) : (
-                  "FULL TIME"
+                  <>
+                    FULL TIME
+                    {finishedCount > 1 && <span className="font-normal text-chalk-dim">· {finishedCount}</span>}
+                  </>
                 )}
               </span>
               <span className="flex items-center gap-0.5">
@@ -165,22 +183,37 @@ export default function LiveScoresWidget() {
                 <li key={g.id}>
                   <Link
                     href={`/match/${g.id}`}
-                    className="flex items-center gap-2 px-3 py-2 text-xs transition hover:bg-night/5"
+                    aria-label={g.done ? "Final result" : "Live match"}
+                    className={`flex items-center gap-2 px-3 py-2 text-xs transition hover:bg-night/5 ${
+                      g.done ? "opacity-65 hover:opacity-100" : ""
+                    }`}
                   >
                     <span className="flex min-w-0 flex-1 items-center justify-end gap-1.5">
                       <span className="truncate font-semibold text-chalk">{code(g.home)}</span>
                       <Flag teamId={g.home?.id ?? null} logoUrl={g.home?.logo_url ?? null} code={g.home?.code ?? null} name={g.home?.name ?? "?"} size={16} />
                     </span>
-                    <span className="shrink-0 rounded-md bg-night/5 px-2 py-0.5 font-display text-sm text-chalk">
+                    <span
+                      className={`shrink-0 rounded-md px-2 py-0.5 font-display text-sm text-chalk ${
+                        g.done ? "bg-night/[0.03]" : "bg-night/5"
+                      }`}
+                    >
                       {g.homeGoals}–{g.awayGoals}
                     </span>
                     <span className="flex min-w-0 flex-1 items-center gap-1.5">
                       <Flag teamId={g.away?.id ?? null} logoUrl={g.away?.logo_url ?? null} code={g.away?.code ?? null} name={g.away?.name ?? "?"} size={16} />
                       <span className="truncate font-semibold text-chalk">{code(g.away)}</span>
                     </span>
-                    <span className={`w-7 shrink-0 text-right font-semibold tabular-nums ${g.done ? "text-chalk-dim" : "text-red-600"}`}>
-                      {g.done ? "FT" : g.elapsed != null ? `${g.elapsed}'` : ""}
-                    </span>
+                    {g.done ? (
+                      <span className="flex w-7 shrink-0 justify-end">
+                        <span className="rounded bg-night/10 px-1 py-px text-[10px] font-bold tracking-wide text-chalk-dim">
+                          FT
+                        </span>
+                      </span>
+                    ) : (
+                      <span className="w-7 shrink-0 text-right font-semibold tabular-nums text-red-600">
+                        {g.elapsed != null ? `${g.elapsed}'` : "LIVE"}
+                      </span>
+                    )}
                     <span className="shrink-0 text-[10px] text-chalk-dim">›</span>
                   </Link>
                 </li>

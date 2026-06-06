@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type JSX, type ReactNode } from "react";
+import { useMemo, useState, type JSX } from "react";
 import Link from "next/link";
 import Flag from "@/components/Flag";
 import PlayerAvatar from "@/components/PlayerAvatar";
@@ -11,31 +11,14 @@ import AutoRefresh from "@/components/AutoRefresh";
 import Ball from "@/components/art/Ball";
 import Trophy from "@/components/art/Trophy";
 import { Boot, Net } from "@/components/icons";
-import { stageLabel } from "@/lib/stages";
 import type { GroupStandings, StandingRow } from "@/lib/tournament-standings";
 
 type TeamMini = { id: number; name: string; code: string | null; logo_url: string | null };
-type FixtureView = {
-  id: number;
-  stage: string;
-  group_label: string | null;
-  kickoff_at: string;
-  status: string;
-  elapsed: number | null;
-  home: number | null;
-  away: number | null;
-  homeGoals: number | null;
-  awayGoals: number | null;
-  winner: number | null;
-  venueName: string | null;
-  venueCity: string | null;
-};
 type LeaderRow = { playerId: number; count: number; name: string; teamId: number | null };
 
-type Tab = "fixtures" | "standings" | "scorers" | "bracket";
+type Tab = "standings" | "scorers" | "bracket";
 
 const TABS: { key: Tab; label: string; short: string }[] = [
-  { key: "fixtures", label: "Fixtures & Results", short: "Fixtures" },
   { key: "standings", label: "Group Standings", short: "Groups" },
   { key: "scorers", label: "Top Scorers", short: "Scorers" },
   { key: "bracket", label: "Knockout Bracket", short: "Bracket" },
@@ -43,26 +26,28 @@ const TABS: { key: Tab; label: string; short: string }[] = [
 
 export default function TournamentHub({
   teams,
-  fixtures,
   standings,
   scorers,
   assisters,
   bracketRounds,
   champion,
   fifaRank,
+  liveCount,
+  hasResults,
   started,
 }: {
   teams: TeamMini[];
-  fixtures: FixtureView[];
   standings: GroupStandings[];
   scorers: LeaderRow[];
   assisters: LeaderRow[];
   bracketRounds: BracketRound[];
   champion: number | null;
   fifaRank: Record<number, number>;
+  liveCount: number;
+  hasResults: boolean;
   started: boolean;
 }): JSX.Element {
-  const [tab, setTab] = useState<Tab>("fixtures");
+  const [tab, setTab] = useState<Tab>("standings");
 
   const teamsById = useMemo(() => {
     const m: Record<number, TeamMini> = {};
@@ -70,7 +55,6 @@ export default function TournamentHub({
     return m;
   }, [teams]);
 
-  const liveCount = fixtures.filter((f) => f.status === "live").length;
   const champTeam = champion != null ? teamsById[champion] : null;
 
   return (
@@ -87,7 +71,7 @@ export default function TournamentHub({
             <div>
               <h1 className="font-display text-3xl text-gradient-fifa sm:text-4xl">The Tournament</h1>
               <p className="mt-0.5 text-sm text-chalk-dim">
-                Every fixture &amp; result, live group tables, the Golden Boot race, and the real bracket.
+                Live group tables, the Golden Boot race, and the real knockout bracket.
               </p>
             </div>
             {liveCount > 0 && (
@@ -133,11 +117,10 @@ export default function TournamentHub({
         </nav>
       </header>
 
-      {tab === "fixtures" && <FixturesView fixtures={fixtures} teamsById={teamsById} />}
       {tab === "standings" && <StandingsView standings={standings} teamsById={teamsById} started={started} />}
       {tab === "scorers" && <ScorersView scorers={scorers} assisters={assisters} teamsById={teamsById} />}
       {tab === "bracket" && (
-        <BracketView rounds={bracketRounds} teams={teams} fifaRank={fifaRank} hasResults={fixtures.some((f) => f.status !== "scheduled")} />
+        <BracketView rounds={bracketRounds} teams={teams} fifaRank={fifaRank} hasResults={hasResults} />
       )}
 
       {!started && (
@@ -146,153 +129,6 @@ export default function TournamentHub({
         </p>
       )}
     </main>
-  );
-}
-
-// ── Fixtures & Results ──────────────────────────────────────────────────────
-
-function FixturesView({ fixtures, teamsById }: { fixtures: FixtureView[]; teamsById: Record<number, TeamMini> }) {
-  const [showAll, setShowAll] = useState(false);
-  const live = fixtures.filter((f) => f.status === "live");
-  const upcoming = fixtures.filter((f) => f.status === "scheduled");
-  const finished = fixtures.filter((f) => f.status === "finished").reverse(); // most recent first
-
-  const upcomingDays = groupByDay(upcoming);
-  const finishedDays = groupByDay(finished);
-  const VISIBLE_DAYS = 3;
-  const shownUpcoming = showAll ? upcomingDays : upcomingDays.slice(0, VISIBLE_DAYS);
-  const hiddenCount = upcomingDays.slice(VISIBLE_DAYS).reduce((s, d) => s + d.matches.length, 0);
-
-  if (fixtures.length === 0) {
-    return (
-      <p className="glass rounded-2xl p-8 text-center text-sm text-chalk-dim">
-        <Ball size={14} className="mr-1 inline-block align-[-2px]" />
-        No fixtures loaded yet.
-      </p>
-    );
-  }
-
-  return (
-    <div className="space-y-5">
-      {live.length > 0 && (
-        <section className="space-y-2">
-          <SectionTitle tone="live">Live now</SectionTitle>
-          <div className="grid gap-2 lg:grid-cols-2">
-            {live.map((f) => (
-              <FixtureRow key={f.id} f={f} teamsById={teamsById} />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {upcoming.length > 0 && (
-        <section className="space-y-3">
-          <SectionTitle>Upcoming</SectionTitle>
-          {shownUpcoming.map((d) => (
-            <DayBlock key={d.day} day={d.day} matches={d.matches} teamsById={teamsById} />
-          ))}
-          {!showAll && hiddenCount > 0 && (
-            <button
-              type="button"
-              onClick={() => setShowAll(true)}
-              className="glass w-full rounded-2xl p-3 text-center text-sm font-semibold text-gold transition hover:text-gold-bright"
-            >
-              Show the full schedule — {hiddenCount} more {hiddenCount === 1 ? "fixture" : "fixtures"} ▾
-            </button>
-          )}
-        </section>
-      )}
-
-      {finished.length > 0 && (
-        <section className="space-y-3">
-          <SectionTitle>Results</SectionTitle>
-          {finishedDays.map((d) => (
-            <DayBlock key={d.day} day={d.day} matches={d.matches} teamsById={teamsById} />
-          ))}
-        </section>
-      )}
-    </div>
-  );
-}
-
-function DayBlock({ day, matches, teamsById }: { day: string; matches: FixtureView[]; teamsById: Record<number, TeamMini> }) {
-  return (
-    <div className="space-y-2">
-      <h3 className="px-1 font-display text-sm text-chalk-dim">{day}</h3>
-      <div className="grid gap-2 lg:grid-cols-2">
-        {matches.map((f) => (
-          <FixtureRow key={f.id} f={f} teamsById={teamsById} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function FixtureRow({ f, teamsById }: { f: FixtureView; teamsById: Record<number, TeamMini> }) {
-  const home = f.home != null ? teamsById[f.home] : null;
-  const away = f.away != null ? teamsById[f.away] : null;
-  const live = f.status === "live";
-  const finished = f.status === "finished";
-  const showScore = live || finished;
-  const meta = f.group_label ? `Group ${f.group_label}` : stageLabel(f.stage);
-
-  return (
-    <Link
-      href={`/match/${f.id}`}
-      className="glass block rounded-2xl p-3 transition hover:ring-1 hover:ring-gold/40"
-    >
-      <div className="mb-1.5 flex items-center justify-between text-[11px] text-chalk-dim">
-        <span className="font-display uppercase tracking-wide text-gold/90">{meta}</span>
-        {live ? (
-          <span className="flex items-center gap-1 font-bold text-red-600">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-500" />
-            {f.elapsed != null ? `${f.elapsed}'` : "LIVE"}
-          </span>
-        ) : finished ? (
-          <span className="rounded bg-night/10 px-1.5 py-0.5 font-semibold text-chalk-dim">FT</span>
-        ) : (
-          // Kick-off time is rendered in the viewer's local timezone, which the
-          // server (UTC) can't match — suppress the (self-correcting) hydration diff.
-          <span className="tabular-nums" suppressHydrationWarning>
-            {fmtTime(f.kickoff_at)}
-          </span>
-        )}
-      </div>
-      <div className="flex items-center gap-2">
-        <TeamSide team={home} align="right" />
-        <span
-          className={`net shrink-0 rounded-lg px-2.5 py-1 text-center font-display tabular-nums ${
-            live ? "bg-red-500/10 text-red-600" : "bg-night/5 text-chalk"
-          }`}
-        >
-          {showScore ? `${f.homeGoals ?? 0}–${f.awayGoals ?? 0}` : <span className="text-sm text-chalk-dim">vs</span>}
-        </span>
-        <TeamSide team={away} align="left" />
-      </div>
-    </Link>
-  );
-}
-
-function TeamSide({ team, align }: { team: TeamMini | null; align: "left" | "right" }) {
-  const name = team?.name ?? "TBD";
-  const flag = (
-    <Flag teamId={team?.id ?? null} logoUrl={team?.logo_url ?? null} code={team?.code ?? null} name={name} size={22} className="shrink-0" />
-  );
-  const label = <span className="min-w-0 truncate text-sm font-semibold text-chalk">{name}</span>;
-  return (
-    <span className={`flex min-w-0 flex-1 items-center gap-1.5 ${align === "right" ? "justify-end" : "justify-start"}`}>
-      {align === "right" ? (
-        <>
-          {label}
-          {flag}
-        </>
-      ) : (
-        <>
-          {flag}
-          {label}
-        </>
-      )}
-    </span>
   );
 }
 
@@ -529,25 +365,9 @@ function BracketView({
 
 // ── Shared bits ─────────────────────────────────────────────────────────────
 
-function SectionTitle({ children, tone }: { children: ReactNode; tone?: "live" }) {
-  return (
-    <h2 className={`flex items-center gap-2 font-display text-xl ${tone === "live" ? "text-red-600" : "text-chalk"}`}>
-      {tone === "live" && <span className="inline-block h-2.5 w-2.5 animate-pulse rounded-full bg-red-600" />}
-      {children}
-    </h2>
-  );
-}
-
 function TabIcon({ tab }: { tab: Tab }) {
   const p = { width: 17, height: 17, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.9, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true };
   switch (tab) {
-    case "fixtures":
-      return (
-        <svg {...p}>
-          <rect x="4" y="5" width="16" height="16" rx="2" />
-          <path d="M4 9h16M8 3v4M16 3v4" />
-        </svg>
-      );
     case "standings":
       return (
         <svg {...p}>
@@ -565,26 +385,4 @@ function TabIcon({ tab }: { tab: Tab }) {
         </svg>
       );
   }
-}
-
-// Group fixtures into consecutive day blocks, labelled in the tournament's
-// North-American day (so a late UTC kickoff stays with its day's slate).
-function groupByDay(list: FixtureView[]): { day: string; matches: FixtureView[] }[] {
-  const out: { day: string; matches: FixtureView[] }[] = [];
-  for (const f of list) {
-    const day = new Date(f.kickoff_at).toLocaleDateString("en-US", {
-      timeZone: "America/New_York",
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-    });
-    const last = out[out.length - 1];
-    if (last && last.day === day) last.matches.push(f);
-    else out.push({ day, matches: [f] });
-  }
-  return out;
-}
-
-function fmtTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
 }

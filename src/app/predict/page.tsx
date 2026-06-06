@@ -174,9 +174,10 @@ export default async function PredictPage() {
         <Link href="/dashboard" className="text-sm text-chalk-dim hover:text-chalk">
           &larr; Home
         </Link>
-        <h1 className="mt-1 font-display text-3xl text-gradient-gold">Match predictions</h1>
+        <h1 className="mt-1 font-display text-3xl text-gradient-gold">Matches</h1>
         <p className="text-sm text-chalk-dim">
-          Predict scores &amp; goal scorers — set once, they count in every league. Each match locks at kickoff.
+          Every game — predict the score &amp; scorers before kickoff, then follow it live. Tap a match for
+          lineups, stats &amp; the live pitch. Picks count in every league.
         </p>
       </div>
 

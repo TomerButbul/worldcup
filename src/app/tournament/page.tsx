@@ -99,32 +99,20 @@ export default async function TournamentPage() {
       teamId: playerInfo.get(r.playerId)?.team_id ?? null,
     }));
 
-  const fixtures = matches.map((m) => ({
-    id: m.id,
-    stage: m.stage,
-    group_label: m.group_label,
-    kickoff_at: m.kickoff_at,
-    status: m.status,
-    elapsed: m.elapsed ?? null,
-    home: m.home_team_id,
-    away: m.away_team_id,
-    homeGoals: m.home_goals,
-    awayGoals: m.away_goals,
-    winner: m.winner_team_id ?? null,
-    venueName: m.venue_name ?? null,
-    venueCity: m.venue_city ?? null,
-  }));
+  const liveCount = matches.filter((m) => m.status === "live").length;
+  const hasResults = matches.some((m) => m.status !== "scheduled");
 
   return (
     <TournamentHub
       teams={teamList.map((t) => ({ id: t.id, name: t.name, code: t.code, logo_url: t.logo_url }))}
-      fixtures={fixtures}
       standings={standings}
       scorers={joinLeader(scorerRanks)}
       assisters={joinLeader(assistRanks)}
       bracketRounds={bracket.rounds}
       champion={bracket.champion}
       fifaRank={fifaRankRecord}
+      liveCount={liveCount}
+      hasResults={hasResults}
       started={nowMs() >= KICKOFF_MS}
     />
   );

@@ -10,16 +10,28 @@ import { getCachedTeams } from "@/lib/tournamentData";
 // `s-maxage=15, stale-while-revalidate` Cache-Control for the CDN from this.
 export const revalidate = 15;
 
+// How long a finished match lingers in the widget after the final whistle. A result
+// is only useful as a brief "catch the score I just missed" glance; after this it's
+// stale news (still on the match/tournament pages) and just clutter during a busy
+// slate. 12 min comfortably spans the ~15s edge cache + 45s client poll, so a result
+// is guaranteed to land and persist for several poll cycles before it clears.
+const FINISHED_LINGER_MS = 12 * 60 * 1000;
+
+// At most this many finished games are surfaced (most-recently-finished first). On a
+// heavy day several can end close together; capping keeps live games from being pushed
+// out and stops the panel from dominating a phone screen. Live games are never capped.
+const MAX_FINISHED = 3;
+
 type MiniTeam = { id: number; name: string; code: string | null; logo_url: string | null } | null;
 
 // Lightweight live-scores feed for the floating widget — reads our already-synced
 // `matches` table (no API-Football call), so it's cheap to poll. Public data.
 export async function GET() {
   const supabase = createServiceClient();
-  // Live games, PLUS any that finished in the last 30 min so a match's final score
-  // lingers in the widget when it ends (instead of the game vanishing on the whistle).
+  // Live games, PLUS any that finished within FINISHED_LINGER_MS so a match's final
+  // score lingers briefly when it ends (instead of vanishing on the whistle).
   // Finished fixtures stop being re-synced, so their updated_at ≈ the final whistle.
-  const cutoff = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+  const cutoff = new Date(Date.now() - FINISHED_LINGER_MS).toISOString();
   const { data: matches } = await supabase
     .from("matches")
     .select("id, stage, status, home_team_id, away_team_id, home_goals, away_goals, elapsed, kickoff_at, updated_at")
@@ -34,20 +46,43 @@ export async function GET() {
     return t ? { id: t.id, name: t.name, code: t.code, logo_url: t.logo_url } : null;
   };
 
-  // Live first, then just-finished — both ordered by kickoff so the slate reads
-  // in the natural order.
-  const games = (matches ?? [])
-    .map((m) => ({
-      id: m.id,
-      stage: m.stage as string,
-      done: m.status === "finished",
-      elapsed: (m as { elapsed?: number | null }).elapsed ?? null,
-      home: mini(m.home_team_id),
-      away: mini(m.away_team_id),
-      homeGoals: m.home_goals ?? 0,
-      awayGoals: m.away_goals ?? 0,
-    }))
-    .sort((a, b) => Number(a.done) - Number(b.done));
+  const rows = (matches ?? []).map((m) => {
+    const done = m.status === "finished";
+    return {
+      game: {
+        id: m.id,
+        stage: m.stage as string,
+        done,
+        elapsed: (m as { elapsed?: number | null }).elapsed ?? null,
+        home: mini(m.home_team_id),
+        away: mini(m.away_team_id),
+        homeGoals: m.home_goals ?? 0,
+        awayGoals: m.away_goals ?? 0,
+      },
+      // Sort key only — how recently it ended. updated_at ≈ the final whistle for
+      // finished fixtures (they stop being re-synced once over).
+      finishedAt: done ? Date.parse((m as { updated_at?: string | null }).updated_at ?? "") || 0 : 0,
+    };
+  });
 
-  return NextResponse.json({ games });
+  // Live games first — by elapsed desc so the match nearest full-time leads (kickoff
+  // already broke ties in the query; this also keeps half-time games, where elapsed
+  // stalls or goes null, grouped sensibly). Then finished, most-recently-ended first,
+  // capped to MAX_FINISHED so a busy slate never pushes the live games out of view.
+  const live = rows
+    .filter((r) => !r.game.done)
+    .sort((a, b) => (b.game.elapsed ?? -1) - (a.game.elapsed ?? -1))
+    .map((r) => r.game);
+  const finished = rows
+    .filter((r) => r.game.done)
+    .sort((a, b) => b.finishedAt - a.finishedAt)
+    .slice(0, MAX_FINISHED)
+    .map((r) => r.game);
+
+  const games = [...live, ...finished];
+
+  // `games[]` keeps the exact shape the widget consumes (id, stage, done, elapsed,
+  // home, away, homeGoals, awayGoals). The extra counts are additive and let the
+  // widget label "N LIVE" and note when finished results were capped.
+  return NextResponse.json({ games, liveCount: live.length, finishedShown: finished.length });
 }

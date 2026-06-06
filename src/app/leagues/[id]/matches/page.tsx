@@ -14,5 +14,5 @@ export default async function MatchesRedirect({ params }: { params: Promise<{ id
   if (!user) redirect("/signup");
   const { data: league } = await supabase.from("leagues").select("kind").eq("id", id).maybeSingle();
   if (league && (league.kind ?? "classic") === "draft") redirect(`/leagues/${id}?tab=fixtures`);
-  redirect("/tournament");
+  redirect("/predict");
 }

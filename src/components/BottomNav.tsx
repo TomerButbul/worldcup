@@ -77,7 +77,7 @@ export function GlobalNav({ force = false }: { force?: boolean } = {}): JSX.Elem
   if (!force && (pathname === "" || pathname === "/" || GLOBAL_HIDE.some((p) => pathname.startsWith(p)))) return null;
   const tabs: Tab[] = [
     { href: "/dashboard", label: "Home", icon: "home", active: pathname.startsWith("/dashboard") },
-    { href: "/predict", label: "Predict", icon: "target", active: pathname.startsWith("/predict") },
+    { href: "/predict", label: "Matches", icon: "ball", active: pathname.startsWith("/predict") },
     { href: "/tournament", label: "Tournament", icon: "pitch", active: pathname.startsWith("/tournament") },
     {
       href: "/bracket",

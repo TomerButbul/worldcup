@@ -239,7 +239,7 @@ export default async function DashboardPage({
               <div className="grid grid-cols-3 gap-2 sm:gap-3">
                 {[
                   { href: "/bracket", icon: <Trophy size={26} />, label: "Bracket" },
-                  { href: "/predict", icon: <Ball size={26} />, label: "Scores" },
+                  { href: "/predict", icon: <Ball size={26} />, label: "Matches" },
                   { href: "/awards", icon: <Medal size={26} />, label: "Awards" },
                 ].map((p) => (
                   <Link
