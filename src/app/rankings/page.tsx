@@ -47,13 +47,21 @@ export default async function RankingsPage({
   // Your private (friend) leagues = prediction leagues you're in, minus the global
   // World league (that's the Global board) and the sandbox test league.
   const friend: LeagueRow[] = [];
+  // Draft leagues are a different game (their own room + 3-pot standings); we
+  // surface them as link-pills in the switcher rather than inline boards.
+  const drafts: { id: string; name: string }[] = [];
   for (const m of (memberships ?? []) as { leagues: LeagueRow | LeagueRow[] | null }[]) {
     const lg = Array.isArray(m.leagues) ? m.leagues[0] : m.leagues;
     if (!lg) continue;
-    if (lg.id === SANDBOX_LEAGUE_ID || lg.is_global || (lg.kind ?? "classic") === "draft") continue;
+    if (lg.id === SANDBOX_LEAGUE_ID || lg.is_global) continue;
+    if ((lg.kind ?? "classic") === "draft") {
+      drafts.push({ id: lg.id, name: lg.name });
+      continue;
+    }
     friend.push(lg);
   }
   friend.sort((a, b) => a.name.localeCompare(b.name));
+  drafts.sort((a, b) => a.name.localeCompare(b.name));
 
   const leagues: LeagueBoard[] = await Promise.all(
     friend.map(async (lg) => {
@@ -99,6 +107,7 @@ export default async function RankingsPage({
         teams={slimTeams}
         global={ranks}
         leagues={leagues}
+        drafts={drafts}
         initialLeagueId={leagueParam ?? null}
       />
     </main>

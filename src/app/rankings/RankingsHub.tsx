@@ -30,12 +30,14 @@ export default function RankingsHub({
   teams,
   global,
   leagues,
+  drafts,
   initialLeagueId,
 }: {
   meId: string;
   teams: SlimTeam[];
   global: GlobalRank[];
   leagues: LeagueBoard[];
+  drafts: { id: string; name: string }[];
   initialLeagueId: string | null;
 }): JSX.Element {
   const [sel, setSel] = useState<string>(() =>
@@ -56,7 +58,9 @@ export default function RankingsHub({
             &larr; Home
           </Link>
 
-          {/* Switcher: Global + your private leagues */}
+          {/* Switcher: Global + your prediction leagues flip the board inline; draft
+              leagues are a different game (their own room + 3-pot standings), so
+              their pills link out to that room instead of swapping the board. */}
           <div className="mt-3 flex gap-1.5 overflow-x-auto pb-1">
             <button type="button" onClick={() => setSel("global")} className={pill(sel === "global")}>
               🌍 Global
@@ -66,9 +70,18 @@ export default function RankingsHub({
                 {l.name}
               </button>
             ))}
+            {drafts.map((d) => (
+              <Link
+                key={d.id}
+                href={`/leagues/${d.id}`}
+                className="flex shrink-0 items-center gap-1 rounded-full bg-electric/15 px-3.5 py-1.5 text-sm font-semibold text-electric ring-1 ring-inset ring-electric/30 transition hover:bg-electric/25"
+              >
+                🎲 {d.name} <span aria-hidden className="text-xs opacity-70">↗</span>
+              </Link>
+            ))}
             <Link
               href="/dashboard#leagues"
-              className="shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold text-gold transition hover:text-gold-bright"
+              className="flex shrink-0 items-center rounded-full border border-dashed border-gold/50 px-3.5 py-1.5 text-sm font-semibold text-gold transition hover:bg-gold/10"
             >
               + League
             </Link>
@@ -76,7 +89,10 @@ export default function RankingsHub({
 
           {/* Context header for the selected board */}
           {league ? (
-            <div className="mt-4 space-y-2">
+            // key per league so LeagueNameEditor + ShareInvite (both seed from props
+            // via useState) remount with the right name/code on switch — same stale-
+            // state trap the board had.
+            <div key={league.id} className="mt-4 space-y-2">
               <LeagueNameEditor leagueId={league.id} initialName={league.name} isOwner={league.isOwner} />
               <p className="text-sm text-chalk-dim">
                 Private league · {league.rows.length} {league.rows.length === 1 ? "manager" : "managers"}
@@ -100,7 +116,9 @@ export default function RankingsHub({
 
       <Reveal index={1}>
         {league ? (
-          <Leaderboard leagueId={league.id} initialRows={league.rows} meId={meId} />
+          // key forces a fresh mount per league — Leaderboard seeds its rows from
+          // initialRows once, so without this, switching league A→B kept A's board.
+          <Leaderboard key={league.id} leagueId={league.id} initialRows={league.rows} meId={meId} />
         ) : (
           <RankingsBoard ranks={global} teams={teams} meId={meId} />
         )}
