@@ -138,12 +138,14 @@ function PlayerChip({
   tone,
   label,
   photo,
+  ovr,
 }: {
   p: LineupPlayer;
   stat: Map<number, Stat>;
   tone: "home" | "away";
   label?: string;
   photo?: string | null;
+  ovr?: number | null;
 }) {
   const first = p.name.split(" ").slice(-1)[0] ?? p.name;
   const ring = tone === "home" ? "ring-grass" : "ring-white";
@@ -175,6 +177,11 @@ function PlayerChip({
               {p.number}
             </span>
           )}
+          {ovr != null && (
+            <span className="absolute -left-1 -top-1 grid h-[15px] min-w-[15px] place-items-center rounded-full bg-gold px-0.5 text-[8px] font-bold leading-none tabular-nums text-night ring-1 ring-white/60">
+              {ovr}
+            </span>
+          )}
           <Badges s={stat.get(p.player_id)} />
         </span>
         <span className="max-w-[3.25rem] truncate text-[9px] leading-tight text-chalk sm:max-w-[3.75rem]">{first}</span>
@@ -195,6 +202,7 @@ export default function Pitch({
   awayName,
   events,
   photoById = {},
+  ovrById = {},
 }: {
   home: LineupRow | null;
   away: LineupRow | null;
@@ -202,6 +210,7 @@ export default function Pitch({
   awayName: string;
   events: EventRow[];
   photoById?: Record<number, string | null>;
+  ovrById?: Record<number, number | null>;
 }) {
   const stat = aggregateStats(events);
   if (!home && !away) return null;
@@ -230,12 +239,12 @@ export default function Pitch({
 
         {aPos.map(({ p, x, y, label }) => (
           <div key={p.player_id} className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${x}%`, top: `${y}%` }}>
-            <PlayerChip p={p} stat={stat} tone="away" label={label} photo={photoById[p.player_id]} />
+            <PlayerChip p={p} stat={stat} tone="away" label={label} photo={photoById[p.player_id]} ovr={ovrById[p.player_id]} />
           </div>
         ))}
         {hPos.map(({ p, x, y, label }) => (
           <div key={p.player_id} className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${x}%`, top: `${y}%` }}>
-            <PlayerChip p={p} stat={stat} tone="home" label={label} photo={photoById[p.player_id]} />
+            <PlayerChip p={p} stat={stat} tone="home" label={label} photo={photoById[p.player_id]} ovr={ovrById[p.player_id]} />
           </div>
         ))}
       </div>

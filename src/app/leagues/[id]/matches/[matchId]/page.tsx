@@ -65,8 +65,8 @@ export default async function MatchSummaryPage({
       supabase.from("match_goals").select("player_id, goals").eq("match_id", matchNum),
       supabase.from("match_cards").select("player_id, team_id, type, minute").eq("match_id", matchNum),
       teamIds.length
-        ? supabase.from("players").select("id, name, team_id, photo_url").in("team_id", teamIds)
-        : Promise.resolve({ data: [] as { id: number; name: string; team_id: number | null; photo_url: string | null }[] }),
+        ? supabase.from("players").select("id, name, team_id, photo_url, ovr").in("team_id", teamIds)
+        : Promise.resolve({ data: [] as { id: number; name: string; team_id: number | null; photo_url: string | null; ovr: number | null }[] }),
       supabase
         .from("match_predictions")
         .select("user_id, home_goals, away_goals, scorer_goals, pen_winner_team_id, profiles ( display_name, team_name, avatar_url )")
@@ -92,9 +92,13 @@ export default async function MatchSummaryPage({
 
   const teamById = new Map((teams ?? []).map((t) => [t.id, t]));
   const playerById = new Map((players ?? []).map((p) => [p.id, p]));
-  // player_id → headshot, for the formation pitch.
+  // player_id → headshot + OVR, for the formation pitch.
   const photoById: Record<number, string | null> = {};
-  for (const p of players ?? []) photoById[p.id] = (p as { photo_url?: string | null }).photo_url ?? null;
+  const ovrById: Record<number, number | null> = {};
+  for (const p of players ?? []) {
+    photoById[p.id] = (p as { photo_url?: string | null }).photo_url ?? null;
+    ovrById[p.id] = (p as { ovr?: number | null }).ovr ?? null;
+  }
   const home = match.home_team_id ? teamById.get(match.home_team_id) : null;
   const away = match.away_team_id ? teamById.get(match.away_team_id) : null;
   const homeName = home?.name ?? "TBD";
@@ -121,7 +125,7 @@ export default async function MatchSummaryPage({
   const scoredFor = (teamId: number | null) =>
     [...goalCounts.entries()]
       .map(([pid, n]) => ({ player: playerById.get(pid), n }))
-      .filter((x): x is { player: { id: number; name: string; team_id: number | null; photo_url: string | null }; n: number } =>
+      .filter((x): x is { player: { id: number; name: string; team_id: number | null; photo_url: string | null; ovr: number | null }; n: number } =>
         !!x.player && x.player.team_id === teamId);
   const homeScorers = scoredFor(match.home_team_id);
   const awayScorers = scoredFor(match.away_team_id);
@@ -430,6 +434,7 @@ export default async function MatchSummaryPage({
           awayName={awayName}
           events={events}
           photoById={photoById}
+          ovrById={ovrById}
         />
       </section>
     ) : null;

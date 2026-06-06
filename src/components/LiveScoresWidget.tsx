@@ -19,12 +19,14 @@ type Game = {
 // to a tiny pill that's remembered across reloads.
 export default function LiveScoresWidget() {
   const [games, setGames] = useState<Game[]>([]);
+  // Default to the small collapsed pill so it never covers content uninvited —
+  // expand on tap, and remember that choice across reloads.
   const [open, setOpen] = useState<boolean>(() => {
-    if (typeof window === "undefined") return true;
+    if (typeof window === "undefined") return false;
     try {
-      return localStorage.getItem("liveWidgetCollapsed") !== "1";
+      return localStorage.getItem("liveWidgetOpen") === "1";
     } catch {
-      return true;
+      return false;
     }
   });
 
@@ -60,7 +62,7 @@ export default function LiveScoresWidget() {
   const toggle = useCallback((next: boolean) => {
     setOpen(next);
     try {
-      localStorage.setItem("liveWidgetCollapsed", next ? "0" : "1");
+      localStorage.setItem("liveWidgetOpen", next ? "1" : "0");
     } catch {}
   }, []);
 
@@ -69,7 +71,7 @@ export default function LiveScoresWidget() {
   const code = (t: Mini) => (t ? (t.code ?? t.name.slice(0, 3)).toUpperCase() : "—");
 
   return (
-    <div className="fixed bottom-[calc(env(safe-area-inset-bottom)+4.75rem)] right-3 z-30 max-w-[calc(100vw-1.5rem)]">
+    <div className="fixed right-3 top-[calc(env(safe-area-inset-top)+2.75rem)] z-40 max-w-[calc(100vw-1.5rem)] lg:top-[calc(env(safe-area-inset-top)+5rem)]">
       {open ? (
         <div className="glass-strong w-64 max-w-full overflow-hidden rounded-2xl border border-night/10 shadow-lg">
           <div className="flex items-center justify-between gap-2 border-b border-night/10 px-3 py-1.5">
