@@ -17,6 +17,7 @@ import Countdown from "@/components/Countdown";
 import NotificationToggle from "@/components/NotificationToggle";
 import NextMatchCard, { type NextMatchData } from "@/components/NextMatchCard";
 import SupportCard from "@/components/SupportCard";
+import ShareBracket from "@/components/ShareBracket";
 import { SUPPORT_URL } from "@/lib/site";
 import { computeFavStatus } from "@/lib/favoriteStatus";
 import AutoRefresh from "@/components/AutoRefresh";
@@ -40,7 +41,7 @@ export default async function DashboardPage({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("display_name, team_name, avatar_url, favorite_team_id, notif_prefs")
+    .select("display_name, team_name, avatar_url, favorite_team_id, notif_prefs, share_slug")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -248,6 +249,14 @@ export default async function DashboardPage({
               <p className="px-1 text-xs text-chalk-dim">
                 Make them once — <span className="text-chalk">no league needed</span>. They count on the global rankings and in every league you join.
               </p>
+              {profile?.share_slug && (
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-1 pt-1">
+                  <span className="text-xs text-chalk-dim">
+                    Built your bracket? Share a public link — no account needed.
+                  </span>
+                  <ShareBracket slug={profile.share_slug} />
+                </div>
+              )}
             </section>
           </Reveal>
 

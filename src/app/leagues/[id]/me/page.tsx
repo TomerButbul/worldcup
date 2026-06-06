@@ -7,6 +7,7 @@ import Flag from "@/components/Flag";
 import Ball from "@/components/art/Ball";
 import Trophy from "@/components/art/Trophy";
 import ShareButton from "./ShareButton";
+import ShareBracket from "@/components/ShareBracket";
 import KnockoutBracket from "@/components/KnockoutBracket";
 import { predictedBracketRounds } from "@/lib/bracket-core";
 import { Boot, Glove, Star, Medal } from "@/components/icons";
@@ -57,7 +58,7 @@ export default async function MyPredictionsPage({
         .from("matches")
         .select("id, group_label, home_team_id, away_team_id, stage")
         .order("kickoff_at"),
-      supabase.from("profiles").select("favorite_team_id").eq("id", user.id).maybeSingle(),
+      supabase.from("profiles").select("favorite_team_id, share_slug").eq("id", user.id).maybeSingle(),
     ]);
 
   const teams = await getCachedTeams();
@@ -161,9 +162,12 @@ export default async function MyPredictionsPage({
 
       {/* Header card */}
       <div className="glass-strong rounded-3xl p-5">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="font-display text-2xl text-gradient-gold">Your predictions</h1>
-          <ShareButton />
+          <div className="flex flex-wrap items-center gap-2">
+            {myProfile?.share_slug && <ShareBracket slug={myProfile.share_slug} />}
+            <ShareButton />
+          </div>
         </div>
         <div className="mt-2">
           {locked ? (
