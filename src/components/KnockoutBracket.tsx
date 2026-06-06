@@ -41,6 +41,17 @@ const SHORT_LABEL: Record<string, string> = {
   final: "Final",
 };
 
+// The knockout rounds in play order, for the date-schedule strip above the tree
+// (kept out of the geometric columns so it can't disturb connector alignment).
+const SCHEDULE_ROWS: { stage: string; short: string }[] = [
+  { stage: "round_of_32", short: "R32" },
+  { stage: "round_of_16", short: "R16" },
+  { stage: "quarter", short: "QF" },
+  { stage: "semi", short: "SF" },
+  { stage: "third_place", short: "🥉 3rd" },
+  { stage: "final", short: "🏆 Final" },
+];
+
 // Two-sided ("classic") bracket — which canonical match numbers sit in each
 // column, top→bottom, for the left and right halves. The 16 R32 ties split 8/8
 // and the halves converge on the centre Final (match 104) — this halves the
@@ -68,6 +79,7 @@ export default function KnockoutBracket({
   championNo,
   treeOnly,
   fifaRank = {},
+  roundDates,
   actual,
 }: {
   rounds: BracketRound[]; // in tournament order: R32 … Final
@@ -78,6 +90,7 @@ export default function KnockoutBracket({
   championNo?: number; // canonical no of the final (104) — its winner is crowned
   treeOnly?: boolean; // force the connected-tree view + hide the toggle (read-only displays)
   fifaRank?: Record<number, number>; // teamId → FIFA rank, shown as #N (hold a team for its card)
+  roundDates?: Record<string, string>; // stage → date window ("Jun 28 – Jul 3"), shown under round labels
   actual?: boolean; // real results bracket → neutral podium wording (not "predicted")
 }): JSX.Element {
   const highlight = new Set(highlightIds ?? []);
@@ -290,7 +303,10 @@ export default function KnockoutBracket({
   for (const r of rounds) for (const m of r.matches) matchByNo.set(m.no, m);
   const mget = (no: number): BracketMatch => matchByNo.get(no) ?? { no, home: null, away: null, winner: null };
 
-  // One round column (label + its match cards spread by justify-around).
+  // One round column (label + its match cards spread by justify-around). Header
+  // height is kept to a single line so it matches the connector columns' spacer —
+  // that parity is what lands the elbows dead-on their feeders, so round DATES go
+  // in a separate strip above the tree (see scheduleStrip) rather than here.
   const treeCol = (nos: number[], label: string) => (
     <div className="flex w-[104px] flex-col px-0.5 lg:w-[136px]">
       <div className="mb-1 text-center font-display text-[9px] uppercase tracking-wide text-chalk-dim lg:text-[11px]">{label}</div>
@@ -393,7 +409,9 @@ export default function KnockoutBracket({
               <span className="opacity-50">
                 <Trophy size={22} />
               </span>
-              <span className="font-display text-xs uppercase tracking-wide">Win the Final to crown your champion</span>
+              <span className="font-display text-xs uppercase tracking-wide">
+                {actual ? "The World Champion will be crowned here" : "Win the Final to crown your champion"}
+              </span>
             </div>
           )}
 
@@ -402,6 +420,24 @@ export default function KnockoutBracket({
             {highlight.size > 0 && <span className="text-gold">★ = your path</span>}
             <span className="text-chalk-dim/70">scroll sideways for every round</span>
           </div>
+
+          {/* Round schedule — when each knockout round is played. Lives outside the
+              geometric tree (its own row) so it never shifts the connector elbows.
+              Most useful while the bracket is still an empty pre-tournament skeleton. */}
+          {roundDates && SCHEDULE_ROWS.some((r) => roundDates[r.stage]) && (
+            <div className="flex flex-wrap items-center justify-center gap-1.5">
+              {SCHEDULE_ROWS.map((r) =>
+                roundDates[r.stage] ? (
+                  <span
+                    key={r.stage}
+                    className="rounded-full bg-night/5 px-2 py-0.5 text-[10px] text-chalk-dim ring-1 ring-night/5"
+                  >
+                    <span className="font-semibold text-chalk">{r.short}</span> {roundDates[r.stage]}
+                  </span>
+                ) : null,
+              )}
+            </div>
+          )}
 
           <div className="overflow-x-auto pb-1">
             {/* Fixed height keeps justify-around spacing uniform so the connector
@@ -462,9 +498,10 @@ export default function KnockoutBracket({
                   })}
                 </div>
 
-                {/* 3rd-place card — smaller + subdued, directly below the Final */}
-                {mget(103).home != null && (
-                  <>
+                {/* 3rd-place card — smaller + subdued, directly below the Final.
+                    Always shown (TBD until the semis resolve) so the bronze
+                    connectors never dangle into empty space on the skeleton. */}
+                <>
                     <div className="absolute left-1/2 top-[calc(50%+92px)] w-[126px] -translate-x-1/2 -translate-y-1/2 rounded-lg bg-white/80 p-1.5 shadow-sm ring-1 ring-[#cd7f32]/45 lg:top-[calc(50%+118px)] lg:w-[156px]">
                       {[mget(103).home, mget(103).away].map((tid, i) => {
                         const m3 = mget(103);
@@ -489,8 +526,7 @@ export default function KnockoutBracket({
                     <div className="absolute left-1/2 top-[calc(50%+126px)] -translate-x-1/2 whitespace-nowrap font-display text-[8px] uppercase tracking-[0.12em] text-[#b87333] lg:top-[calc(50%+152px)]">
                       🥉 3rd place
                     </div>
-                  </>
-                )}
+                </>
               </div>
 
               {/* RIGHT half — mirrored, flows leftward toward the centre */}
@@ -539,7 +575,14 @@ export default function KnockoutBracket({
 
           {/* Active round header */}
           <div className="flex items-baseline justify-between">
-            <h3 className="font-display text-base text-gold">{round.label}</h3>
+            <h3 className="font-display text-base text-gold">
+              {round.label}
+              {roundDates?.[round.stage] && (
+                <span className="ml-2 align-middle text-[11px] font-normal text-chalk-dim">
+                  {roundDates[round.stage]}
+                </span>
+              )}
+            </h3>
             <span className="text-xs tabular-nums text-chalk-dim">
               {pickedInRound}/{round.matches.length}
             </span>

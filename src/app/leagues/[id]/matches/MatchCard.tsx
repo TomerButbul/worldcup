@@ -525,6 +525,7 @@ function TeamScorers({
         <PlayerCardButton
           playerId={p.id}
           name={p.name}
+          action={atCap ? undefined : { label: sel ? "⚽ Add another goal" : "⚽ Add a goal", run: () => onAdjust(p.id, 1) }}
           className="flex min-w-0 flex-1 items-center gap-2 text-left transition hover:opacity-80"
         >
           <PlayerAvatar playerId={p.id} name={p.name} size={28} />
@@ -638,7 +639,15 @@ function TeamScorers({
         </button>
         <button
           type="button"
-          onClick={() => openPlayerCard({ playerId: p.id, name: p.name })}
+          onClick={() =>
+            openPlayerCard({
+              playerId: p.id,
+              name: p.name,
+              action: atCap
+                ? undefined
+                : { label: count > 0 ? "⚽ Add another goal" : "⚽ Add a goal", run: () => onAdjust(p.id, 1) },
+            })
+          }
           aria-label={`${p.name} — stats & details`}
           className="flex max-w-[4.25rem] flex-col items-center gap-0.5"
         >

@@ -10,18 +10,18 @@ import KnockoutBracket, { type BracketRound, type BracketTeam } from "@/componen
 import AutoRefresh from "@/components/AutoRefresh";
 import Ball from "@/components/art/Ball";
 import Trophy from "@/components/art/Trophy";
-import { Boot, Net } from "@/components/icons";
+import { Boot, Net, Glove } from "@/components/icons";
 import type { GroupStandings, StandingRow } from "@/lib/tournament-standings";
 
 type TeamMini = { id: number; name: string; code: string | null; logo_url: string | null };
 type LeaderRow = { playerId: number; count: number; name: string; teamId: number | null };
 
-type Tab = "standings" | "scorers" | "bracket";
+type Tab = "standings" | "bracket" | "leaders";
 
 const TABS: { key: Tab; label: string; short: string }[] = [
   { key: "standings", label: "Group Standings", short: "Groups" },
-  { key: "scorers", label: "Top Scorers", short: "Scorers" },
   { key: "bracket", label: "Knockout Bracket", short: "Bracket" },
+  { key: "leaders", label: "Player Leaders", short: "Leaders" },
 ];
 
 export default function TournamentHub({
@@ -29,9 +29,11 @@ export default function TournamentHub({
   standings,
   scorers,
   assisters,
+  keepers,
   bracketRounds,
   champion,
   fifaRank,
+  roundDates,
   liveCount,
   hasResults,
   started,
@@ -40,9 +42,11 @@ export default function TournamentHub({
   standings: GroupStandings[];
   scorers: LeaderRow[];
   assisters: LeaderRow[];
+  keepers: LeaderRow[];
   bracketRounds: BracketRound[];
   champion: number | null;
   fifaRank: Record<number, number>;
+  roundDates: Record<string, string>;
   liveCount: number;
   hasResults: boolean;
   started: boolean;
@@ -94,8 +98,8 @@ export default function TournamentHub({
           )}
         </div>
 
-        {/* Tab bar */}
-        <nav className="flex gap-1 overflow-x-auto border-t border-night/10 px-2 py-2">
+        {/* Tab bar — three equal columns so the labels sit evenly across the width. */}
+        <nav className="grid grid-cols-3 gap-1 border-t border-night/10 px-2 py-2">
           {TABS.map((t) => {
             const active = tab === t.key;
             return (
@@ -104,7 +108,7 @@ export default function TournamentHub({
                 type="button"
                 onClick={() => setTab(t.key)}
                 aria-current={active ? "page" : undefined}
-                className={`flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold transition ${
+                className={`flex w-full items-center justify-center gap-1.5 rounded-xl px-2 py-2 text-sm font-semibold transition ${
                   active ? "bg-gold text-night glow-gold" : "text-chalk-dim hover:bg-night/5 hover:text-chalk"
                 }`}
               >
@@ -118,9 +122,17 @@ export default function TournamentHub({
       </header>
 
       {tab === "standings" && <StandingsView standings={standings} teamsById={teamsById} started={started} />}
-      {tab === "scorers" && <ScorersView scorers={scorers} assisters={assisters} teamsById={teamsById} />}
       {tab === "bracket" && (
-        <BracketView rounds={bracketRounds} teams={teams} fifaRank={fifaRank} hasResults={hasResults} />
+        <BracketView
+          rounds={bracketRounds}
+          teams={teams}
+          fifaRank={fifaRank}
+          roundDates={roundDates}
+          hasResults={hasResults}
+        />
+      )}
+      {tab === "leaders" && (
+        <LeadersView scorers={scorers} assisters={assisters} keepers={keepers} teamsById={teamsById} />
       )}
 
       {!started && (
@@ -233,21 +245,24 @@ function StandingTr({ r, pos, team }: { r: StandingRow; pos: number; team: TeamM
   );
 }
 
-// ── Top scorers & assists ───────────────────────────────────────────────────
+// ── Player leaderboards (Golden Boot · Playmakers · Golden Glove) ────────────
 
-function ScorersView({
+function LeadersView({
   scorers,
   assisters,
+  keepers,
   teamsById,
 }: {
   scorers: LeaderRow[];
   assisters: LeaderRow[];
+  keepers: LeaderRow[];
   teamsById: Record<number, TeamMini>;
 }) {
   return (
-    <div className="grid gap-3 lg:grid-cols-2">
+    <div className="grid gap-3 lg:grid-cols-3">
       <LeaderBoard
-        title="Golden Boot race"
+        title="Golden Boot"
+        subtitle="Most goals"
         rows={scorers}
         teamsById={teamsById}
         icon={<Boot size={18} className="text-gold" />}
@@ -255,12 +270,22 @@ function ScorersView({
         empty="No goals yet — the race for the Golden Boot starts at kick-off."
       />
       <LeaderBoard
-        title="Top assists"
+        title="Playmakers"
+        subtitle="Most assists"
         rows={assisters}
         teamsById={teamsById}
         icon={<Net size={18} className="text-electric" />}
         unit="assists"
         empty="No assists registered yet."
+      />
+      <LeaderBoard
+        title="Golden Glove"
+        subtitle="Keeper clean sheets"
+        rows={keepers}
+        teamsById={teamsById}
+        icon={<Glove size={18} className="text-sky-500" />}
+        unit="clean sheets"
+        empty="No clean sheets yet — shutouts count once knockout defences hold."
       />
     </div>
   );
@@ -268,6 +293,7 @@ function ScorersView({
 
 function LeaderBoard({
   title,
+  subtitle,
   rows,
   teamsById,
   icon,
@@ -275,6 +301,7 @@ function LeaderBoard({
   empty,
 }: {
   title: string;
+  subtitle?: string;
   rows: LeaderRow[];
   teamsById: Record<number, TeamMini>;
   icon: JSX.Element;
@@ -285,7 +312,10 @@ function LeaderBoard({
     <div className="glass overflow-hidden rounded-2xl">
       <div className="flex items-center gap-2 border-b border-night/10 px-4 py-2.5">
         {icon}
-        <h3 className="font-display text-base text-chalk">{title}</h3>
+        <div className="min-w-0 leading-tight">
+          <h3 className="font-display text-base text-chalk">{title}</h3>
+          {subtitle && <p className="text-[10px] uppercase tracking-wide text-chalk-dim">{subtitle}</p>}
+        </div>
       </div>
       {rows.length === 0 ? (
         <p className="p-6 text-center text-sm text-chalk-dim">{empty}</p>
@@ -330,11 +360,13 @@ function BracketView({
   rounds,
   teams,
   fifaRank,
+  roundDates,
   hasResults,
 }: {
   rounds: BracketRound[];
   teams: TeamMini[];
   fifaRank: Record<number, number>;
+  roundDates: Record<string, string>;
   hasResults: boolean;
 }) {
   const teamsById: Record<number, BracketTeam> = {};
@@ -357,7 +389,16 @@ function BracketView({
       <div className="glass-strong rounded-3xl p-3 sm:p-5">
         {/* treeOnly = the full two-sided connected bracket (scrolls sideways on a
             phone) rather than the paged round-by-round view — the showpiece view. */}
-        <KnockoutBracket rounds={rounds} teamsById={teamsById} championNo={104} locked treeOnly fifaRank={fifaRank} actual />
+        <KnockoutBracket
+          rounds={rounds}
+          teamsById={teamsById}
+          championNo={104}
+          locked
+          treeOnly
+          fifaRank={fifaRank}
+          roundDates={roundDates}
+          actual
+        />
       </div>
     </div>
   );
@@ -375,8 +416,13 @@ function TabIcon({ tab }: { tab: Tab }) {
           <path d="M9 4v16" strokeWidth={1.3} />
         </svg>
       );
-    case "scorers":
-      return <Boot size={17} />;
+    case "leaders":
+      // Podium / ranking bars — the tab now spans goals, assists & clean sheets.
+      return (
+        <svg {...p}>
+          <path d="M5 21V11M12 21V4M19 21v-7" />
+        </svg>
+      );
     case "bracket":
       return (
         <svg {...p}>

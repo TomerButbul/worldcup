@@ -3,7 +3,7 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { getCachedTeams } from "@/lib/tournamentData";
 import { liveGroupStandings } from "@/lib/tournament-standings";
 import { resolveActualBracket } from "@/lib/actual-bracket";
-import { topScorers, topAssists } from "@/lib/tournament-stats";
+import { topScorers, topAssists, topCleanSheets } from "@/lib/tournament-stats";
 import { nowMs, KICKOFF_MS } from "@/lib/clock";
 import TournamentHub from "./TournamentHub";
 
@@ -22,20 +22,23 @@ export default async function TournamentPage() {
   if (!user) redirect("/signup");
 
   const svc = createServiceClient();
-  const [{ data: matchesRaw }, teams, { data: goalsRaw }, { data: assistsRaw }] = await Promise.all([
-    svc
-      .from("matches")
-      .select(
-        "id, stage, group_label, kickoff_at, status, elapsed, home_team_id, away_team_id, home_goals, away_goals, winner_team_id, venue_name, venue_city",
-      )
-      .lt("id", 9_000_000) // hide sentinel test fixtures (the Sandbox dress-rehearsal game)
-      .order("kickoff_at"),
-    getCachedTeams(),
-    svc.from("match_goals").select("player_id, goals").lt("match_id", 9_000_000),
-    // Only rows with an assist — keeps the result well under PostgREST's 1000-row
-    // cap (there are ~26×2×104 appearance rows over a full tournament).
-    svc.from("match_player_stats").select("player_id, assists").gt("assists", 0).lt("match_id", 9_000_000),
-  ]);
+  const [{ data: matchesRaw }, teams, { data: goalsRaw }, { data: assistsRaw }, { data: gkRaw }] =
+    await Promise.all([
+      svc
+        .from("matches")
+        .select(
+          "id, stage, group_label, kickoff_at, status, elapsed, home_team_id, away_team_id, home_goals, away_goals, winner_team_id, venue_name, venue_city",
+        )
+        .lt("id", 9_000_000) // hide sentinel test fixtures (the Sandbox dress-rehearsal game)
+        .order("kickoff_at"),
+      getCachedTeams(),
+      svc.from("match_goals").select("player_id, goals").lt("match_id", 9_000_000),
+      // Only rows with an assist — keeps the result well under PostgREST's 1000-row
+      // cap (there are ~26×2×104 appearance rows over a full tournament).
+      svc.from("match_player_stats").select("player_id, assists").gt("assists", 0).lt("match_id", 9_000_000),
+      // Goalkeepers (id + nation) → the Golden Glove board. Few rows (~3 per team).
+      svc.from("players").select("id, team_id").eq("position", "Goalkeeper"),
+    ]);
 
   const matches = matchesRaw ?? [];
   const teamList = teams as {
@@ -85,7 +88,41 @@ export default async function TournamentPage() {
   // comes free from the media CDN via <PlayerAvatar>).
   const scorerRanks = topScorers(goalsRaw ?? []).slice(0, 25);
   const assistRanks = topAssists(assistsRaw ?? []).slice(0, 25);
-  const pidSet = new Set<number>([...scorerRanks.map((r) => r.playerId), ...assistRanks.map((r) => r.playerId)]);
+
+  // Golden Glove — keepers' clean sheets. Pull ONLY keepers' appearance rows
+  // (filtered to their ids) so the result stays well under the 1000-row cap, then
+  // tally finished shutouts against the match results we already fetched.
+  const gkRows = (gkRaw ?? []) as { id: number; team_id: number | null }[];
+  const gkIds = gkRows.map((g) => g.id);
+  let cleanSheetRanks: { playerId: number; count: number }[] = [];
+  if (gkIds.length > 0) {
+    const { data: gkApps } = await svc
+      .from("match_player_stats")
+      .select("player_id, match_id, minutes")
+      .gt("minutes", 0)
+      .in("player_id", gkIds)
+      .lt("match_id", 9_000_000);
+    const teamOf = new Map<number, number | null>(gkRows.map((g) => [g.id, g.team_id]));
+    const matchById = new Map(
+      matches.map((m) => [
+        m.id,
+        {
+          home_team_id: m.home_team_id,
+          away_team_id: m.away_team_id,
+          home_goals: m.home_goals,
+          away_goals: m.away_goals,
+          status: m.status,
+        },
+      ]),
+    );
+    cleanSheetRanks = topCleanSheets(gkApps ?? [], teamOf, matchById).slice(0, 25);
+  }
+
+  const pidSet = new Set<number>([
+    ...scorerRanks.map((r) => r.playerId),
+    ...assistRanks.map((r) => r.playerId),
+    ...cleanSheetRanks.map((r) => r.playerId),
+  ]);
   const playerInfo = new Map<number, { name: string; team_id: number | null }>();
   if (pidSet.size > 0) {
     const { data: pl } = await svc.from("players").select("id, name, team_id").in("id", [...pidSet]);
@@ -102,15 +139,36 @@ export default async function TournamentPage() {
   const liveCount = matches.filter((m) => m.status === "live").length;
   const hasResults = matches.some((m) => m.status !== "scheduled");
 
+  // Per-round date windows for the (mostly empty) knockout bracket. Every knockout
+  // fixture is seeded with a kickoff even before its teams are known, so grouping
+  // by stage → min/max kickoff tells viewers WHEN each round is played. Formatted
+  // date-only in UTC on the server → one stable string, no client-tz hydration drift.
+  const KO_STAGES = ["round_of_32", "round_of_16", "quarter", "semi", "third_place", "final"];
+  const fmtDay = (ms: number) =>
+    new Date(ms).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+  const roundDates: Record<string, string> = {};
+  for (const stage of KO_STAGES) {
+    const ks = matches
+      .filter((m) => m.stage === stage && m.kickoff_at)
+      .map((m) => new Date(m.kickoff_at as string).getTime())
+      .filter((n) => Number.isFinite(n));
+    if (ks.length === 0) continue;
+    const lo = fmtDay(Math.min(...ks));
+    const hi = fmtDay(Math.max(...ks));
+    roundDates[stage] = lo === hi ? lo : `${lo} – ${hi}`;
+  }
+
   return (
     <TournamentHub
       teams={teamList.map((t) => ({ id: t.id, name: t.name, code: t.code, logo_url: t.logo_url }))}
       standings={standings}
       scorers={joinLeader(scorerRanks)}
       assisters={joinLeader(assistRanks)}
+      keepers={joinLeader(cleanSheetRanks)}
       bracketRounds={bracket.rounds}
       champion={bracket.champion}
       fifaRank={fifaRankRecord}
+      roundDates={roundDates}
       liveCount={liveCount}
       hasResults={hasResults}
       started={nowMs() >= KICKOFF_MS}
