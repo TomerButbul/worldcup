@@ -481,7 +481,6 @@ function TeamScorers({
 }) {
   const [query, setQuery] = useState("");
   const [showAll, setShowAll] = useState(false);
-  const longPress = useLongPress();
   const atCap = sum >= cap;
   const starters = new Set(lineup?.starters ?? []);
   const subs = new Set(lineup?.subs ?? []);
@@ -606,19 +605,25 @@ function TeamScorers({
       pitchNodes.push({ p: n.p, x: ((i + 0.5) / sorted.length) * 100, y: 88 - frac * 74 }),
     );
   }
+  // Two clear targets (no flaky long-press): tap the FACE to add a goal, tap the
+  // NAME for the player's card/stats. The tile shows position + OVR at a glance.
   const pitchNode = ({ p, x, y }: { p: Player; x: number; y: number }) => {
     const count = scorerGoals[String(p.id)] ?? 0;
+    const pos = posShort(p.position);
+    const disabled = atCap && count === 0;
     return (
-      <button
+      <div
         key={p.id}
-        type="button"
-        onClick={() => onAdjust(p.id, 1)}
-        {...longPress(() => openPlayerCard({ playerId: p.id, name: p.name }))}
         style={{ left: `${x}%`, top: `${y}%` }}
-        aria-label={`Add a goal for ${p.name} — hold for details`}
-        className={`absolute flex w-16 -translate-x-1/2 -translate-y-1/2 select-none flex-col items-center gap-0.5 ${atCap && count === 0 ? "opacity-50" : ""}`}
+        className="absolute flex w-16 -translate-x-1/2 -translate-y-1/2 select-none flex-col items-center gap-0.5"
       >
-        <span className="relative">
+        <button
+          type="button"
+          onClick={() => onAdjust(p.id, 1)}
+          disabled={disabled}
+          aria-label={`Add a goal for ${p.name}`}
+          className={`relative block rounded-full ${disabled ? "opacity-50" : "transition active:scale-95"}`}
+        >
           <PlayerAvatar
             playerId={p.id}
             name={p.name}
@@ -630,11 +635,25 @@ function TeamScorers({
               {count}
             </span>
           )}
-        </span>
-        <span className="max-w-[4rem] truncate rounded bg-night/55 px-1 text-[9px] leading-tight text-white">
-          {p.name.split(" ").slice(-1)[0] ?? p.name}
-        </span>
-      </button>
+        </button>
+        <button
+          type="button"
+          onClick={() => openPlayerCard({ playerId: p.id, name: p.name })}
+          aria-label={`${p.name} — stats & details`}
+          className="flex max-w-[4.25rem] flex-col items-center gap-0.5"
+        >
+          <span className="max-w-[4.25rem] truncate rounded bg-night/55 px-1 text-[9px] leading-tight text-white underline-offset-2 hover:underline">
+            {p.name.split(" ").slice(-1)[0] ?? p.name}
+          </span>
+          {(pos || p.ovr != null) && (
+            <span className="flex items-center gap-0.5 rounded bg-night/45 px-1 text-[7px] font-bold uppercase leading-none">
+              {pos && <span className="text-white/90">{pos}</span>}
+              {pos && p.ovr != null && <span className="text-white/40">·</span>}
+              {p.ovr != null && <span className="text-gold">{p.ovr}</span>}
+            </span>
+          )}
+        </button>
+      </div>
     );
   };
 
@@ -672,7 +691,7 @@ function TeamScorers({
         // card fills its width instead of a narrow pitch floating in dead space.
         <div className="space-y-2 lg:grid lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start lg:gap-4 lg:space-y-0">
           <div className="space-y-1.5">
-            <p className="text-center text-[11px] text-chalk-dim">Tap a player to add a goal · hold for details</p>
+            <p className="text-center text-[11px] text-chalk-dim">Tap a <span className="font-semibold text-chalk">face</span> to add a goal · tap a <span className="font-semibold text-chalk">name</span> for stats</p>
             <div className="relative mx-auto aspect-[5/6] w-full max-w-[320px] overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-grass/70 to-grass/55">
               <div className="absolute bottom-0 left-1/2 h-12 w-28 -translate-x-1/2 border-x border-t border-white/25" />
               <div className="absolute bottom-0 left-1/2 h-5 w-14 -translate-x-1/2 border-x border-t border-white/25" />
