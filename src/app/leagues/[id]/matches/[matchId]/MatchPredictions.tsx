@@ -5,7 +5,7 @@ import Avatar from "@/components/Avatar";
 import Flag from "@/components/Flag";
 
 type Team = { id: number; name: string; code: string | null; logo_url: string | null };
-type Scorer = { name: string; count: number; photo: string | null };
+type Scorer = { name: string; count: number; photo: string | null; teamId: number | null };
 
 export type PredictionRow = {
   userId: string;
@@ -47,6 +47,8 @@ export default function MatchPredictions({
   const drawBackers = rows.filter((r) => outcomeOf(r) === "draw");
   const total = rows.length || 1;
   const pct = (n: number) => Math.round((n / total) * 100);
+  const scoreOf = (r: PredictionRow) =>
+    r.homeGoals != null && r.awayGoals != null ? `${r.homeGoals}–${r.awayGoals}` : "—";
 
   const chip = (r: PredictionRow) => (
     <li key={r.userId}>
@@ -62,6 +64,7 @@ export default function MatchPredictions({
           {r.name}
           {r.isMe && <span className="font-bold text-gold"> (you)</span>}
         </span>
+        <span className="shrink-0 rounded bg-night/10 px-1.5 font-display text-xs tabular-nums text-chalk">{scoreOf(r)}</span>
         {r.points != null && (
           <span className={`shrink-0 text-[10px] font-bold ${r.points > 0 ? "text-grass" : "text-chalk-dim"}`}>
             +{r.points}
@@ -169,19 +172,31 @@ function PredictionModal({
         {penTeam && <p className="mt-1 text-center text-xs text-chalk-dim">🥅 {penTeam.name} win on penalties</p>}
 
         {row.scorers.length > 0 ? (
-          <div className="mt-4">
-            <p className="mb-1.5 text-center text-[11px] font-semibold uppercase tracking-wide text-chalk-dim">
+          <div className="mt-4 space-y-3">
+            <p className="text-center text-[11px] font-semibold uppercase tracking-wide text-chalk-dim">
               Goal scorers
             </p>
-            <ul className="space-y-1.5">
-              {row.scorers.map((s, i) => (
-                <li key={i} className="flex items-center gap-2 rounded-lg bg-night/5 px-2 py-1">
-                  <Avatar url={s.photo} name={s.name} size={28} />
-                  <span className="min-w-0 flex-1 truncate text-sm text-chalk">{s.name}</span>
-                  {s.count > 1 && <span className="shrink-0 text-xs font-bold text-gold">×{s.count}</span>}
-                </li>
-              ))}
-            </ul>
+            {[home, away].map((team) => {
+              const ts = team ? row.scorers.filter((s) => s.teamId === team.id) : [];
+              if (!team || ts.length === 0) return null;
+              return (
+                <div key={team.id}>
+                  <p className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-chalk">
+                    <Flag teamId={team.id} logoUrl={team.logo_url} code={team.code} name={team.name} size={16} />
+                    {team.name}
+                  </p>
+                  <ul className="space-y-1.5">
+                    {ts.map((s, i) => (
+                      <li key={i} className="flex items-center gap-2 rounded-lg bg-night/5 px-2 py-1">
+                        <Avatar url={s.photo} name={s.name} size={28} />
+                        <span className="min-w-0 flex-1 truncate text-sm text-chalk">{s.name}</span>
+                        {s.count > 1 && <span className="shrink-0 text-xs font-bold text-gold">×{s.count}</span>}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
           </div>
         ) : (
           <p className="mt-3 text-center text-xs text-chalk-dim">No goal scorers picked.</p>

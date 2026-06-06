@@ -239,9 +239,11 @@ export default async function MatchSummaryPage({
     Object.entries(sg ?? {})
       .map(([pid, n]) => {
         const p = playerById.get(Number(pid));
-        return p ? { name: p.name, count: n, photo: (p as { photo_url?: string | null }).photo_url ?? null } : null;
+        return p
+          ? { name: p.name, count: n, photo: (p as { photo_url?: string | null }).photo_url ?? null, teamId: p.team_id }
+          : null;
       })
-      .filter((s): s is { name: string; count: number; photo: string | null } => !!s);
+      .filter((s): s is { name: string; count: number; photo: string | null; teamId: number | null } => !!s);
 
   interface PredRow {
     userId: string;
@@ -251,7 +253,7 @@ export default async function MatchSummaryPage({
     homeGoals: number | null;
     awayGoals: number | null;
     penWinnerTeamId: number | null;
-    scorers: { name: string; count: number; photo: string | null }[];
+    scorers: { name: string; count: number; photo: string | null; teamId: number | null }[];
     points: number | null;
     isMe: boolean;
   }
