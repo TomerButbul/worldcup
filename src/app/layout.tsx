@@ -10,6 +10,7 @@ import { GlobalNav } from "@/components/BottomNav";
 import GuestBanner from "@/components/GuestBanner";
 import LiveScoresWidget from "@/components/LiveScoresWidget";
 import SwipeNav from "@/components/SwipeNav";
+import PageTransition from "@/components/PageTransition";
 import { MyTeamsProvider } from "@/components/MyTeams";
 import { getCachedMatchdayFlags } from "@/lib/tournamentData";
 import { createClient } from "@/lib/supabase/server";
@@ -121,10 +122,10 @@ export default async function RootLayout({
               <GuestBanner />
             </div>
           )}
-          {children}
+          <PageTransition>{children}</PageTransition>
         </div>
-        {/* GlobalNav self-hides on auth/landing/league routes; LeagueNav (in the
-            league layout) takes over inside a league. */}
+        {/* GlobalNav self-hides on auth/landing/league routes; the league layout
+            re-renders it with `force` so in-league pages still get the global nav. */}
         {user && <GlobalNav />}
         {user && <SwipeNav />}
         {user && <LiveScoresWidget />}

@@ -25,6 +25,14 @@ const TABS: { key: DraftTab; label: string }[] = [
   { key: "fixtures", label: "Fixtures" },
 ];
 
+// Standings shows ONE board at a time (toggle), instead of three stacked pots.
+const POT_BOARDS: { key: string; label: string }[] = [
+  { key: "1", label: "Top tier" },
+  { key: "2", label: "Mid tier" },
+  { key: "3", label: "Long shots" },
+  { key: "total", label: "Total" },
+];
+
 export default function DraftResults({
   tab,
   leagueId,
@@ -60,6 +68,10 @@ export default function DraftResults({
   const [active, setActive] = useState<DraftTab>(() =>
     tab === "groups" || tab === "bracket" || tab === "fixtures" ? (tab as DraftTab) : "standings",
   );
+  // Which scoreboard the Standings tab is showing (a pot race or the combined total).
+  const [potBoard, setPotBoard] = useState<string>("1");
+  const boardRows = potBoard === "total" ? standings.totals : standings.perPot[Number(potBoard)] ?? [];
+  const isTotal = potBoard === "total";
 
   // Pivot the flat pick list into per-manager, per-pot squads.
   const byUser = new Map<string, Map<number, PickRow>>();
@@ -97,68 +109,66 @@ export default function DraftResults({
         ))}
       </nav>
 
-      {/* ── Standings: the three pot races + bragging rights ──────────────── */}
+      {/* ── Standings: one board at a time (a pot race or the combined total) ─ */}
       {active === "standings" && (
         <Reveal>
           <section className="glass-strong rounded-3xl p-4 sm:p-5">
-            <header className="mb-4">
+            <header className="mb-3">
               <h2 className="font-display text-2xl text-gradient-gold sm:text-3xl">Scoreboard</h2>
               <p className="mt-0.5 text-xs text-chalk-dim">
                 {tournamentStarted
-                  ? "Three pot races — winner of each takes a crown."
+                  ? "Three pot races + a combined total — tap to switch."
                   : "Live points start at kickoff · Jun 11."}
               </p>
             </header>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              {POTS.map((pot) => {
-                const rows = standings.perPot[pot] ?? [];
-                return (
-                  <div key={pot} className="glass rounded-2xl p-3.5">
-                    <h3 className="mb-2.5 font-display text-xs uppercase tracking-wide text-chalk-dim">
-                      {POT_LABELS[pot]}
-                    </h3>
-                    <ul className="space-y-2">
-                      {rows.map((r, i) => {
-                        const m = memberById.get(r.userId);
-                        const isWinner = i === 0 && r.points > 0;
-                        const isSpoon = i === rows.length - 1 && rows.length > 1 && r.points > 0;
-                        return (
-                          <li key={r.userId} className="flex items-center gap-2 text-sm">
-                            <span className="w-4 shrink-0 text-center text-xs tabular-nums text-chalk-dim">{i + 1}</span>
-                            <Avatar url={m?.avatarUrl} name={m?.name ?? "?"} size={20} />
-                            <span className="min-w-0 flex-1 truncate text-chalk">{m?.name ?? "?"}</span>
-                            {isWinner && <Trophy size={13} className="inline-block align-[-2px]" />}
-                            {isSpoon && <span title="Wooden Spoon — worst team in the pot">🥄</span>}
-                            <span className="font-display tabular-nums text-gold">{r.points}</span>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </div>
-                );
-              })}
+            {/* Board toggle — one leaderboard; pick which pot (or the total) it shows. */}
+            <div className="mb-3 flex flex-wrap gap-1.5">
+              {POT_BOARDS.map((b) => (
+                <button
+                  key={b.key}
+                  type="button"
+                  onClick={() => setPotBoard(b.key)}
+                  aria-current={potBoard === b.key ? "true" : undefined}
+                  className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
+                    potBoard === b.key ? "bg-gold text-night glow-gold" : "glass text-chalk-dim hover:text-chalk"
+                  }`}
+                >
+                  {b.label}
+                </button>
+              ))}
             </div>
 
-            <div className="glass mt-3 rounded-2xl p-3.5">
-              <div className="mb-2.5 flex items-baseline justify-between gap-3">
-                <h3 className="font-display text-xs uppercase tracking-wide text-chalk-dim">🍻 Bragging rights</h3>
-                <span className="text-[11px] text-chalk-dim">All pots · just for fun</span>
-              </div>
-              <ul className="grid grid-cols-1 gap-x-5 gap-y-2 sm:grid-cols-2">
-                {standings.totals.map((r, i) => {
+            <p className="mb-2.5 px-1 text-[11px] text-chalk-dim">
+              {isTotal
+                ? "🍻 All three pots combined — bragging rights, just for fun."
+                : `${POT_LABELS[Number(potBoard) as Pot]} · winner takes a crown 🏆`}
+            </p>
+
+            <ul className="glass rounded-2xl p-1.5">
+              {boardRows.length === 0 ? (
+                <li className="px-3 py-6 text-center text-sm text-chalk-dim">No points yet.</li>
+              ) : (
+                boardRows.map((r, i) => {
                   const m = memberById.get(r.userId);
+                  const isWinner = !isTotal && i === 0 && r.points > 0;
+                  const isSpoon = !isTotal && i === boardRows.length - 1 && boardRows.length > 1 && r.points > 0;
                   return (
-                    <li key={r.userId} className="flex items-center gap-2 text-sm">
-                      <span className="w-4 shrink-0 text-center text-xs tabular-nums text-chalk-dim">{i + 1}</span>
-                      <Avatar url={m?.avatarUrl} name={m?.name ?? "?"} size={20} />
-                      <span className="min-w-0 flex-1 truncate text-chalk">{m?.name ?? "?"}</span>
-                      <span className="font-display tabular-nums text-gold">{r.points}</span>
+                    <li
+                      key={r.userId}
+                      className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm ${isWinner ? "bg-gold/10" : ""}`}
+                    >
+                      <span className="w-5 shrink-0 text-center text-xs font-bold tabular-nums text-chalk-dim">{i + 1}</span>
+                      <Avatar url={m?.avatarUrl} name={m?.name ?? "?"} size={26} />
+                      <span className="min-w-0 flex-1 truncate font-semibold text-chalk">{m?.name ?? "?"}</span>
+                      {isWinner && <Trophy size={15} />}
+                      {isSpoon && <span title="Wooden Spoon — last in this pot">🥄</span>}
+                      <span className="font-display text-base tabular-nums text-gold">{r.points}</span>
                     </li>
                   );
-                })}
-              </ul>
-            </div>
+                })
+              )}
+            </ul>
           </section>
         </Reveal>
       )}
