@@ -57,19 +57,6 @@ interface Props {
   saveAction?: typeof savePrediction;
 }
 
-// Small circled-ⓘ — the "view this team's card" affordance in the score row, so
-// the country card stays one reliable tap away even while the team pill is busy
-// doubling as the scorer-picker selector.
-function InfoCircle() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 11v5" />
-      <path d="M12 7.5h.01" />
-    </svg>
-  );
-}
-
 export default function MatchCard({
   leagueId,
   match,
@@ -145,66 +132,57 @@ export default function MatchCard({
   // Scorer picking is live only pre-kickoff once squads are loaded.
   const picking = !locked && allPlayers.length > 0;
 
-  // One team "pill" in the score row. While picking it doubles as the squad
-  // selector: tap to switch which team's scorers you're editing (active = green),
-  // with the scorer count shown beneath the name and a ⓘ button for the team card
-  // (the long-press that used to open it was unreliable). Locked / no-squad / TBD
-  // falls back to a plain tap-for-team-card label.
+  // One team in the score row, stacked vertically: a big crest over the name, so
+  // it reads cleanly in the narrow column. Tapping the crest opens the country
+  // card (consistent with crests everywhere in the app). While picking, the name
+  // doubles as the scorer-picker selector for that team (active = gold) with its
+  // scorer count beneath. Locked / no-squad / TBD: the whole stack opens the card.
   function teamSide(side: "home" | "away") {
     const isHome = side === "home";
     const tName = isHome ? match.homeName : match.awayName;
     const tId = isHome ? match.homeTeamId : match.awayTeamId;
-    const rowAlign = isHome ? "justify-end" : "justify-start";
-    const flag = <Flag teamId={tId} name={tName} size={26} className="shrink-0" />;
-    const nameEl = <span className="truncate">{tName}</span>;
-    const inner = isHome ? (<>{nameEl}{flag}</>) : (<>{flag}{nameEl}</>);
+    const crest = <Flag teamId={tId} name={tName} size={44} className="drop-shadow-sm" />;
+    const nameText = (
+      <span className="block max-w-full truncate text-center text-sm font-semibold text-chalk sm:text-base">
+        {tName}
+      </span>
+    );
 
     if (picking && tId != null) {
       const tCap = isHome ? homeCap : awayCap;
       const tSum = isHome ? sumFor(homePlayers) : sumFor(awayPlayers);
       const need = tCap > 0 && tSum < tCap;
       const isActive = activeTeam === side;
-      // Two clear targets (no flaky long-press): tap the team to pick its scorers,
-      // tap the ⓘ for the country's card (FIFA rank, squad, form). The ⓘ sits on
-      // the outer edge so it never crowds the score steppers in the middle.
-      const infoBtn = (
-        <button
-          type="button"
-          onClick={() => openTeamCard({ teamId: tId, name: tName })}
-          aria-label={`${tName} — team profile & FIFA rank`}
-          className="shrink-0 rounded-full p-1 text-chalk-dim transition hover:text-gold active:scale-90"
-        >
-          <InfoCircle />
-        </button>
-      );
-      const selectBtn = (
-        <button
-          type="button"
-          onClick={() => setActiveTeam((cur) => (cur === side ? null : side))}
-          aria-label={`Pick ${tName} scorers`}
-          className={`flex min-w-0 select-none flex-col gap-0.5 border-b-2 px-1 pb-1 transition ${
-            isHome ? "items-end" : "items-start"
-          } ${
-            isActive
-              ? "border-gold/70"
-              : activeTeam !== null
-                ? "border-transparent opacity-45 hover:opacity-80"
-                : "border-transparent"
+      // Tap the crest → the country card; tap the name → pick this team's scorers.
+      return (
+        <div
+          className={`flex min-w-0 flex-1 flex-col items-center gap-1.5 transition ${
+            activeTeam !== null && !isActive ? "opacity-50" : ""
           }`}
         >
-          <span className={`flex w-full items-center gap-1.5 text-sm font-semibold text-chalk sm:text-base ${rowAlign}`}>
-            {inner}
-          </span>
-          {tCap > 0 && (
-            <span className={`text-[11px] tabular-nums ${need ? "text-gold" : "text-grass"}`}>
-              {tSum}/{tCap}
-            </span>
-          )}
-        </button>
-      );
-      return (
-        <div className={`flex min-w-0 flex-1 items-center gap-1 ${rowAlign}`}>
-          {isHome ? (<>{infoBtn}{selectBtn}</>) : (<>{selectBtn}{infoBtn}</>)}
+          <button
+            type="button"
+            onClick={() => openTeamCard({ teamId: tId, name: tName })}
+            aria-label={`${tName} — team profile & FIFA rank`}
+            className="rounded-full transition hover:opacity-80 active:scale-95"
+          >
+            {crest}
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTeam((cur) => (cur === side ? null : side))}
+            aria-label={`Pick ${tName} scorers`}
+            className={`flex max-w-full select-none flex-col items-center gap-0.5 rounded-lg px-2 py-1 transition ${
+              isActive ? "bg-gold/15 ring-1 ring-gold/60" : "hover:bg-night/5"
+            }`}
+          >
+            {nameText}
+            {tCap > 0 && (
+              <span className={`flex items-center gap-1 text-[11px] font-semibold tabular-nums ${need ? "text-gold" : "text-grass"}`}>
+                <Ball size={11} /> {tSum}/{tCap}
+              </span>
+            )}
+          </button>
         </div>
       );
     }
@@ -214,17 +192,19 @@ export default function MatchCard({
         <TeamCardButton
           teamId={tId}
           name={tName}
-          className={`flex min-w-0 flex-1 items-center gap-1.5 text-sm font-semibold text-chalk transition hover:opacity-80 sm:gap-2 sm:text-base ${rowAlign}`}
+          className="flex min-w-0 flex-1 flex-col items-center gap-1.5 transition hover:opacity-80"
         >
-          {inner}
+          {crest}
+          {nameText}
         </TeamCardButton>
       );
     }
 
     return (
-      <span className={`flex min-w-0 flex-1 items-center gap-1.5 text-sm font-semibold text-chalk sm:gap-2 sm:text-base ${rowAlign}`}>
-        {inner}
-      </span>
+      <div className="flex min-w-0 flex-1 flex-col items-center gap-1.5">
+        {crest}
+        {nameText}
+      </div>
     );
   }
 
@@ -419,7 +399,7 @@ export default function MatchCard({
             <div className="mt-4 space-y-3">
               {activeTeam === null ? (
                 homeCap > 0 || awayCap > 0 ? (
-                  <p className="text-center text-[11px] text-chalk-dim">Tap a team above to add its goal scorers.</p>
+                  <p className="text-center text-[11px] text-chalk-dim">Tap a team&apos;s name above to add its goal scorers · tap its flag for the country card.</p>
                 ) : null
               ) : activeTeam === "home" ? (
                 <TeamScorers
