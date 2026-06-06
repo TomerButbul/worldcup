@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { motion } from "motion/react";
 import type { Player } from "@/lib/types";
@@ -17,6 +18,13 @@ import Ball from "@/components/art/Ball";
 import MatchCountdown from "@/components/MatchCountdown";
 import { nowMs } from "@/lib/clock";
 import { stageLabel } from "@/lib/stages";
+import type { LineupRow } from "./[matchId]/Pitch";
+
+// The formation pitch from the match centre, lazy-loaded only when a card's
+// lineups are expanded — keeps the matches list lean (Pitch is a big component).
+const LazyPitch = dynamic(() => import("./[matchId]/Pitch"), {
+  loading: () => <p className="py-6 text-center text-xs text-chalk-dim">Loading lineups…</p>,
+});
 
 export interface MatchCardData {
   id: number;
@@ -57,6 +65,27 @@ interface Props {
   saveAction?: typeof savePrediction;
 }
 
+// Adapt the matches page's lighter lineup ({ starters, subs, xi }) + the squad
+// list into the match-centre <Pitch>'s LineupRow, so the same formation pitch can
+// render inline without a second fetch. Returns null when there's no XI to draw.
+function toLineupRow(teamId: number | null, lu: Lineup | null | undefined, players: Player[]): LineupRow | null {
+  if (teamId == null || !lu) return null;
+  const byId = new Map(players.map((p) => [p.id, p]));
+  const xi = (lu.xi ?? []).map((x) => ({
+    player_id: x.player_id,
+    name: x.name ?? byId.get(x.player_id)?.name ?? `#${x.player_id}`,
+    number: null,
+    pos: x.pos ?? byId.get(x.player_id)?.position ?? null,
+    grid: x.grid ?? null,
+  }));
+  if (xi.length === 0) return null;
+  const subs = (lu.subs ?? []).map((id) => {
+    const p = byId.get(id);
+    return { player_id: id, name: p?.name ?? `#${id}`, number: null, pos: p?.position ?? null, grid: null };
+  });
+  return { team_id: teamId, formation: null, xi, subs };
+}
+
 export default function MatchCard({
   leagueId,
   match,
@@ -84,6 +113,7 @@ export default function MatchCard({
   // stays compact — tap a team in the score row to expand its scorer picker.
   const [activeTeam, setActiveTeam] = useState<"home" | "away" | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [lineupsOpen, setLineupsOpen] = useState(false);
 
   const kickoff = new Date(match.kickoff_at).toLocaleString(undefined, {
     weekday: "short",
@@ -96,6 +126,64 @@ export default function MatchCard({
   const live = match.status === "live";
   const allPlayers = [...homePlayers, ...awayPlayers];
   const playerName = (id: number) => allPlayers.find((p) => p.id === id)?.name ?? `#${id}`;
+
+  // Formation data for the inline lineups dropdown — built from props the page
+  // already passes (no extra fetch). `has` gates the empty-state copy.
+  const lineups = useMemo(() => {
+    const homeLR = toLineupRow(match.homeTeamId, homeLineup, homePlayers);
+    const awayLR = toLineupRow(match.awayTeamId, awayLineup, awayPlayers);
+    const photoById: Record<number, string | null> = {};
+    const ovrById: Record<number, number | null> = {};
+    for (const p of [...homePlayers, ...awayPlayers]) {
+      photoById[p.id] = p.photo_url ?? null;
+      ovrById[p.id] = p.ovr ?? null;
+    }
+    return { homeLR, awayLR, photoById, ovrById, has: !!homeLR || !!awayLR };
+  }, [match.homeTeamId, match.awayTeamId, homeLineup, awayLineup, homePlayers, awayPlayers]);
+
+  // The collapsible lineups panel — shared by the locked & predictor views. The
+  // pitch is the same one the match centre uses; "Full match centre" still links
+  // out for live stats + everyone's predictions (which need the heavier fetch).
+  const lineupsPanel = lineupsOpen ? (
+    <div className="mt-3 border-t border-night/10 pt-3">
+      {lineups.has ? (
+        <LazyPitch
+          home={lineups.homeLR}
+          away={lineups.awayLR}
+          homeName={match.homeName}
+          awayName={match.awayName}
+          events={[]}
+          photoById={lineups.photoById}
+          ovrById={lineups.ovrById}
+        />
+      ) : (
+        <p className="py-3 text-center text-xs text-chalk-dim">
+          <Ball size={13} className="mr-1 inline-block align-[-2px]" />
+          Lineups land about an hour before kickoff.
+        </p>
+      )}
+      <div className="mt-3 text-center">
+        <Link
+          href={`/leagues/${leagueId}/matches/${match.id}`}
+          className="text-xs font-semibold text-gold transition hover:text-gold-bright"
+        >
+          Full match centre — live stats &amp; everyone&apos;s predictions &rarr;
+        </Link>
+      </div>
+    </div>
+  ) : null;
+
+  // The toggle that opens the panel (rendered in both card footers).
+  const lineupsToggle = (
+    <button
+      type="button"
+      onClick={() => setLineupsOpen((o) => !o)}
+      aria-expanded={lineupsOpen}
+      className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-chalk-dim transition hover:text-gold"
+    >
+      Lineups <span className={`text-[10px] transition-transform ${lineupsOpen ? "rotate-180" : ""}`}>▾</span>
+    </button>
+  );
 
   // The scorer cap is the current scoreline (editable until kickoff).
   const homeCap = home;
@@ -311,12 +399,7 @@ export default function MatchCard({
           ) : (
             <span>🔒 Locked — no prediction made</span>
           )}
-          <Link
-            href={`/leagues/${leagueId}/matches/${match.id}`}
-            className="font-semibold text-gold transition hover:text-gold-bright"
-          >
-            Match summary →
-          </Link>
+          {lineupsToggle}
 
           {detailOpen && (
             <div
@@ -425,16 +508,12 @@ export default function MatchCard({
             </div>
           )}
           <div className="mt-4 flex items-center justify-between gap-2">
-            <Link
-              href={`/leagues/${leagueId}/matches/${match.id}`}
-              className="shrink-0 text-xs font-semibold text-chalk-dim transition hover:text-gold"
-            >
-              Stats &amp; lineups &rarr;
-            </Link>
+            {lineupsToggle}
             <SaveStatus state={saveState} error={saveErr} />
           </div>
         </>
       )}
+      {lineupsPanel}
     </motion.div>
   );
 }
