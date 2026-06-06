@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { logout } from "@/app/auth/actions";
 import { createLeague, joinLeague } from "./actions";
 import GameButton from "@/components/GameButton";
 import Reveal from "@/components/Reveal";
@@ -10,15 +9,10 @@ import Trophy from "@/components/art/Trophy";
 import Ball from "@/components/art/Ball";
 import { Medal } from "@/components/icons";
 import Avatar from "@/components/Avatar";
-import ProfileEditor from "@/components/ProfileEditor";
-import FavoriteTeamPicker from "@/components/FavoriteTeamPicker";
 import FavoriteTeamStatus from "@/components/FavoriteTeamStatus";
 import Countdown from "@/components/Countdown";
 import NotificationToggle from "@/components/NotificationToggle";
 import NextMatchCard, { type NextMatchData } from "@/components/NextMatchCard";
-import SupportCard from "@/components/SupportCard";
-import ShareBracket from "@/components/ShareBracket";
-import { SUPPORT_URL } from "@/lib/site";
 import { computeFavStatus } from "@/lib/favoriteStatus";
 import AutoRefresh from "@/components/AutoRefresh";
 import { nowMs, KICKOFF_MS } from "@/lib/clock";
@@ -146,12 +140,44 @@ export default async function DashboardPage({
   const inputClass =
     "w-full rounded-xl border border-night/10 bg-white px-3 py-2.5 text-sm text-chalk outline-none placeholder:text-chalk-dim focus:border-grass focus:ring-2 focus:ring-grass/30";
 
+  // Create / join forms — rendered prominently when you have no friends-league
+  // yet (onboarding), else tucked behind a disclosure so Home stays calm.
+  const leagueForms = (
+    <div className="grid gap-3 sm:grid-cols-2">
+      <form action={createLeague} className="glass-strong space-y-3 rounded-2xl p-4">
+        <h3 className="font-display text-chalk">Create a league</h3>
+        <input name="name" required placeholder="League name" aria-label="League name" className={inputClass} />
+        <GameButton type="submit" variant="primary" className="w-full">
+          Create
+        </GameButton>
+      </form>
+      <form action={joinLeague} className="glass-strong space-y-3 rounded-2xl p-4">
+        <h3 className="font-display text-chalk">Join a league</h3>
+        <input
+          name="join_code"
+          required
+          placeholder="JOIN CODE"
+          aria-label="Join code"
+          className={`${inputClass} font-mono uppercase tracking-widest`}
+        />
+        <GameButton type="submit" variant="gold" className="w-full">
+          Join
+        </GameButton>
+      </form>
+    </div>
+  );
+
   return (
     <main className="mx-auto w-full max-w-2xl lg:max-w-[1600px] flex-1 space-y-4 p-4 sm:space-y-6 sm:p-6 lg:p-8">
       <AutoRefresh enabled={nowMs() >= KICKOFF_MS} />
       <Reveal>
-        <header className="flex items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-3">
+        <header>
+          {/* Tap your avatar/name → Profile & settings (account controls moved off Home). */}
+          <Link
+            href="/profile"
+            aria-label="Open your profile and settings"
+            className="group -m-1 flex min-w-0 items-center gap-3 rounded-2xl p-1 transition hover:bg-night/5"
+          >
             <Avatar url={profile?.avatar_url} name={profile?.team_name || displayName} size={52} />
             <div className="min-w-0">
               <h1 className="flex min-w-0 items-center gap-2 font-display text-2xl text-gradient-gold sm:text-3xl">
@@ -162,14 +188,10 @@ export default async function DashboardPage({
               </h1>
               <p className="truncate text-sm text-chalk-dim">
                 {profile?.team_name ? `Managed by ${displayName}` : "Welcome back"}
+                <span className="text-gold transition group-hover:text-gold-bright"> · Profile &amp; settings →</span>
               </p>
             </div>
-          </div>
-          <form action={logout} className="shrink-0">
-            <button className="rounded-lg px-3 py-2 text-sm text-chalk-dim transition hover:bg-night/5 hover:text-chalk">
-              Log out
-            </button>
-          </form>
+          </Link>
         </header>
       </Reveal>
 
@@ -209,54 +231,30 @@ export default async function DashboardPage({
             </Reveal>
           )}
 
-          {/* Predictions hub — make all your picks straight from Home, no league
-              required (they count on the global rankings, and in any league you join). */}
+          {/* Predictions — set once, count everywhere. A compact strip; also the
+              only home for Awards, which has no nav tab of its own. */}
           <Reveal>
             <section className="space-y-2">
               <h2 className="font-display text-lg text-chalk">Your predictions</h2>
-              <div className="grid gap-3 sm:grid-cols-3">
-                <Link
-                  href="/bracket"
-                  className="group glass-strong flex flex-col gap-1.5 rounded-2xl p-4 transition hover:-translate-y-0.5 hover:bg-night/5"
-                >
-                  <span className="text-gold"><Trophy size={30} /></span>
-                  <span className="flex items-center gap-1 font-semibold text-chalk">
-                    Bracket <span className="text-gold transition group-hover:translate-x-0.5">→</span>
-                  </span>
-                  <span className="text-xs text-chalk-dim">Order the groups, build your knockout &amp; crown a champion</span>
-                </Link>
-                <Link
-                  href="/predict"
-                  className="group glass-strong flex flex-col gap-1.5 rounded-2xl p-4 transition hover:-translate-y-0.5 hover:bg-night/5"
-                >
-                  <span className="text-gold"><Ball size={30} /></span>
-                  <span className="flex items-center gap-1 font-semibold text-chalk">
-                    Match predictions <span className="text-gold transition group-hover:translate-x-0.5">→</span>
-                  </span>
-                  <span className="text-xs text-chalk-dim">Pick scores &amp; goal scorers, match by match</span>
-                </Link>
-                <Link
-                  href="/awards"
-                  className="group glass-strong flex flex-col gap-1.5 rounded-2xl p-4 transition hover:-translate-y-0.5 hover:bg-night/5"
-                >
-                  <span className="text-gold"><Medal size={30} /></span>
-                  <span className="flex items-center gap-1 font-semibold text-chalk">
-                    Awards <span className="text-gold transition group-hover:translate-x-0.5">→</span>
-                  </span>
-                  <span className="text-xs text-chalk-dim">Golden Boot, Ball, Glove &amp; Young Player</span>
-                </Link>
+              <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                {[
+                  { href: "/bracket", icon: <Trophy size={26} />, label: "Bracket" },
+                  { href: "/predict", icon: <Ball size={26} />, label: "Scores" },
+                  { href: "/awards", icon: <Medal size={26} />, label: "Awards" },
+                ].map((p) => (
+                  <Link
+                    key={p.href}
+                    href={p.href}
+                    className="group glass-strong flex flex-col items-center gap-1.5 rounded-2xl p-3 text-center transition hover:-translate-y-0.5 hover:bg-night/5"
+                  >
+                    <span className="text-gold">{p.icon}</span>
+                    <span className="text-sm font-semibold text-chalk">{p.label}</span>
+                  </Link>
+                ))}
               </div>
               <p className="px-1 text-xs text-chalk-dim">
-                Make them once — <span className="text-chalk">no league needed</span>. They count on the global rankings and in every league you join.
+                Set once — <span className="text-chalk">no league needed</span>. They count on the global rankings and in every league you join.
               </p>
-              {profile?.share_slug && (
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-1 pt-1">
-                  <span className="text-xs text-chalk-dim">
-                    Built your bracket? Share a public link — no account needed.
-                  </span>
-                  <ShareBracket slug={profile.share_slug} />
-                </div>
-              )}
             </section>
           </Reveal>
 
@@ -267,73 +265,53 @@ export default async function DashboardPage({
           <section className="space-y-2">
             <h2 className="font-display text-lg text-chalk">Your Leagues</h2>
             {friendsLeagues.length === 0 ? (
-              <p className="glass rounded-2xl p-5 text-center text-sm text-chalk-dim">
-                No leagues yet. Create one or join with a code below — or just make your
-                predictions, they count on the global rankings.
-              </p>
+              <div className="space-y-3">
+                <p className="glass rounded-2xl p-5 text-center text-sm text-chalk-dim">
+                  No leagues yet — create one or join with a code. Your picks already count on the
+                  global rankings.
+                </p>
+                {leagueForms}
+              </div>
             ) : (
-              <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                {friendsLeagues.map((l, i) => (
-                  <Reveal key={l.id} index={i}>
-                    <Link
-                      href={`/leagues/${l.id}`}
-                      className="group flex items-center justify-between rounded-2xl glass p-3.5 transition hover:border-grass/50 hover:bg-night/5"
-                    >
-                      <span className="flex min-w-0 items-center gap-2.5">
-                        <Trophy size={22} />
-                        <span className="truncate font-semibold text-chalk">{l.name}</span>
-                      </span>
-                      <span className="ml-2 shrink-0 rounded-lg bg-night/5 px-2 py-1 font-mono text-xs text-gold">
-                        {l.join_code}
-                      </span>
-                    </Link>
-                  </Reveal>
-                ))}
-              </ul>
+              <div className="space-y-3">
+                <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {friendsLeagues.map((l, i) => (
+                    <Reveal key={l.id} index={i}>
+                      <Link
+                        href={`/leagues/${l.id}`}
+                        className="group flex items-center justify-between rounded-2xl glass p-3.5 transition hover:border-grass/50 hover:bg-night/5"
+                      >
+                        <span className="flex min-w-0 items-center gap-2.5">
+                          <Trophy size={22} />
+                          <span className="truncate font-semibold text-chalk">{l.name}</span>
+                        </span>
+                        <span className="ml-2 shrink-0 rounded-lg bg-night/5 px-2 py-1 font-mono text-xs text-gold">
+                          {l.join_code}
+                        </span>
+                      </Link>
+                    </Reveal>
+                  ))}
+                </ul>
+                <details className="group">
+                  <summary className="flex cursor-pointer list-none items-center justify-center gap-1.5 rounded-2xl glass p-3 text-sm font-semibold text-gold transition hover:text-gold-bright">
+                    + Create or join another league
+                    <span className="transition group-open:rotate-180">▾</span>
+                  </summary>
+                  <div className="mt-3">{leagueForms}</div>
+                </details>
+              </div>
             )}
           </section>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Reveal index={1}>
-              <form action={createLeague} className="glass-strong space-y-3 rounded-2xl p-4">
-                <h2 className="font-display text-chalk">Create a league</h2>
-                <input name="name" required placeholder="League name" aria-label="League name" className={inputClass} />
-                <GameButton type="submit" variant="primary" className="w-full">
-                  Create
-                </GameButton>
-              </form>
-            </Reveal>
-
-            <Reveal index={2}>
-              <form action={joinLeague} className="glass-strong space-y-3 rounded-2xl p-4">
-                <h2 className="font-display text-chalk">Join a league</h2>
-                <input
-                  name="join_code"
-                  required
-                  placeholder="JOIN CODE"
-                  aria-label="Join code"
-                  className={`${inputClass} font-mono uppercase tracking-widest`}
-                />
-                <GameButton type="submit" variant="gold" className="w-full">
-                  Join
-                </GameButton>
-              </form>
-            </Reveal>
-          </div>
-
         </div>
 
-        {/* Secondary / aside column */}
-        <div className="mt-4 space-y-4 lg:mt-0 lg:space-y-4">
+        {/* Secondary / aside column — slim: what's happening, not settings.
+            (Profile, favourite-team picker, notifications & support live on /profile.) */}
+        <div className="mt-4 space-y-4 lg:mt-0">
           {favStatus && (
             <Reveal>
               <FavoriteTeamStatus status={favStatus} />
             </Reveal>
           )}
-
-          <Reveal>
-            <FavoriteTeamPicker teams={teams} current={favId} />
-          </Reveal>
 
           <Reveal>
             <Link
@@ -350,26 +328,6 @@ export default async function DashboardPage({
               <span className="text-gold transition group-hover:translate-x-0.5">→</span>
             </Link>
           </Reveal>
-
-          <Reveal>
-            <ProfileEditor
-              userId={user.id}
-              displayName={displayName}
-              teamName={profile?.team_name ?? null}
-              avatarUrl={profile?.avatar_url ?? null}
-            />
-          </Reveal>
-
-          <Reveal>
-            <NotificationToggle
-              placement="bottom"
-              initialPrefs={(profile as { notif_prefs?: Record<string, boolean> } | null)?.notif_prefs ?? {}}
-            />
-          </Reveal>
-
-          <Reveal>
-            <SupportCard />
-          </Reveal>
         </div>
       </div>
 
@@ -377,14 +335,6 @@ export default async function DashboardPage({
         <Link href="/how-it-works" className="hover:text-chalk">
           ℹ️ How it works &amp; scoring
         </Link>
-        {SUPPORT_URL ? (
-          <>
-            {" · "}
-            <a href={SUPPORT_URL} target="_blank" rel="noopener noreferrer" className="hover:text-chalk">
-              ☕ Support the project
-            </a>
-          </>
-        ) : null}
       </p>
     </main>
   );
