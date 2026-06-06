@@ -1,7 +1,8 @@
 "use client";
 
-// TEMP screenshot route: a FULLY-played mock knockout tree (Brazil crowned) for
-// marketing shots — best captured landscape on a wide screen. Deleted after capture.
+// TEMP screenshot route: the REAL in-app knockout tree, fully played with England
+// crowned (their path gold-highlighted). Capture on a phone held LANDSCAPE — it's
+// exactly the app's bracket. Deleted after capture.
 import KnockoutBracket, { type BracketRound, type BracketTeam } from "@/components/KnockoutBracket";
 
 const f = (iso: string) => `https://flagcdn.com/w80/${iso}.png`;
@@ -30,16 +31,16 @@ const rounds: BracketRound[] = [
   },
   { stage: "round_of_16", label: "Round of 16", matches: [m(89, 1, 12, 1), m(90, 3, 13, 3), m(93, 5, 10, 5), m(94, 7, 14, 7), m(91, 2, 16, 2), m(92, 4, 9, 4), m(95, 8, 15, 8), m(96, 6, 11, 6)] },
   { stage: "quarter", label: "Quarter-finals", matches: [m(97, 1, 3, 1), m(98, 5, 7, 5), m(99, 2, 4, 2), m(100, 8, 6, 8)] },
-  { stage: "semi", label: "Semi-finals", matches: [m(101, 1, 5, 1), m(102, 2, 8, 2)] },
-  { stage: "third_place", label: "3rd-place playoff", matches: [m(103, 5, 8, 5)] },
-  { stage: "final", label: "Final", matches: [m(104, 1, 2, 1)] },
+  { stage: "semi", label: "Semi-finals", matches: [m(101, 1, 5, 5), m(102, 2, 8, 2)] },
+  { stage: "third_place", label: "3rd-place playoff", matches: [m(103, 1, 8, 1)] },
+  { stage: "final", label: "Final", matches: [m(104, 5, 2, 5)] },
 ];
 
 export default function ShotBracket() {
   return (
-    <main className="mx-auto w-full max-w-2xl p-4 lg:max-w-[1600px] lg:p-8">
+    <main className="mx-auto w-full max-w-2xl p-3 lg:max-w-[1600px] lg:p-6">
       <div className="glass-strong rounded-3xl p-3 sm:p-5">
-        <KnockoutBracket rounds={rounds} teamsById={teamsById} championNo={104} locked treeOnly actual />
+        <KnockoutBracket rounds={rounds} teamsById={teamsById} championNo={104} locked treeOnly actual highlightIds={[5]} />
       </div>
     </main>
   );

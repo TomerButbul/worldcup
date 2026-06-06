@@ -396,12 +396,12 @@ export default function KnockoutBracket({
         <div className="space-y-2">
           {/* Champion — crowned above the whole bracket, with the trophy. */}
           {champTeam ? (
-            <div className="mx-auto flex max-w-sm items-center justify-center gap-2.5 rounded-2xl bg-gold/15 px-4 py-2 ring-1 ring-gold glow-gold">
-              <Trophy size={34} />
-              <Flag teamId={champTeam.id} logoUrl={champTeam.logo_url} code={champTeam.code} name={champTeam.name} size={26} />
+            <div className="mx-auto flex max-w-md items-center justify-center gap-3 rounded-2xl bg-gold/20 px-5 py-3 ring-2 ring-gold glow-gold">
+              <Trophy size={46} />
+              <Flag teamId={champTeam.id} logoUrl={champTeam.logo_url} code={champTeam.code} name={champTeam.name} size={42} highlight={false} />
               <div className="min-w-0 text-left leading-tight">
-                <p className="truncate font-display text-base text-gradient-gold sm:text-lg">{champTeam.name}</p>
-                <p className="text-[10px] uppercase tracking-[0.18em] text-gold/80">World Champion</p>
+                <p className="truncate font-display text-2xl text-gradient-gold sm:text-3xl">{champTeam.name}</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-gold/90">World Champions 🏆</p>
               </div>
             </div>
           ) : (
