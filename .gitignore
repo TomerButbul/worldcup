@@ -45,3 +45,6 @@ yarn-error.log*
 next-env.d.ts
 
 .claude/
+
+# transient commit-message scratch file
+_commitmsg.txt
