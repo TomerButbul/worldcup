@@ -234,14 +234,14 @@ export default async function MatchSummaryPage({
 
   const isGroup = match.stage === "group";
   const nameOf = (prof: PredProfile | null) => prof?.team_name || prof?.display_name || "?";
-  // "Messi ×2, Suárez" — predicted scorers with their goal counts.
-  const scorerLabelsOf = (sg: Record<string, number>) =>
+  // Predicted scorers with counts + headshots, for the prediction detail modal.
+  const scorersOf = (sg: Record<string, number>) =>
     Object.entries(sg ?? {})
       .map(([pid, n]) => {
-        const name = playerById.get(Number(pid))?.name;
-        return name ? `${name}${n > 1 ? ` ×${n}` : ""}` : null;
+        const p = playerById.get(Number(pid));
+        return p ? { name: p.name, count: n, photo: (p as { photo_url?: string | null }).photo_url ?? null } : null;
       })
-      .filter((s): s is string => !!s);
+      .filter((s): s is { name: string; count: number; photo: string | null } => !!s);
 
   interface PredRow {
     userId: string;
@@ -251,7 +251,7 @@ export default async function MatchSummaryPage({
     homeGoals: number | null;
     awayGoals: number | null;
     penWinnerTeamId: number | null;
-    scorerNames: string[];
+    scorers: { name: string; count: number; photo: string | null }[];
     points: number | null;
     isMe: boolean;
   }
@@ -276,7 +276,7 @@ export default async function MatchSummaryPage({
           homeGoals: gs?.h ?? null,
           awayGoals: gs?.a ?? null,
           penWinnerTeamId: null,
-          scorerNames: scorerLabelsOf(sg),
+          scorers: scorersOf(sg),
           points: finished
             ? scoreLive(cfg, actual, [{ match_id: matchNum, home_goals: null, away_goals: null, scorer_goals: sg }])
             : null,
@@ -301,7 +301,7 @@ export default async function MatchSummaryPage({
         homeGoals: p.home_goals,
         awayGoals: p.away_goals,
         penWinnerTeamId: p.pen_winner_team_id,
-        scorerNames: scorerLabelsOf(sg),
+        scorers: scorersOf(sg),
         points: finished
           ? scoreLive(cfg, actual, [
               { match_id: matchNum, home_goals: p.home_goals, away_goals: p.away_goals, scorer_goals: sg, pen_winner_team_id: p.pen_winner_team_id },
@@ -600,7 +600,6 @@ export default async function MatchSummaryPage({
               >
                 <span className="font-semibold text-grass">Your pick:</span>
                 <span className="font-display tabular-nums">{myPred.score}</span>
-                {myPred.scorerNames ? <span className="truncate text-chalk-dim">· {myPred.scorerNames}</span> : null}
                 <span className="shrink-0 font-semibold text-gold">Edit&nbsp;→</span>
               </Link>
             ) : (
