@@ -11,6 +11,7 @@ import Pitch, { type EventRow, type LineupRow } from "./Pitch";
 import MatchPredictions from "./MatchPredictions";
 import MatchTabs from "./MatchTabs";
 import { stageLabel } from "@/lib/stages";
+import { userPredictionLeagueIds } from "@/lib/predictionSync";
 import AutoRefresh from "@/components/AutoRefresh";
 import { nowMs, KICKOFF_MS } from "@/lib/clock";
 import { scoreLive, type ActualOutcomes } from "@/lib/scoring-core";
@@ -53,6 +54,14 @@ export default async function MatchSummaryPage({
     .maybeSingle();
   if (!match) notFound();
 
+  // Predictions are shown from EVERYONE across all the viewer's leagues (deduped by
+  // person below), not just this one — picks are account-level, so a friend you
+  // share a *different* league with should still appear. Always include the current
+  // league id (covers the sandbox, which userPredictionLeagueIds excludes).
+  const predLeagueIds = Array.from(
+    new Set([id, ...(await userPredictionLeagueIds(supabase, user.id))]),
+  );
+
   const teamIds = [match.home_team_id, match.away_team_id].filter(
     (t): t is number => t != null,
   );
@@ -70,14 +79,14 @@ export default async function MatchSummaryPage({
       supabase
         .from("match_predictions")
         .select("user_id, home_goals, away_goals, scorer_goals, pen_winner_team_id, profiles ( display_name, team_name, avatar_url )")
-        .eq("league_id", id)
+        .in("league_id", predLeagueIds)
         .eq("match_id", matchNum),
       // For group matches the predicted scoreline lives in the bracket, so pull
       // every member's bracket to show what each person predicted.
       supabase
         .from("bracket_predictions")
         .select("user_id, group_scores, profiles ( display_name, team_name, avatar_url )")
-        .eq("league_id", id),
+        .in("league_id", predLeagueIds),
       supabase.from("match_lineups").select("team_id, formation, xi, subs").eq("match_id", matchNum),
       supabase
         .from("match_events")
@@ -317,6 +326,10 @@ export default async function MatchSummaryPage({
       };
     });
   }
+  // One row per person — a friend you share multiple leagues with appears once
+  // (picks are account-level, so the duplicate rows are identical).
+  const seenUsers = new Set<string>();
+  predRows = predRows.filter((r) => (seenUsers.has(r.userId) ? false : (seenUsers.add(r.userId), true)));
   predRows.sort((a, b) => (b.points ?? 0) - (a.points ?? 0) || a.name.localeCompare(b.name));
   const iHavePredicted = predRows.some((r) => r.isMe);
   const myPred = predRows.find((r) => r.isMe) ?? null;
