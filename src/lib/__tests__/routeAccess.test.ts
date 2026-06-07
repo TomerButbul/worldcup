@@ -27,6 +27,15 @@ describe("isPublicPath", () => {
     expect(isPublicPath("/join/any-code-here")).toBe(true);
   });
 
+  // Regression guard for the Google OAuth bug: /auth/callback was missing from
+  // the allow-list, so the proxy 307'd the logged-out callback request to /signup
+  // BEFORE the route handler could exchange the OAuth `code` for a session. A user
+  // is by definition not logged in until AFTER this handler runs — so it must be
+  // public, exactly like /join above. Without this, every Google sign-in dead-ends.
+  it("keeps the OAuth callback public so it can exchange the code for a session", () => {
+    expect(isPublicPath("/auth/callback")).toBe(true);
+  });
+
   it("gates protected app routes (logged-out visitors get bounced to sign-up)", () => {
     expect(isPublicPath("/dashboard")).toBe(false);
     expect(isPublicPath("/leagues/123")).toBe(false);

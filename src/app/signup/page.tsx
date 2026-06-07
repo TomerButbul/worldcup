@@ -2,6 +2,7 @@ import Link from "next/link";
 import { signup, playAsGuest } from "@/app/auth/actions";
 import { createClient } from "@/lib/supabase/server";
 import GameButton from "@/components/GameButton";
+import GoogleSignInButton from "@/components/GoogleSignInButton";
 import Reveal from "@/components/Reveal";
 import Ball from "@/components/art/Ball";
 
@@ -60,6 +61,14 @@ export default async function SignupPage({
               </GameButton>
             </div>
           </form>
+
+          <div className="my-5 flex items-center gap-3 text-xs uppercase tracking-wide text-chalk-dim">
+            <span className="h-px flex-1 bg-night/10" />
+            or
+            <span className="h-px flex-1 bg-night/10" />
+          </div>
+
+          <GoogleSignInButton label="Continue with Google" />
 
           <p className="mt-5 text-center text-sm text-chalk-dim">
             Already have an account?{" "}

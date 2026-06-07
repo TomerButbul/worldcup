@@ -26,6 +26,11 @@ export function isPublicPath(pathname: string): boolean {
     // the invite_code cookie and *then* sends them to sign up. If we gated it here,
     // the proxy would redirect to /signup first and the code would be lost.
     pathname.startsWith("/join") ||
+    // OAuth/email callback (/auth/callback): the user lands here logged-OUT, and the
+    // handler exchanges the `code` for a session. Gating it would 307 to /signup
+    // before the exchange runs, silently dropping the code — so every Google sign-in
+    // and password-reset link would dead-end. Must be reachable pre-auth.
+    pathname.startsWith("/auth/") ||
     // Public read-only bracket shares (/b/<slug>) — must reach logged-out visitors;
     // that's the whole point of a share link. The trailing slash is deliberate so we
     // don't accidentally make the auth-gated /bracket page public.
