@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { createClient } from "@/lib/supabase/client";
 import Flag from "@/components/Flag";
 import Avatar from "@/components/Avatar";
+import CountUp from "@/components/CountUp";
 import EmojiRain from "@/components/EmojiRain";
 import { Upfront, Live, Trophy } from "@/components/icons";
 import { playWomp } from "@/lib/sound";
@@ -212,15 +213,11 @@ export default function Leaderboard({
                     </span>
                     <span className="text-right tabular-nums text-chalk/70">{r.upfront}</span>
                     <span className="text-right tabular-nums text-chalk/70">{r.live}</span>
-                    <motion.span
-                      key={r.total}
-                      initial={{ scale: 1.4, color: "#ffd970" }}
-                      animate={{ scale: 1, color: "#eaf3ee" }}
-                      transition={{ duration: 0.4 }}
-                      className="text-right font-display text-base tabular-nums lg:text-2xl"
-                    >
-                      {r.total}
-                    </motion.span>
+                    <CountUp
+                      value={r.total}
+                      flash
+                      className="block text-right font-display text-base text-chalk lg:text-2xl"
+                    />
                   </motion.li>
                 );
               })}

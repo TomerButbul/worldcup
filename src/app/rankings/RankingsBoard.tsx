@@ -1,8 +1,10 @@
 "use client";
 
 import { useMemo, useState, type ComponentType } from "react";
+import { motion } from "motion/react";
 import Avatar from "@/components/Avatar";
 import Flag from "@/components/Flag";
+import CountUp from "@/components/CountUp";
 import { Upfront, Live, Trophy } from "@/components/icons";
 import type { GlobalRank } from "@/lib/globalRankings";
 
@@ -37,8 +39,10 @@ export default function RankingsBoard({
     const isMe = r.user_id === meId;
     const team = r.favTeamId ? teamById.get(r.favTeamId) : null;
     return (
-      <li
+      <motion.li
         key={r.user_id}
+        layout
+        transition={{ type: "spring", stiffness: 500, damping: 40 }}
         className={`flex items-center gap-3 border-b border-night/5 px-3 py-3 last:border-b-0 sm:px-4 ${
           isMe ? "bg-gold/15 ring-1 ring-inset ring-gold/50" : ""
         }`}
@@ -54,8 +58,8 @@ export default function RankingsBoard({
         {isMe && (
           <span className="shrink-0 rounded bg-gold/20 px-1.5 py-0.5 text-[10px] font-bold text-gold">you</span>
         )}
-        <span className="shrink-0 font-display text-lg tabular-nums text-gold">{r[by]}</span>
-      </li>
+        <CountUp value={r[by]} className="shrink-0 font-display text-lg text-gold" />
+      </motion.li>
     );
   };
 
