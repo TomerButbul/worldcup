@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { createLeague, joinLeague } from "./actions";
-import GameButton from "@/components/GameButton";
 import Reveal from "@/components/Reveal";
 import Flag from "@/components/Flag";
 import Trophy from "@/components/art/Trophy";
@@ -18,9 +16,22 @@ import { computeFavStatus } from "@/lib/favoriteStatus";
 import AutoRefresh from "@/components/AutoRefresh";
 import { nowMs, KICKOFF_MS } from "@/lib/clock";
 import { getCachedTeams } from "@/lib/tournamentData";
+import { getCachedGlobalRankings } from "@/lib/globalRankings";
+import { globalRankOf } from "@/lib/globalRank";
+import { SANDBOX_LEAGUE_ID } from "@/lib/predictionSync";
 import type { Team, Match } from "@/lib/types";
 
 export const metadata = { title: "Home" };
+
+// 1 → "1st", 2 → "2nd", 3 → "3rd", 11 → "11th", 21 → "21st" …
+function ordinal(n: number): string {
+  const r10 = n % 10;
+  const r100 = n % 100;
+  if (r10 === 1 && r100 !== 11) return `${n}st`;
+  if (r10 === 2 && r100 !== 12) return `${n}nd`;
+  if (r10 === 3 && r100 !== 13) return `${n}rd`;
+  return `${n}th`;
+}
 
 export default async function DashboardPage({
   searchParams,
@@ -47,7 +58,9 @@ export default async function DashboardPage({
     .select("role, leagues ( id, name, join_code, kind, is_global )")
     .eq("user_id", user.id);
 
-  const teams = (await getCachedTeams()) as Team[];
+  const [teamsRaw, globalRanks] = await Promise.all([getCachedTeams(), getCachedGlobalRankings()]);
+  const teams = teamsRaw as Team[];
+  const myRank = globalRankOf(globalRanks, user.id);
 
   const favId = profile?.favorite_team_id ?? null;
   let favStatus = null;
@@ -138,35 +151,19 @@ export default async function DashboardPage({
     return { id: m.id, data, prediction: predByMatch.get(m.id) ?? null };
   });
 
-  const inputClass =
-    "w-full rounded-xl border border-night/10 bg-white px-3 py-2.5 text-sm text-chalk outline-none placeholder:text-chalk-dim focus:border-grass focus:ring-2 focus:ring-grass/30";
-
-  // Create / join forms — rendered prominently when you have no friends-league
-  // yet (onboarding), else tucked behind a disclosure so Home stays calm.
-  const leagueForms = (
-    <div className="grid gap-3 sm:grid-cols-2">
-      <form action={createLeague} className="glass-strong space-y-3 rounded-2xl p-4">
-        <h3 className="font-display text-chalk">Create a league</h3>
-        <input name="name" required placeholder="League name" aria-label="League name" className={inputClass} />
-        <GameButton type="submit" variant="primary" className="w-full">
-          Create
-        </GameButton>
-      </form>
-      <form action={joinLeague} className="glass-strong space-y-3 rounded-2xl p-4">
-        <h3 className="font-display text-chalk">Join a league</h3>
-        <input
-          name="join_code"
-          required
-          placeholder="JOIN CODE"
-          aria-label="Join code"
-          className={`${inputClass} font-mono uppercase tracking-widest`}
-        />
-        <GameButton type="submit" variant="gold" className="w-full">
-          Join
-        </GameButton>
-      </form>
-    </div>
-  );
+  // One-line summary for the "Leagues & rankings" card: your worldwide position
+  // (every account is on the global board) plus how many private leagues you're in.
+  // Count only leagues the user actively plays — exclude the hidden Sandbox test
+  // league so this matches the Leagues hub (which filters it everywhere).
+  const leagueCount = friendsLeagues.filter((l) => l.id !== SANDBOX_LEAGUE_ID).length;
+  const rankLine = myRank
+    ? `${ordinal(myRank.rank)} of ${myRank.total.toLocaleString()} worldwide` +
+      (leagueCount > 0
+        ? ` · ${leagueCount} ${leagueCount === 1 ? "league" : "leagues"}`
+        : " · play with friends")
+    : leagueCount > 0
+      ? `Standings for your ${leagueCount} ${leagueCount === 1 ? "league" : "leagues"} + the world`
+      : "See where you rank — and start a league";
 
   return (
     <main className="mx-auto w-full max-w-2xl lg:max-w-[1600px] flex-1 space-y-4 p-4 sm:space-y-6 sm:p-6 lg:p-8">
@@ -265,47 +262,6 @@ export default async function DashboardPage({
           {error && (
             <p className="rounded-lg bg-red-500/15 px-3 py-2 text-sm text-red-600">{error}</p>
           )}
-
-          <section id="leagues" className="scroll-mt-24 space-y-2">
-            <h2 className="font-display text-lg text-chalk">Your Leagues</h2>
-            {friendsLeagues.length === 0 ? (
-              <div className="space-y-3">
-                <p className="glass rounded-2xl p-5 text-center text-sm text-chalk-dim">
-                  No leagues yet — create one or join with a code. Your picks already count on the
-                  global rankings.
-                </p>
-                {leagueForms}
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                  {friendsLeagues.map((l, i) => (
-                    <Reveal key={l.id} index={i}>
-                      <Link
-                        href={l.kind === "draft" ? `/leagues/${l.id}` : `/rankings?league=${l.id}`}
-                        className="group flex items-center justify-between rounded-2xl glass p-3.5 transition hover:border-grass/50 hover:bg-night/5"
-                      >
-                        <span className="flex min-w-0 items-center gap-2.5">
-                          <Trophy size={22} />
-                          <span className="truncate font-semibold text-chalk">{l.name}</span>
-                        </span>
-                        <span className="ml-2 shrink-0 rounded-lg bg-night/5 px-2 py-1 font-mono text-xs text-gold">
-                          {l.join_code}
-                        </span>
-                      </Link>
-                    </Reveal>
-                  ))}
-                </ul>
-                <details className="group">
-                  <summary className="flex cursor-pointer list-none items-center justify-center gap-1.5 rounded-2xl glass p-3 text-sm font-semibold text-gold transition hover:text-gold-bright">
-                    + Create or join another league
-                    <span className="transition group-open:rotate-180">▾</span>
-                  </summary>
-                  <div className="mt-3">{leagueForms}</div>
-                </details>
-              </div>
-            )}
-          </section>
         </div>
 
         {/* Secondary / aside column — slim: what's happening, not settings.
@@ -322,14 +278,14 @@ export default async function DashboardPage({
               href="/rankings"
               className="group flex items-center justify-between rounded-2xl glass-strong p-4 transition hover:border-gold/50 hover:bg-night/5"
             >
-              <span className="flex items-center gap-3">
-                <span className="text-2xl">🌍</span>
-                <span>
-                  <span className="block font-semibold text-chalk">Global rankings</span>
-                  <span className="block text-xs text-chalk-dim">See how you stack up against every player</span>
+              <span className="flex min-w-0 items-center gap-3">
+                <span className="text-2xl">🏆</span>
+                <span className="min-w-0">
+                  <span className="block font-semibold text-chalk">Leagues &amp; rankings</span>
+                  <span className="block truncate text-xs text-chalk-dim">{rankLine}</span>
                 </span>
               </span>
-              <span className="text-gold transition group-hover:translate-x-0.5">→</span>
+              <span className="shrink-0 text-gold transition group-hover:translate-x-0.5">→</span>
             </Link>
           </Reveal>
         </div>

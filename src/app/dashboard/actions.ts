@@ -79,11 +79,12 @@ export async function saveNotifPrefs(prefs: Record<string, boolean>) {
 
 export async function createLeague(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
-  if (!name) redirect("/dashboard?error=Name+required");
+  // Create/join now live on the Leagues hub (/rankings), so surface failures there.
+  if (!name) redirect("/rankings?error=Name+required");
 
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("create_league", { p_name: name });
-  if (error) redirect(`/dashboard?error=${encodeURIComponent(error.message)}`);
+  if (error) redirect(`/rankings?error=${encodeURIComponent(error.message)}`);
 
   redirect(`/leagues/${data}`);
 }
@@ -173,10 +174,11 @@ export async function consumePendingInvite(): Promise<string | null> {
 
 export async function joinLeague(formData: FormData) {
   const code = String(formData.get("join_code") ?? "").trim();
-  if (!code) redirect("/dashboard?error=Join+code+required");
+  // Create/join now live on the Leagues hub (/rankings), so surface failures there.
+  if (!code) redirect("/rankings?error=Join+code+required");
 
   const { leagueId, error } = await joinByCode(code);
-  if (error) redirect(`/dashboard?error=${encodeURIComponent(error)}`);
+  if (error) redirect(`/rankings?error=${encodeURIComponent(error)}`);
 
   redirect(`/leagues/${leagueId}`);
 }

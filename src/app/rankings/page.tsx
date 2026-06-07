@@ -25,9 +25,9 @@ type LeagueRow = {
 export default async function RankingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ league?: string }>;
+  searchParams: Promise<{ league?: string; error?: string }>;
 }) {
-  const { league: leagueParam } = await searchParams;
+  const { league: leagueParam, error } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -109,6 +109,7 @@ export default async function RankingsPage({
         leagues={leagues}
         drafts={drafts}
         initialLeagueId={leagueParam ?? null}
+        error={error ?? null}
       />
     </main>
   );
