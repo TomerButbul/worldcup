@@ -66,6 +66,7 @@ export default async function TournamentPage() {
     })),
     teamList.map((t) => ({ id: t.id, group_label: t.group_label, fifa_rank: t.fifa_rank })),
     new Map(Object.entries(fifaRankRecord).map(([id, r]) => [Number(id), r])),
+    true, // count in-progress games provisionally so the table moves as goals go in
   );
 
   // The real knockout bracket, resolved from actual results.
@@ -139,6 +140,19 @@ export default async function TournamentPage() {
   const liveCount = matches.filter((m) => m.status === "live").length;
   const hasResults = matches.some((m) => m.status !== "scheduled");
 
+  // In-progress group games → rendered as a live scoreline above their group's
+  // table (the standings above already fold in the provisional points).
+  const liveGroupMatches = matches
+    .filter((m) => m.status === "live" && m.stage === "group" && m.group_label)
+    .map((m) => ({
+      group: m.group_label as string,
+      homeTeamId: m.home_team_id,
+      awayTeamId: m.away_team_id,
+      homeGoals: m.home_goals ?? 0,
+      awayGoals: m.away_goals ?? 0,
+      elapsed: m.elapsed ?? null,
+    }));
+
   // Per-round date windows for the (mostly empty) knockout bracket. Every knockout
   // fixture is seeded with a kickoff even before its teams are known, so grouping
   // by stage → min/max kickoff tells viewers WHEN each round is played. Formatted
@@ -162,6 +176,7 @@ export default async function TournamentPage() {
     <TournamentHub
       teams={teamList.map((t) => ({ id: t.id, name: t.name, code: t.code, logo_url: t.logo_url }))}
       standings={standings}
+      liveMatches={liveGroupMatches}
       scorers={joinLeader(scorerRanks)}
       assisters={joinLeader(assistRanks)}
       keepers={joinLeader(cleanSheetRanks)}

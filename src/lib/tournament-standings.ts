@@ -62,6 +62,9 @@ export function liveGroupStandings(
   matches: StandingMatch[],
   teams: StandingTeam[],
   fifaRank: Map<number, number> = new Map(),
+  // When true, in-progress ("live") matches are counted provisionally so the
+  // table moves as goals go in — not just at full-time.
+  includeLive = false,
 ): GroupStandings[] {
   // Seed each group's rows from the team list so every team appears, even before
   // they've kicked a ball.
@@ -82,7 +85,8 @@ export function liveGroupStandings(
     total.set(m.group_label, (total.get(m.group_label) ?? 0) + 1);
     if (m.status === "finished") done.set(m.group_label, (done.get(m.group_label) ?? 0) + 1);
 
-    if (m.status !== "finished" || m.home_goals == null || m.away_goals == null) continue;
+    const counts = m.status === "finished" || (includeLive && m.status === "live");
+    if (!counts || m.home_goals == null || m.away_goals == null) continue;
     if (m.home_team_id == null || m.away_team_id == null) continue;
 
     // A finished match might reference a team the seed list missed (e.g. group

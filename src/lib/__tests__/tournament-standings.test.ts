@@ -69,6 +69,22 @@ describe("liveGroupStandings", () => {
     expect(tables[0].rows.every((r) => r.played === 0)).toBe(true);
   });
 
+  it("folds in live scores provisionally when includeLive is true", () => {
+    const teams = [team(1, "A"), team(2, "A"), team(3, "A"), team(4, "A")];
+    const matches = [gm(1, 2, 2, 0, "live")]; // team 1 currently leading 2-0
+
+    // Default: live games are ignored (the table only moves at full-time).
+    expect(liveGroupStandings(matches, teams)[0].rows.every((r) => r.played === 0)).toBe(true);
+
+    // includeLive: the in-progress score is counted so the table updates live.
+    const live = liveGroupStandings(matches, teams, new Map(), true);
+    const byId = new Map(live[0].rows.map((r) => [r.teamId, r]));
+    expect(byId.get(1)).toMatchObject({ played: 1, won: 1, gf: 2, ga: 0, gd: 2, pts: 3 });
+    expect(byId.get(2)).toMatchObject({ played: 1, lost: 1, pts: 0 });
+    // A live game still doesn't make the group final.
+    expect(live[0].complete).toBe(false);
+  });
+
   it("marks a group complete only once every group match is finished", () => {
     const teams = [team(1, "A"), team(2, "A"), team(3, "A"), team(4, "A")];
     const finished = [gm(1, 2, 1, 0), gm(3, 4, 1, 0), gm(1, 3, 1, 0), gm(2, 4, 1, 0), gm(1, 4, 1, 0), gm(2, 3, 1, 0)];

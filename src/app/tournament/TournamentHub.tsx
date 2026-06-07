@@ -15,6 +15,7 @@ import type { GroupStandings, StandingRow } from "@/lib/tournament-standings";
 
 type TeamMini = { id: number; name: string; code: string | null; logo_url: string | null };
 type LeaderRow = { playerId: number; count: number; name: string; teamId: number | null };
+type LiveMatch = { group: string; homeTeamId: number | null; awayTeamId: number | null; homeGoals: number; awayGoals: number; elapsed: number | null };
 
 type Tab = "standings" | "bracket" | "leaders";
 
@@ -27,6 +28,7 @@ const TABS: { key: Tab; label: string; short: string }[] = [
 export default function TournamentHub({
   teams,
   standings,
+  liveMatches,
   scorers,
   assisters,
   keepers,
@@ -40,6 +42,7 @@ export default function TournamentHub({
 }: {
   teams: TeamMini[];
   standings: GroupStandings[];
+  liveMatches: LiveMatch[];
   scorers: LeaderRow[];
   assisters: LeaderRow[];
   keepers: LeaderRow[];
@@ -63,7 +66,7 @@ export default function TournamentHub({
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-4 p-4 sm:space-y-5 sm:p-6 lg:max-w-[1600px] lg:p-8">
-      <AutoRefresh enabled={started} />
+      <AutoRefresh enabled={started || liveCount > 0} />
 
       {/* Header */}
       <header className="glass-strong overflow-hidden rounded-3xl">
@@ -118,7 +121,9 @@ export default function TournamentHub({
         </nav>
       </header>
 
-      {tab === "standings" && <StandingsView standings={standings} teamsById={teamsById} started={started} />}
+      {tab === "standings" && (
+        <StandingsView standings={standings} teamsById={teamsById} started={started} liveMatches={liveMatches} />
+      )}
       {tab === "bracket" && (
         <BracketView
           rounds={bracketRounds}
@@ -147,10 +152,12 @@ function StandingsView({
   standings,
   teamsById,
   started,
+  liveMatches,
 }: {
   standings: GroupStandings[];
   teamsById: Record<number, TeamMini>;
   started: boolean;
+  liveMatches: LiveMatch[];
 }) {
   if (standings.length === 0) {
     return (
@@ -160,6 +167,10 @@ function StandingsView({
       </p>
     );
   }
+  const liveByGroup = liveMatches.reduce<Record<string, LiveMatch[]>>((acc, m) => {
+    (acc[m.group] ??= []).push(m);
+    return acc;
+  }, {});
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-1 text-[11px] text-chalk-dim">
@@ -169,7 +180,7 @@ function StandingsView({
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {standings.map((g) => (
-          <GroupTable key={g.group} g={g} teamsById={teamsById} />
+          <GroupTable key={g.group} g={g} teamsById={teamsById} live={liveByGroup[g.group] ?? []} />
         ))}
       </div>
     </div>
@@ -185,13 +196,42 @@ function Legend({ className, label }: { className: string; label: string }) {
   );
 }
 
-function GroupTable({ g, teamsById }: { g: GroupStandings; teamsById: Record<number, TeamMini> }) {
+function GroupTable({ g, teamsById, live }: { g: GroupStandings; teamsById: Record<number, TeamMini>; live: LiveMatch[] }) {
+  const code = (t: TeamMini | null) => t?.code ?? t?.name?.slice(0, 3).toUpperCase() ?? "—";
   return (
     <div className="glass overflow-hidden rounded-2xl">
       <div className="flex items-center justify-between border-b border-night/10 px-3 py-2">
         <h3 className="font-display text-base text-chalk">Group {g.group}</h3>
-        {g.complete && <span className="rounded-full bg-grass/15 px-2 py-0.5 text-[10px] font-semibold text-grass">Final</span>}
+        {g.complete ? (
+          <span className="rounded-full bg-grass/15 px-2 py-0.5 text-[10px] font-semibold text-grass">Final</span>
+        ) : live.length > 0 ? (
+          <span className="flex items-center gap-1 rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-bold text-red-600">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-500" /> Live
+          </span>
+        ) : null}
       </div>
+
+      {/* In-progress game(s) in this group — the table above already reflects the
+          provisional points; this line shows the actual live scoreline. */}
+      {live.map((m, i) => {
+        const h = m.homeTeamId != null ? teamsById[m.homeTeamId] : null;
+        const a = m.awayTeamId != null ? teamsById[m.awayTeamId] : null;
+        return (
+          <div key={i} className="flex items-center justify-center gap-1.5 border-b border-night/10 bg-red-500/[0.04] px-3 py-1.5 text-[11px] font-semibold">
+            <span className="flex items-center gap-1 text-chalk">
+              <Flag teamId={m.homeTeamId} logoUrl={h?.logo_url ?? null} code={h?.code ?? null} name={h?.name ?? "?"} size={13} />
+              {code(h)}
+            </span>
+            <span className="net rounded bg-night/10 px-1.5 font-display tabular-nums text-chalk">{m.homeGoals}–{m.awayGoals}</span>
+            <span className="flex items-center gap-1 text-chalk">
+              {code(a)}
+              <Flag teamId={m.awayTeamId} logoUrl={a?.logo_url ?? null} code={a?.code ?? null} name={a?.name ?? "?"} size={13} />
+            </span>
+            <span className="ml-0.5 tabular-nums text-red-600">{m.elapsed != null ? `${m.elapsed}'` : "LIVE"}</span>
+          </div>
+        );
+      })}
+
       <table className="w-full text-xs">
         <thead>
           <tr className="text-[10px] uppercase tracking-wide text-chalk-dim">
