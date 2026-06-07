@@ -33,6 +33,12 @@ html {
   background: #eef3ff;
   color: var(--color-chalk);
   scroll-behavior: smooth;
+  /* Never let the page pan sideways. The root element is the viewport's scroll
+     container, so the guard belongs here — `overflow-x: hidden` on <body> alone
+     doesn't stop a too-wide descendant from scrolling the viewport. `clip` (not
+     `hidden`) clips the x-axis WITHOUT creating a scroll container, so it leaves
+     vertical scrolling and `position: sticky` untouched. */
+  overflow-x: clip;
   /* Lock text scaling so Android (Chrome/Samsung Internet) doesn't auto-inflate
      fonts the way iOS never does — the full prefixed + standard set. */
   -webkit-text-size-adjust: 100%;
