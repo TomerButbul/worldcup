@@ -66,7 +66,7 @@ function Bar({ tabs }: { tabs: Tab[] }): JSX.Element {
 }
 
 // --- Global (top-level) nav ------------------------------------------------
-const GLOBAL_HIDE = ["/leagues/", "/login", "/signup", "/forgot-password", "/reset-password", "/preview"];
+const GLOBAL_HIDE = ["/leagues/", "/login", "/signup", "/forgot-password", "/reset-password"];
 
 // `force` renders the global bar even on routes it normally hides (used by the
 // league layout to give every in-league page — prediction boards and the draft

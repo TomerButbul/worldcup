@@ -6,8 +6,8 @@ import { isAuthPath, isPublicPath } from "@/lib/routeAccess";
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
 
-  // If Supabase isn't configured (e.g. running the local /preview with no keys),
-  // skip auth entirely so the app doesn't crash. No effect once keys are set.
+  // If Supabase isn't configured (e.g. a local build or CI with no keys), skip
+  // auth entirely so the app doesn't crash. No effect once keys are set.
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!supabaseUrl || !supabaseKey) {

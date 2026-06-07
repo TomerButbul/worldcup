@@ -10,7 +10,6 @@ describe("isPublicPath", () => {
     expect(isPublicPath("/reset-password")).toBe(true);
     expect(isPublicPath("/how-it-works")).toBe(true);
     expect(isPublicPath("/install")).toBe(true);
-    expect(isPublicPath("/preview")).toBe(true);
   });
 
   it("keeps API routes public so they return JSON, not an HTML redirect", () => {

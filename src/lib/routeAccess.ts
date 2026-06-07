@@ -15,7 +15,6 @@ export function isAuthPath(pathname: string): boolean {
 export function isPublicPath(pathname: string): boolean {
   return (
     pathname === "/" ||
-    pathname.startsWith("/preview") ||
     pathname.startsWith("/forgot-password") ||
     pathname.startsWith("/reset-password") ||
     pathname.startsWith("/how-it-works") ||
