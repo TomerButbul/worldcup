@@ -18,7 +18,7 @@ export default function QRPage() {
       </div>
 
       <div className="space-y-2.5">
-        <h1 className="font-display text-[2.75rem] leading-[0.92] text-gradient-fifa sm:text-6xl">
+        <h1 className="font-display text-[2.75rem] leading-[0.92] text-shimmer-fifa sm:text-6xl">
           Predict the
           <br />
           World Cup

@@ -73,7 +73,7 @@ export default function TournamentHub({
         <div className="relative p-5 sm:p-6">
           <div className="mt-1 flex flex-wrap items-end justify-between gap-3">
             <div>
-              <h1 className="font-display text-3xl text-gradient-fifa sm:text-4xl">The Tournament</h1>
+              <h1 className="font-display text-3xl text-shimmer-fifa sm:text-4xl">The Tournament</h1>
               <p className="mt-0.5 text-sm text-chalk-dim">
                 Live group tables, the Golden Boot race, and the real knockout bracket.
               </p>

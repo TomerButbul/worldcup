@@ -130,6 +130,28 @@ body {
   color: transparent;
 }
 
+/* Hero wordmarks: the FIFA gradient with a slow flowing sheen. Reserved for the
+   big brand/section headlines (not small labels). Reduced-motion users get the
+   static gradient via the global override at the bottom of this file. */
+@keyframes text-sheen {
+  to { background-position: 220% center; }
+}
+.text-shimmer-fifa {
+  background-image: linear-gradient(
+    100deg,
+    var(--color-electric),
+    var(--color-magenta),
+    var(--color-grass),
+    var(--color-gold),
+    var(--color-electric)
+  );
+  background-size: 220% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: text-sheen 6.5s linear infinite;
+}
+
 /* Pitch stripes overlay */
 .pitch-stripes {
   background-image: repeating-linear-gradient(

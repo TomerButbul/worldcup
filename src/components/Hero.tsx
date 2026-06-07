@@ -29,7 +29,7 @@ export default function Hero() {
         transition={{ duration: 0.5, delay: 0.2 }}
       >
         <span className="text-gradient-gold">Play the</span>{" "}
-        <span className="text-gradient-fifa">World Cup</span>
+        <span className="text-shimmer-fifa">World Cup</span>
       </motion.h1>
 
       <motion.p
