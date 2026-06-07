@@ -11,6 +11,7 @@ import GuestBanner from "@/components/GuestBanner";
 import LiveScoresWidget from "@/components/LiveScoresWidget";
 import SwipeNav from "@/components/SwipeNav";
 import PageTransition from "@/components/PageTransition";
+import SplashIntro from "@/components/SplashIntro";
 import { MyTeamsProvider } from "@/components/MyTeams";
 import { getCachedMatchdayFlags } from "@/lib/tournamentData";
 import { createClient } from "@/lib/supabase/server";
@@ -105,6 +106,7 @@ export default async function RootLayout({
     >
       <body className="relative min-h-full flex flex-col overflow-x-hidden">
         <MyTeamsProvider>
+        <SplashIntro />
         <AnimatedBackground />
         {/* Festive bunting on mobile/tablet; desktop gets the clean top nav instead. */}
         <div className="fixed inset-x-0 top-[env(safe-area-inset-top)] z-30 lg:hidden">
