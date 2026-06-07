@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, type JSX } from "react";
+import { motion, useReducedMotion } from "motion/react";
 import Flag from "@/components/Flag";
 import Trophy from "@/components/art/Trophy";
 import { openTeamCard } from "@/components/TeamCard";
@@ -96,6 +97,7 @@ export default function KnockoutBracket({
   const highlight = new Set(highlightIds ?? []);
   const interactive = typeof onPick === "function" && !locked;
   const longPress = useLongPress();
+  const reduce = useReducedMotion();
 
   // Two ways to read the same bracket:
   //  • "rounds" — paged, one phase at a time (bigger tap targets; ends on the
@@ -167,7 +169,7 @@ export default function KnockoutBracket({
   // One team row inside a paged match card. Highlighted teams get the gold trail
   // treatment; the tie's winner gets a grass fill + ✓. Becomes a <button> only
   // when the bracket is interactive and the slot is filled.
-  const teamRow = (matchNo: number, teamId: number | null, isWinner: boolean) => {
+  const teamRow = (matchNo: number, teamId: number | null, isWinner: boolean, order = 0) => {
     if (teamId == null) {
       return (
         <div className="flex min-h-9 items-center rounded-lg border border-dashed border-night/15 px-2 py-1.5 text-xs italic text-chalk-dim">
@@ -192,9 +194,21 @@ export default function KnockoutBracket({
 
     const rank = fifaRank[teamId];
     const hold = longPress(() => openTeamCard({ teamId, name }));
+    // Flags spring into their slots as a round mounts — your picks "arriving" in the
+    // next phase. Mount-only (initial), so picking a winner here doesn't replay it;
+    // staggered by row for a cascade; transform/opacity only so the tree geometry is
+    // never disturbed. Static under reduced motion.
+    const flagDelay = reduce ? 0 : Math.min(order * 0.045, 0.45);
     const inner = (
       <>
-        <Flag teamId={teamId} logoUrl={t?.logo_url ?? null} code={t?.code ?? null} name={name} size={18} />
+        <motion.span
+          className="inline-flex shrink-0"
+          initial={reduce ? false : { opacity: 0, scale: 0.5, x: -12 }}
+          animate={{ opacity: 1, scale: 1, x: 0 }}
+          transition={{ type: "spring", stiffness: 520, damping: 24, delay: flagDelay }}
+        >
+          <Flag teamId={teamId} logoUrl={t?.logo_url ?? null} code={t?.code ?? null} name={name} size={18} />
+        </motion.span>
         <span className="min-w-0 flex-1 truncate">{name}</span>
         {rank != null && <span className="shrink-0 text-[10px] tabular-nums opacity-60">#{rank}</span>}
         {isWinner && <span className="shrink-0 text-[11px] leading-none">✓</span>}
@@ -228,7 +242,7 @@ export default function KnockoutBracket({
     );
   };
 
-  const matchCard = (m: BracketMatch) => {
+  const matchCard = (m: BracketMatch, mi = 0) => {
     const onTrail =
       (m.home != null && highlight.has(m.home)) || (m.away != null && highlight.has(m.away));
     const isFinal = championNo != null && m.no === championNo;
@@ -247,8 +261,8 @@ export default function KnockoutBracket({
           </p>
         )}
         <div className="space-y-1">
-          {teamRow(m.no, m.home, m.winner != null && m.winner === m.home)}
-          {teamRow(m.no, m.away, m.winner != null && m.winner === m.away)}
+          {teamRow(m.no, m.home, m.winner != null && m.winner === m.home, mi * 2)}
+          {teamRow(m.no, m.away, m.winner != null && m.winner === m.away, mi * 2 + 1)}
         </div>
       </div>
     );
@@ -594,7 +608,7 @@ export default function KnockoutBracket({
               round.matches.length === 1 ? "max-w-sm" : "max-w-2xl sm:grid-cols-2"
             }`}
           >
-            {round.matches.map((m) => matchCard(m))}
+            {round.matches.map((m, i) => matchCard(m, i))}
           </div>
 
           {/* Podium on the final phase — the climax: gold / silver / bronze. */}
