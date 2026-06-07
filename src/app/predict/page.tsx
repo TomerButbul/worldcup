@@ -220,7 +220,12 @@ export default async function PredictPage() {
     // id anchor + scroll-margin so the dashboard "Up next" card can deep-link
     // straight to this match (/predict#match-<id>) without the top nav covering it.
     return (
-      <div key={m.id} id={`match-${m.id}`} className="scroll-mt-28">
+      // `min-w-0` is load-bearing: this div is the grid ITEM. Without it the item
+      // keeps min-width:auto (= the card's min-content), and on the mobile single
+      // `auto`-column grid that blows the column out to the widest card's content —
+      // so a long venue/team name made every card in that day's grid wider. The
+      // card's own overflow-hidden can't fix this (it's a descendant, not the item).
+      <div key={m.id} id={`match-${m.id}`} className="min-w-0 scroll-mt-28">
         <MatchCard
           leagueId={leagueId}
           match={toCard(m)}
@@ -361,7 +366,7 @@ export default async function PredictPage() {
             ) : (
               <div className="grid gap-3 lg:grid-cols-2">
                 {past.map((m) => (
-                  <div key={m.id} id={`match-${m.id}`} className="scroll-mt-28">
+                  <div key={m.id} id={`match-${m.id}`} className="min-w-0 scroll-mt-28">
                     <ResultCard leagueId={leagueId} m={toResult(m)} />
                   </div>
                 ))}
