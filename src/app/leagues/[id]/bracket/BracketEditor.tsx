@@ -495,8 +495,10 @@ export default function BracketEditor({
             </p>
           </div>
 
-          {/* Group nav — jump anywhere; gold = current, ★ = your favorite's group. */}
-          <div className="flex flex-wrap gap-1.5">
+          {/* Group nav — jump anywhere; gold = current, ★ = your favorite's group.
+              Fixed 6-col grid → two rows of six (not 8+4); capped width so the
+              tiles stay sensibly sized on desktop. */}
+          <div className="grid max-w-sm grid-cols-6 gap-2">
             {groupsOrder.map((g) => {
               const active = g === activeGroup;
               const hasFav = favoriteTeamId != null && (order[g] ?? []).includes(favoriteTeamId);
@@ -506,7 +508,7 @@ export default function BracketEditor({
                   type="button"
                   onClick={() => setActiveGroup(g)}
                   aria-label={`Group ${g}`}
-                  className={`relative flex h-9 w-9 items-center justify-center rounded-lg font-display text-sm transition ${
+                  className={`relative flex aspect-square items-center justify-center rounded-lg font-display text-base transition ${
                     active ? "bg-gold text-night glow-gold" : "bg-night/5 text-chalk-dim hover:bg-night/10"
                   }`}
                 >
