@@ -324,7 +324,7 @@ export default function MatchCard({
           : null;
 
   return (
-    <motion.div layout className="glass rounded-2xl p-4">
+    <motion.div layout className="glass overflow-hidden rounded-2xl p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs text-chalk-dim">
         <span className="font-display text-gold">{stageLabel(match.stage)}</span>
         <span className="flex shrink-0 items-center gap-2">
