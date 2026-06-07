@@ -3,21 +3,11 @@
 import { useState } from "react";
 import Avatar from "@/components/Avatar";
 import Flag from "@/components/Flag";
+import { type PredictionRow } from "@/lib/matchPredictions";
+
+export type { PredictionRow };
 
 type Team = { id: number; name: string; code: string | null; logo_url: string | null };
-type Scorer = { name: string; count: number; photo: string | null; teamId: number | null };
-
-export type PredictionRow = {
-  userId: string;
-  name: string;
-  avatarUrl: string | null;
-  homeGoals: number | null;
-  awayGoals: number | null;
-  penWinnerTeamId: number | null;
-  scorers: Scorer[];
-  points: number | null;
-  isMe: boolean;
-};
 
 // Everyone's call for one match. Each manager sits under the team they backed to
 // win (home / away), with draws in their own section. The chip shows just the

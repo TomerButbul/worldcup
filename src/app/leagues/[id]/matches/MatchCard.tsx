@@ -63,6 +63,13 @@ interface Props {
   // fan-out savePrediction; the gated /sandbox page passes a single-league save
   // so a test pick can never leak into the user's real leagues.
   saveAction?: typeof savePrediction;
+  // Rendered inside the match page (which shows its own lineup) — hide the inline
+  // "Lineups ▾" toggle, its panel, and the "Full match centre" link.
+  embedded?: boolean;
+  // On the matches page the cards sit under a day header, so the per-card date is
+  // redundant — show just the kickoff time so the header doesn't go right-heavy on
+  // mobile (full weekday + date pushed against the right edge).
+  compactWhen?: boolean;
 }
 
 // Adapt the matches page's lighter lineup ({ starters, subs, xi }) + the squad
@@ -95,6 +102,8 @@ export default function MatchCard({
   homeLineup,
   awayLineup,
   saveAction,
+  embedded = false,
+  compactWhen = false,
 }: Props) {
   // Every match — group and knockout — captures a full scoreline here now (the
   // upfront bracket is table-order only). Locks at kickoff.
@@ -115,13 +124,12 @@ export default function MatchCard({
   const [detailOpen, setDetailOpen] = useState(false);
   const [lineupsOpen, setLineupsOpen] = useState(false);
 
-  const kickoff = new Date(match.kickoff_at).toLocaleString(undefined, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const kickoff = new Date(match.kickoff_at).toLocaleString(
+    undefined,
+    compactWhen
+      ? { hour: "2-digit", minute: "2-digit" }
+      : { weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" },
+  );
 
   const live = match.status === "live";
   const allPlayers = [...homePlayers, ...awayPlayers];
@@ -399,7 +407,7 @@ export default function MatchCard({
           ) : (
             <span>🔒 Locked — no prediction made</span>
           )}
-          {lineupsToggle}
+          {!embedded && lineupsToggle}
 
           {detailOpen && (
             <div
@@ -478,13 +486,9 @@ export default function MatchCard({
           )}
           {allPlayers.length === 0 ? (
             <p className="mt-4 text-xs text-chalk-dim"><Ball size={14} className="mr-1 inline-block align-[-2px]" />Goal-scorer list loads once squads are synced.</p>
-          ) : (
+          ) : activeTeam !== null ? (
             <div className="mt-4 space-y-3">
-              {activeTeam === null ? (
-                homeCap > 0 || awayCap > 0 ? (
-                  <p className="text-center text-[11px] text-chalk-dim">Tap a team&apos;s name above to add its goal scorers · tap its flag for the country card.</p>
-                ) : null
-              ) : activeTeam === "home" ? (
+              {activeTeam === "home" ? (
                 <TeamScorers
                   label={match.homeName}
                   players={homePlayers}
@@ -506,14 +510,17 @@ export default function MatchCard({
                 />
               )}
             </div>
-          )}
-          <div className="mt-4 flex items-center justify-between gap-2">
-            {lineupsToggle}
+          ) : homeCap > 0 || awayCap > 0 ? (
+            // A goal is predicted but no picker is open — nudge to add scorers (kept
+            // to one line so cards without scorers picked stay the same compact size).
+            <p className="mt-3 text-center text-[11px] text-chalk-dim">Tap a team&apos;s name above to add its goal scorers.</p>
+          ) : null}
+          <div className="mt-4 flex items-center justify-end gap-2">
             <SaveStatus state={saveState} error={saveErr} />
           </div>
         </>
       )}
-      {lineupsPanel}
+      {!embedded && lineupsPanel}
     </motion.div>
   );
 }

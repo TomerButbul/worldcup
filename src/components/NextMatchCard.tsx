@@ -27,14 +27,13 @@ export default function NextMatchCard({
   matchId,
   prediction,
   canPredict,
-  leagueId,
 }: {
   match: NextMatchData;
   matchId: number;
   prediction: { home: number; away: number } | null;
   canPredict: boolean;
-  // When set, the card opens the Match Center (stats/lineups/live); otherwise it
-  // falls back to the predict list.
+  // Accepted for call-site compatibility; the card now always opens the match on
+  // the Matches page (/predict), which shows its predict / live / result card.
   leagueId?: string;
 }) {
   const kickoff = new Date(match.kickoff_at).toLocaleString(undefined, {
@@ -47,7 +46,7 @@ export default function NextMatchCard({
 
   return (
     <Link
-      href={leagueId ? `/leagues/${leagueId}/matches/${matchId}` : `/predict#match-${matchId}`}
+      href={`/predict#match-${matchId}`}
       className="block rounded-2xl glass p-4 transition hover:border-grass/50 hover:bg-night/5"
     >
       <div className="mb-3 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs text-chalk-dim">

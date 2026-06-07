@@ -3,12 +3,20 @@ import { createClient } from "@/lib/supabase/server";
 import { getCachedTeams, getCachedPlayers } from "@/lib/tournamentData";
 import type { Player } from "@/lib/types";
 import MatchCard, { type MatchCardData, type Lineup } from "@/app/leagues/[id]/matches/MatchCard";
+import MatchPredictions from "@/app/leagues/[id]/matches/[matchId]/MatchPredictions";
 import AutoRefresh from "@/components/AutoRefresh";
-import MatchClock from "@/components/art/MatchClock";
 import Ball from "@/components/art/Ball";
+import ResultCard, { type ResultCardData } from "./ResultCard";
+import LiveCard from "./LiveCard";
+import LiveDetailTabs from "./LiveDetailTabs";
+import MatchFilter from "./MatchFilter";
+import Pitch, { type LineupRow, type EventRow } from "@/app/leagues/[id]/matches/[matchId]/Pitch";
+import MatchStats, { type StatMap } from "@/components/match/MatchStats";
+import MatchTimeline from "@/components/match/MatchTimeline";
+import { buildPredRows, type MatchPredictionRow, type BracketPredictionRow } from "@/lib/matchPredictions";
 import { fetchLineups } from "@/lib/apiFootball";
 import { nowMs, KICKOFF_MS } from "@/lib/clock";
-import { primaryPredictionLeague } from "@/lib/predictionSync";
+import { primaryPredictionLeague, userPredictionLeagueIds } from "@/lib/predictionSync";
 import NoPredictionLeague from "@/components/NoPredictionLeague";
 
 export const metadata = { title: "Match predictions" };
@@ -26,12 +34,13 @@ export default async function PredictPage() {
   const league = await primaryPredictionLeague(supabase, user.id);
   if (!league) return <NoPredictionLeague title="Make your match predictions" />;
   const leagueId = league.id;
+  const userId = user.id; // captured so closures below don't re-widen `user` to null
 
   const [{ data: matches }, teams, players, { data: preds }] = await Promise.all([
     supabase
       .from("matches")
       .select(
-        "id, stage, kickoff_at, status, home_team_id, away_team_id, home_goals, away_goals, venue_id, venue_name, venue_city",
+        "id, stage, kickoff_at, status, elapsed, home_team_id, away_team_id, home_goals, away_goals, venue_id, venue_name, venue_city",
       )
       .lt("id", 9_000_000) // hide sentinel test fixtures (only the /sandbox page shows them)
       .order("kickoff_at"),
@@ -45,6 +54,7 @@ export default async function PredictPage() {
   ]);
 
   const teamName = new Map(teams.map((t) => [t.id, t.name]));
+  const teamById = new Map(teams.map((t) => [t.id, t])); // full team (code, logo_url) for MatchPredictions
   const playersByTeam = new Map<number, Player[]>();
   for (const p of players as (Player & { in_squad?: boolean })[]) {
     if (p.team_id == null || !p.in_squad) continue; // World Cup squad only
@@ -58,12 +68,73 @@ export default async function PredictPage() {
   const upcoming: typeof matches = [];
   const past: typeof matches = [];
   for (const m of matches ?? []) {
-    // A kicked-off-but-not-finished match must not fall under "Played".
+    // Finished → always Played; live → Live now; otherwise split by kickoff.
     if (m.status === "live") live.push(m);
+    else if (m.status === "finished") past.push(m);
     else if (new Date(m.kickoff_at).getTime() > now) upcoming.push(m);
     else past.push(m);
   }
   past.reverse(); // most recent first
+  const liveCount = live.length; // captured for the closure below (live re-widens to null inside it)
+  // match id → its tab, so a /predict#match-<id> deep link opens the right tab + scrolls.
+  const tabByMatchId: Record<string, "upcoming" | "live" | "played"> = {};
+  for (const m of upcoming) tabByMatchId[m.id] = "upcoming";
+  for (const m of live) tabByMatchId[m.id] = "live";
+  for (const m of past) tabByMatchId[m.id] = "played";
+
+  // Live games show their full details inline (lineup, score, stats, predictions),
+  // so pull each one's XI + events + per-team stats, plus everyone's predictions
+  // for those matches (across the viewer's leagues) and the squad photos scorers
+  // need. Only paid when something is actually live.
+  const liveIds = live.map((m) => m.id);
+  let liveLineupRows: { match_id: number; team_id: number; formation: string | null; xi: unknown; subs: unknown }[] = [];
+  let liveEventRows: { match_id: number }[] = [];
+  let liveStatRows: { match_id: number; team_id: number; stats: StatMap | null }[] = [];
+  let livePredRows: (MatchPredictionRow & { match_id: number })[] = [];
+  let liveBracketRows: BracketPredictionRow[] = [];
+  const livePlayerById = new Map<number, { id: number; name: string; team_id: number | null; photo_url: string | null }>();
+  if (liveIds.length) {
+    const predLeagueIds = Array.from(new Set([leagueId, ...(await userPredictionLeagueIds(supabase, user.id))]));
+    const liveTeamIds = Array.from(
+      new Set(live.flatMap((m) => [m.home_team_id, m.away_team_id]).filter((t): t is number => t != null)),
+    );
+    const [ll, le, ls, lp, lb, lpl] = await Promise.all([
+      supabase.from("match_lineups").select("match_id, team_id, formation, xi, subs").in("match_id", liveIds),
+      supabase
+        .from("match_events")
+        .select("match_id, team_id, type, detail, player_id, player_name, related_id, related_name, minute")
+        .in("match_id", liveIds)
+        .order("sort"),
+      supabase.from("match_stats").select("match_id, team_id, stats").in("match_id", liveIds),
+      supabase
+        .from("match_predictions")
+        .select("match_id, user_id, home_goals, away_goals, scorer_goals, pen_winner_team_id, profiles ( display_name, team_name, avatar_url )")
+        .in("league_id", predLeagueIds)
+        .in("match_id", liveIds),
+      supabase
+        .from("bracket_predictions")
+        .select("user_id, group_scores, profiles ( display_name, team_name, avatar_url )")
+        .in("league_id", predLeagueIds),
+      liveTeamIds.length
+        ? supabase.from("players").select("id, name, team_id, photo_url").in("team_id", liveTeamIds)
+        : Promise.resolve({ data: [] as { id: number; name: string; team_id: number | null; photo_url: string | null }[] }),
+    ]);
+    liveLineupRows = (ll.data ?? []) as typeof liveLineupRows;
+    liveEventRows = (le.data ?? []) as typeof liveEventRows;
+    liveStatRows = (ls.data ?? []) as typeof liveStatRows;
+    livePredRows = (lp.data ?? []) as unknown as typeof livePredRows;
+    liveBracketRows = (lb.data ?? []) as unknown as typeof liveBracketRows;
+    for (const p of (lpl.data ?? []) as { id: number; name: string; team_id: number | null; photo_url: string | null }[]) {
+      livePlayerById.set(p.id, p);
+    }
+  }
+  const liveLineupOf = (mid: number, teamId: number | null): LineupRow | null =>
+    teamId == null
+      ? null
+      : ((liveLineupRows.find((l) => l.match_id === mid && l.team_id === teamId) as unknown as LineupRow | undefined) ?? null);
+  const liveEventsOf = (mid: number): EventRow[] => liveEventRows.filter((e) => e.match_id === mid) as unknown as EventRow[];
+  const liveStatsOf = (mid: number, teamId: number | null): StatMap | null =>
+    teamId == null ? null : liveStatRows.find((s) => s.match_id === mid && s.team_id === teamId)?.stats ?? null;
 
   // Pull official lineups for matches kicking off within ~75 min so the scorer
   // picker can show the real XI + subs (falls back to full squad otherwise).
@@ -127,9 +198,6 @@ export default async function PredictPage() {
     if (last && last.day === day) last.matches.push(m);
     else upcomingByDay.push({ day, matches: [m] });
   }
-  const [firstDay, ...laterDays] = upcomingByDay;
-  const laterCount = laterDays.reduce((s, d) => s + d.matches.length, 0);
-
   function toCard(m: NonNullable<typeof matches>[number]): MatchCardData {
     return {
       id: m.id,
@@ -161,7 +229,92 @@ export default async function PredictPage() {
           initial={predByMatch.get(m.id) ?? null}
           homeLineup={m.home_team_id ? (lineupByMatch.get(m.id)?.[m.home_team_id] ?? lastXIByTeam.get(m.home_team_id) ?? null) : null}
           awayLineup={m.away_team_id ? (lineupByMatch.get(m.id)?.[m.away_team_id] ?? lastXIByTeam.get(m.away_team_id) ?? null) : null}
+          compactWhen
         />
+      </div>
+    );
+  }
+
+  function toResult(m: NonNullable<typeof matches>[number]): ResultCardData {
+    const p = predByMatch.get(m.id);
+    return {
+      id: m.id,
+      stage: m.stage,
+      kickoff: m.kickoff_at,
+      homeTeamId: m.home_team_id,
+      awayTeamId: m.away_team_id,
+      homeName: m.home_team_id ? (teamName.get(m.home_team_id) ?? "TBD") : "TBD",
+      awayName: m.away_team_id ? (teamName.get(m.away_team_id) ?? "TBD") : "TBD",
+      homeGoals: m.home_goals,
+      awayGoals: m.away_goals,
+      venueId: m.venue_id ?? null,
+      venueName: m.venue_name ?? null,
+      venueCity: m.venue_city ?? null,
+      predHome: p?.home_goals ?? null,
+      predAway: p?.away_goals ?? null,
+    };
+  }
+
+  function renderLive(m: NonNullable<typeof matches>[number]) {
+    const p = predByMatch.get(m.id);
+    const homeName = m.home_team_id ? (teamName.get(m.home_team_id) ?? "TBD") : "TBD";
+    const awayName = m.away_team_id ? (teamName.get(m.away_team_id) ?? "TBD") : "TBD";
+    const homeLineup = liveLineupOf(m.id, m.home_team_id);
+    const awayLineup = liveLineupOf(m.id, m.away_team_id);
+    const hasLineup = !!(homeLineup || awayLineup);
+    const predRows = buildPredRows({
+      matchId: m.id,
+      isGroup: m.stage === "group",
+      userId,
+      preds: livePredRows.filter((r) => r.match_id === m.id),
+      brackets: liveBracketRows,
+      playerById: livePlayerById,
+    });
+    return (
+      <div key={m.id} id={`match-${m.id}`} className="scroll-mt-28">
+        <LiveCard
+          matchId={m.id}
+          stage={m.stage}
+          homeTeamId={m.home_team_id}
+          awayTeamId={m.away_team_id}
+          homeName={homeName}
+          awayName={awayName}
+          homeGoals={m.home_goals}
+          awayGoals={m.away_goals}
+          elapsed={m.elapsed ?? null}
+          predHome={p?.home_goals ?? null}
+          predAway={p?.away_goals ?? null}
+          defaultOpen={liveCount === 1}
+        >
+          <LiveDetailTabs
+            lineups={
+              hasLineup ? (
+                <Pitch home={homeLineup} away={awayLineup} homeName={homeName} awayName={awayName} events={liveEventsOf(m.id)} />
+              ) : (
+                <p className="glass rounded-2xl p-4 text-center text-xs text-chalk-dim">
+                  Lineups appear once posted (~1h before kickoff).
+                </p>
+              )
+            }
+            stats={<MatchStats homeStats={liveStatsOf(m.id, m.home_team_id)} awayStats={liveStatsOf(m.id, m.away_team_id)} />}
+            events={
+              liveEventsOf(m.id).length > 0 ? (
+                <MatchTimeline events={liveEventsOf(m.id)} homeTeamId={m.home_team_id} awayTeamId={m.away_team_id} playerById={livePlayerById} />
+              ) : null
+            }
+            predictions={
+              predRows.length ? (
+                <MatchPredictions
+                  home={m.home_team_id ? (teamById.get(m.home_team_id) ?? null) : null}
+                  away={m.away_team_id ? (teamById.get(m.away_team_id) ?? null) : null}
+                  rows={predRows}
+                />
+              ) : (
+                <p className="glass rounded-2xl p-4 text-center text-xs text-chalk-dim">No predictions for this match.</p>
+              )
+            }
+          />
+        </LiveCard>
       </div>
     );
   }
@@ -182,65 +335,40 @@ export default async function PredictPage() {
           <Ball size={14} className="mr-1 inline-block align-[-2px]" />No fixtures loaded yet. Run the sync to import the schedule.
         </p>
       ) : (
-        <>
-          {live.length > 0 && (
-            <section className="space-y-3">
-              <h2 className="flex items-center gap-2 font-display text-xl text-red-600">
-                <span className="inline-block h-2.5 w-2.5 animate-pulse rounded-full bg-red-600" />
-                Live now
-              </h2>
-              <div className="grid gap-4 lg:grid-cols-2">
-                {live.map(renderCard)}
-              </div>
-            </section>
-          )}
-
-          {upcoming.length === 0 ? (
-            <section className="space-y-3">
-              <h2 className="font-display text-xl text-chalk">Upcoming</h2>
-              <p className="text-sm text-chalk-dim">No upcoming matches.</p>
-            </section>
-          ) : (
-            <>
-              <section className="space-y-3">
-                <h2 className="font-display text-xl text-chalk">
-                  Upcoming · <span className="text-chalk-dim">{firstDay?.day}</span>
-                </h2>
-                <div className="grid gap-4 lg:grid-cols-2">
-                  {(firstDay?.matches ?? []).map(renderCard)}
-                </div>
-              </section>
-
-              {laterDays.length > 0 && (
-                <details className="group space-y-3">
-                  <summary className="flex cursor-pointer list-none items-center justify-center gap-2 rounded-2xl glass p-3 text-sm font-semibold text-gold transition hover:text-gold-bright">
-                    <MatchClock size={15} /> Predict earlier — {laterCount} more game{laterCount === 1 ? "" : "s"}
-                    <span className="transition group-open:rotate-180">▾</span>
-                  </summary>
-                  <div className="mt-4 space-y-6">
-                    {laterDays.map((d) => (
-                      <section key={d.day} className="space-y-3">
-                        <h3 className="font-display text-base text-chalk-dim">{d.day}</h3>
-                        <div className="grid gap-4 lg:grid-cols-2">
-                          {d.matches.map(renderCard)}
-                        </div>
-                      </section>
-                    ))}
+        <MatchFilter
+          tabByMatchId={tabByMatchId}
+          upcomingCount={upcoming.length}
+          liveCount={live.length}
+          playedCount={past.length}
+          live={<div className="space-y-4">{live.map(renderLive)}</div>}
+          upcoming={
+            upcoming.length === 0 ? (
+              <p className="glass rounded-2xl p-6 text-center text-sm text-chalk-dim">No upcoming matches.</p>
+            ) : (
+              <div className="space-y-5">
+                {upcomingByDay.map((d) => (
+                  <div key={d.day} className="space-y-3">
+                    <h3 className="font-display text-base text-chalk-dim">{d.day}</h3>
+                    <div className="grid gap-4 lg:grid-cols-2">{d.matches.map(renderCard)}</div>
                   </div>
-                </details>
-              )}
-            </>
-          )}
-
-          {past.length > 0 && (
-            <section className="space-y-3">
-              <h2 className="font-display text-xl text-chalk">Played</h2>
-              <div className="grid gap-4 lg:grid-cols-2">
-                {past.map(renderCard)}
+                ))}
               </div>
-            </section>
-          )}
-        </>
+            )
+          }
+          played={
+            past.length === 0 ? (
+              <p className="glass rounded-2xl p-6 text-center text-sm text-chalk-dim">No games played yet.</p>
+            ) : (
+              <div className="grid gap-3 lg:grid-cols-2">
+                {past.map((m) => (
+                  <div key={m.id} id={`match-${m.id}`} className="scroll-mt-28">
+                    <ResultCard leagueId={leagueId} m={toResult(m)} />
+                  </div>
+                ))}
+              </div>
+            )
+          }
+        />
       )}
     </main>
   );

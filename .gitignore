@@ -46,5 +46,8 @@ next-env.d.ts
 
 .claude/
 
+# superpowers visual-brainstorm scratch
+.superpowers/
+
 # transient commit-message scratch file
 _commitmsg.txt

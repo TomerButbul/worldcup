@@ -182,7 +182,7 @@ export default function LiveScoresWidget() {
               {games.map((g) => (
                 <li key={g.id}>
                   <Link
-                    href={`/match/${g.id}`}
+                    href={`/predict#match-${g.id}`}
                     aria-label={g.done ? "Final result" : "Live match"}
                     className={`flex items-center gap-2 px-3 py-2 text-xs transition hover:bg-night/5 ${
                       g.done ? "opacity-65 hover:opacity-100" : ""
