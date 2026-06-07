@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { THIRD_SLOT_ELIGIBILITY, assignThirdsAnnexC } from "@/lib/annex-c";
+import { ANNEX_C } from "@/lib/annexCTable";
 import type { Group } from "@/lib/types";
 
 const ALL_GROUPS: Group[] = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"];
@@ -54,5 +55,31 @@ describe("assignThirdsAnnexC — all 495 combinations", () => {
 
   it("throws on a non-8 input", () => {
     expect(() => assignThirdsAnnexC(new Set<Group>(["A", "B"]))).toThrow();
+  });
+});
+
+describe("assignThirdsAnnexC — matches FIFA's official Annex C table", () => {
+  const combos = combinations(ALL_GROUPS, 8);
+
+  it("the official table covers all 495 combinations", () => {
+    expect(Object.keys(ANNEX_C)).toHaveLength(495);
+  });
+
+  it("returns FIFA's official assignment for every combination (never the fallback)", () => {
+    for (const combo of combos) {
+      const key = [...combo].sort().join("");
+      expect(assignThirdsAnnexC(new Set<Group>(combo))).toEqual(ANNEX_C[key]);
+    }
+  });
+
+  // Hard-pinned official scenarios (verbatim from FIFA's Annex C) so a bad table
+  // regeneration can't silently ship a wrong bracket.
+  it("matches specific published scenarios verbatim", () => {
+    expect(assignThirdsAnnexC(new Set<Group>(["E", "F", "G", "H", "I", "J", "K", "L"]))).toEqual({
+      74: "F", 77: "G", 79: "E", 80: "K", 81: "I", 82: "H", 85: "J", 87: "L",
+    });
+    expect(assignThirdsAnnexC(new Set<Group>(["A", "B", "C", "D", "E", "F", "G", "H"]))).toEqual({
+      74: "C", 77: "F", 79: "H", 80: "E", 81: "B", 82: "A", 85: "G", 87: "D",
+    });
   });
 });
