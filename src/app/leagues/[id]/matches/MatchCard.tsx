@@ -245,11 +245,10 @@ export default function MatchCard({
     );
 
     if (picking && tId != null) {
-      const tCap = isHome ? homeCap : awayCap;
-      const tSum = isHome ? sumFor(homePlayers) : sumFor(awayPlayers);
-      const need = tCap > 0 && tSum < tCap;
       const isActive = activeTeam === side;
       // Tap the crest → the country card; tap the name → pick this team's scorers.
+      // The scorer count lives inside the picker (and the locked "your pick" detail),
+      // not here — so a predicted card stays the exact same height as an unpicked one.
       return (
         <div
           className={`flex min-w-0 flex-1 flex-col items-center gap-1.5 transition ${
@@ -268,16 +267,11 @@ export default function MatchCard({
             type="button"
             onClick={() => setActiveTeam((cur) => (cur === side ? null : side))}
             aria-label={`Pick ${tName} scorers`}
-            className={`flex max-w-full select-none flex-col items-center gap-0.5 rounded-lg px-2 py-1 transition ${
+            className={`flex max-w-full select-none rounded-lg px-2 py-1 transition ${
               isActive ? "bg-gold/15 ring-1 ring-gold/60" : "hover:bg-night/5"
             }`}
           >
             {nameText}
-            {tCap > 0 && (
-              <span className={`flex items-center gap-1 text-[11px] font-semibold tabular-nums ${need ? "text-gold" : "text-grass"}`}>
-                <Ball size={11} /> {tSum}/{tCap}
-              </span>
-            )}
           </button>
         </div>
       );
@@ -510,10 +504,6 @@ export default function MatchCard({
                 />
               )}
             </div>
-          ) : homeCap > 0 || awayCap > 0 ? (
-            // A goal is predicted but no picker is open — nudge to add scorers (kept
-            // to one line so cards without scorers picked stay the same compact size).
-            <p className="mt-3 text-center text-[11px] text-chalk-dim">Tap a team&apos;s name above to add its goal scorers.</p>
           ) : null}
           <div className="mt-4 flex items-center justify-end gap-2">
             <SaveStatus state={saveState} error={saveErr} />
