@@ -18,7 +18,7 @@ import { nowMs, KICKOFF_MS } from "@/lib/clock";
 import { getCachedTeams } from "@/lib/tournamentData";
 import { getCachedGlobalRankings } from "@/lib/globalRankings";
 import { globalRankOf } from "@/lib/globalRank";
-import { SANDBOX_LEAGUE_ID } from "@/lib/predictionSync";
+import { SANDBOX_LEAGUE_ID, primaryPredictionLeague } from "@/lib/predictionSync";
 import type { Team, Match } from "@/lib/types";
 
 export const metadata = { title: "Home" };
@@ -83,6 +83,11 @@ export default async function DashboardPage({
   // Draft leagues are a separate game — never prompt them for score predictions.
   // Global counts as a prediction league, so everyone can always predict.
   const predictionLeagues = leagues.filter((l) => l.kind !== "draft");
+  // Read "Your pick" from the SAME canonical league /predict uses (prefer global;
+  // sandbox + draft excluded). Without this, Home queried picks across ALL leagues
+  // and could surface a different one — e.g. a leftover Sandbox test score — so Home
+  // and Matches disagreed.
+  const predLeague = await primaryPredictionLeague(supabase, user.id);
 
   // The next matchday: every game on the soonest upcoming day, grouped in the
   // tournament's North-American timezone so a day's full slate stays together even
@@ -119,11 +124,12 @@ export default async function DashboardPage({
 
   // One prediction lookup for the whole matchday (account-level picks).
   const predByMatch = new Map<number, { home: number; away: number }>();
-  if (canPredict && nextDayMatches.length > 0) {
+  if (predLeague && nextDayMatches.length > 0) {
     const { data: myPreds } = await supabase
       .from("match_predictions")
       .select("match_id, home_goals, away_goals")
       .eq("user_id", user.id)
+      .eq("league_id", predLeague.id)
       .in("match_id", nextDayMatches.map((m) => m.id))
       .not("home_goals", "is", null);
     for (const p of myPreds ?? []) {
