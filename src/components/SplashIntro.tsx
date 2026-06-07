@@ -108,17 +108,17 @@ export default function SplashIntro() {
       transition={{ duration: 0.62, ease: [0.76, 0, 0.24, 1] }}
       onAnimationComplete={() => { if (phase === "exit") finish(); }}
     >
-      {/* warm gold glow — visible from the first frame so a glimpse is never white */}
+      {/* warm gold glow — a calm, never-white tone for the brief held frame */}
       <div
         className="pointer-events-none absolute left-1/2 top-[26%] h-[58vmin] w-[58vmin] -translate-x-1/2 -translate-y-1/2 rounded-full"
         style={{ background: "radial-gradient(circle, rgba(224,164,0,0.18), rgba(224,164,0,0) 70%)" }}
       />
 
-      {/* pennant bunting */}
+      {/* pennant bunting — held until the burst so nothing shows half-formed */}
       <motion.div
         className="absolute inset-x-0 top-0 flex origin-top justify-center gap-1 px-2"
         initial={{ y: -40, opacity: 0, rotate: -2 }}
-        animate={{ y: 0, opacity: 1, rotate: [-2, 1.5, -1, 0] }}
+        animate={playing ? { y: 0, opacity: 1, rotate: [-2, 1.5, -1, 0] } : { y: -40, opacity: 0, rotate: -2 }}
         transition={{ duration: 1.4, ease: "easeOut" }}
       >
         {PENNANTS.map((c, i) => (
@@ -130,19 +130,21 @@ export default function SplashIntro() {
         ))}
       </motion.div>
 
-      {/* confetti rain */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        {CONFETTI.map((c, i) => (
-          <motion.span
-            key={i}
-            className="absolute top-0 rounded-[2px]"
-            style={{ left: `${c.l}%`, width: c.s, height: c.s, background: c.color }}
-            initial={{ y: "-12vh", rotate: 0, opacity: 0 }}
-            animate={{ y: "115vh", x: [0, c.dx, 0], rotate: 340, opacity: [0, 1, 1, 0] }}
-            transition={{ duration: c.dur, delay: c.d, repeat: Infinity, ease: "linear", times: [0, 0.1, 0.85, 1] }}
-          />
-        ))}
-      </div>
+      {/* confetti rain — only with the entrance, so the held frame stays calm */}
+      {playing && (
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          {CONFETTI.map((c, i) => (
+            <motion.span
+              key={i}
+              className="absolute top-0 rounded-[2px]"
+              style={{ left: `${c.l}%`, width: c.s, height: c.s, background: c.color }}
+              initial={{ y: "-12vh", rotate: 0, opacity: 0 }}
+              animate={{ y: "115vh", x: [0, c.dx, 0], rotate: 340, opacity: [0, 1, 1, 0] }}
+              transition={{ duration: c.dur, delay: c.d, repeat: Infinity, ease: "linear", times: [0, 0.1, 0.85, 1] }}
+            />
+          ))}
+        </div>
+      )}
 
       {/* content — entrance held until the page is visible (see arm()) */}
       <div className="relative flex flex-col items-center px-6 text-center">
