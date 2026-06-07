@@ -215,29 +215,103 @@ body {
     repeating-linear-gradient(-45deg, rgba(12, 20, 48, 0.05), rgba(12, 20, 48, 0.05) 1px, transparent 1px, transparent 12px);
 }
 
-/* Big "GOAL!" celebration text (injected imperatively). */
-@keyframes goal-pop {
-  0% { transform: translate(-50%, -50%) scale(0.3) rotate(-8deg); opacity: 0; }
-  18% { transform: translate(-50%, -50%) scale(1.12) rotate(0deg); opacity: 1; }
-  70% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-  100% { transform: translate(-50%, -50%) scale(1.06); opacity: 0; }
-}
-.goal-pop {
+/* ---- GOAL takeover ----
+   A brief, full-screen, non-interactive celebration injected imperatively by
+   lib/goal.ts (live goals, bracket champion, kickoff). The container centres the
+   wordmark; the flash + confetti sit behind it. Reduced-motion users never see it
+   (goal.ts bails before injecting). */
+.goal-takeover {
   position: fixed;
-  left: 50%;
-  top: 42%;
+  inset: 0;
   z-index: 60;
   pointer-events: none;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+/* Expanding colour bloom behind the text. */
+.goal-flash {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(42% 38% at 50% 42%, rgba(255, 255, 255, 0.6), transparent 62%),
+    radial-gradient(75% 60% at 50% 42%, rgba(37, 99, 235, 0.22), transparent 72%),
+    radial-gradient(70% 58% at 50% 42%, rgba(219, 39, 119, 0.18), transparent 74%);
+  animation: goal-flash 1.5s ease-out forwards;
+}
+@keyframes goal-flash {
+  0% { opacity: 0; transform: scale(0.7); }
+  14% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.18); }
+}
+
+/* Confetti burst — each <i> explodes from the centre to its own (--tx,--ty) with a
+   (--spin), staggered by (--delay). Per-piece values are set in lib/goal.ts. */
+.goal-confetti {
+  position: absolute;
+  inset: 0;
+}
+.goal-confetti i {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  width: 0.5rem;
+  height: 0.72rem;
+  border-radius: 1px;
+  opacity: 0;
+  animation: goal-confetti 1.5s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+  animation-delay: var(--delay, 0s);
+}
+@keyframes goal-confetti {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5) rotate(0deg); }
+  12% { opacity: 1; }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(1) rotate(var(--spin));
+  }
+}
+
+/* Centred wordmark + optional team name. */
+.goal-text {
+  position: relative;
+  padding: 0 1rem;
+  text-align: center;
+}
+@keyframes goal-pop {
+  0% { transform: scale(0.3) rotate(-8deg); opacity: 0; }
+  16% { transform: scale(1.14) rotate(2deg); opacity: 1; }
+  30% { transform: scale(1) rotate(0deg); }
+  72% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1.06); opacity: 0; }
+}
+.goal-pop {
   font-family: var(--font-display), Impact, sans-serif;
   text-transform: uppercase;
   font-size: clamp(3rem, 15vw, 9rem);
+  line-height: 0.9;
   letter-spacing: 0.04em;
   background: linear-gradient(100deg, var(--color-electric), var(--color-magenta), var(--color-gold));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
   filter: drop-shadow(0 8px 20px rgba(12, 20, 48, 0.25));
-  animation: goal-pop 1.4s ease forwards;
+  animation: goal-pop 1.5s ease forwards;
+}
+.goal-sub {
+  margin-top: 0.35rem;
+  font-family: var(--font-display), Impact, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: clamp(0.95rem, 4.5vw, 1.7rem);
+  color: var(--color-chalk);
+  animation: goal-sub 1.5s ease forwards;
+}
+@keyframes goal-sub {
+  0%, 14% { opacity: 0; transform: translateY(10px); }
+  30% { opacity: 1; transform: translateY(0); }
+  78% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-2px); }
 }
 
 @keyframes shimmer {

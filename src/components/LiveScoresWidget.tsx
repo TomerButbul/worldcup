@@ -1,9 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import Flag from "@/components/Flag";
+import { goalCelebration } from "@/lib/goal";
+import { detectGoals } from "@/lib/liveGoals";
 
 type Mini = { id: number; name: string; code: string | null; logo_url: string | null } | null;
 type Game = {
@@ -40,27 +42,42 @@ export default function LiveScoresWidget() {
     }
   });
 
+  // The previous poll's games — bookkeeping for goal detection, not rendered, so a
+  // ref (mutating it must not trigger a re-render).
+  const prevGames = useRef<Game[]>([]);
+
   useEffect(() => {
     let alive = true;
-    const load = async () => {
+    // `celebrate` is true only for the recurring live poll. The initial load and the
+    // refocus refresh just (re)establish the baseline silently — so we never fire a
+    // takeover on first paint, nor when you simply return to a backgrounded tab.
+    const load = async (celebrate: boolean) => {
       try {
         const res = await fetch("/api/live", { cache: "no-store" });
         if (!res.ok) return;
         const json = (await res.json()) as Feed;
-        if (alive) {
-          setGames(json.games ?? []);
-          setLiveCountServer(typeof json.liveCount === "number" ? json.liveCount : null);
+        if (!alive) return;
+        const nextGames = json.games ?? [];
+        if (celebrate) {
+          const events = detectGoals(prevGames.current, nextGames);
+          if (events.length > 0) {
+            // One clean takeover per cycle, even if two matches score together.
+            goalCelebration("GOAL!", { subtitle: events[0].teamName });
+          }
         }
+        prevGames.current = nextGames;
+        setGames(nextGames);
+        setLiveCountServer(typeof json.liveCount === "number" ? json.liveCount : null);
       } catch {
         /* offline / transient — keep last known */
       }
     };
-    void load();
+    void load(false);
     const t = setInterval(() => {
-      if (document.visibilityState === "visible") void load();
+      if (document.visibilityState === "visible") void load(true);
     }, 45_000);
     const onVisible = () => {
-      if (document.visibilityState === "visible") void load();
+      if (document.visibilityState === "visible") void load(false);
     };
     document.addEventListener("visibilitychange", onVisible);
     return () => {
