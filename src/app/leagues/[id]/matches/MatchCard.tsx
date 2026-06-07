@@ -239,7 +239,10 @@ export default function MatchCard({
     const tId = isHome ? match.homeTeamId : match.awayTeamId;
     const crest = <Flag teamId={tId} name={tName} size={44} className="drop-shadow-sm" />;
     const nameText = (
-      <span className="block max-w-full truncate text-center text-sm font-semibold text-chalk sm:text-base">
+      // Full team names: wrap to a second line rather than truncating (e.g.
+      // "Bosnia & Herzegovina"). leading-tight keeps two lines compact; the column
+      // already has min-w-0 so wrapping never widens the card.
+      <span className="block max-w-full text-center text-[13px] font-semibold leading-tight text-chalk sm:text-base">
         {tName}
       </span>
     );
@@ -267,7 +270,7 @@ export default function MatchCard({
             type="button"
             onClick={() => setActiveTeam((cur) => (cur === side ? null : side))}
             aria-label={`Pick ${tName} scorers`}
-            className={`flex max-w-full select-none rounded-lg px-2 py-1 transition ${
+            className={`flex max-w-full select-none rounded-lg px-1 py-1 transition ${
               isActive ? "bg-gold/15 ring-1 ring-gold/60" : "hover:bg-night/5"
             }`}
           >
