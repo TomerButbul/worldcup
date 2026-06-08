@@ -19,7 +19,10 @@ import { getCachedTeams } from "@/lib/tournamentData";
 import { getCachedGlobalRankings } from "@/lib/globalRankings";
 import { globalRankOf } from "@/lib/globalRank";
 import { SANDBOX_LEAGUE_ID, primaryPredictionLeague } from "@/lib/predictionSync";
+import { predictionProgress, type BracketPredictionRow } from "@/lib/predictionProgress";
+import { AWARD_KEYS } from "@/lib/scoring-core";
 import type { Team, Match } from "@/lib/types";
+import type { ReactNode } from "react";
 
 export const metadata = { title: "Home" };
 
@@ -31,6 +34,20 @@ function ordinal(n: number): string {
   if (r10 === 2 && r100 !== 12) return `${n}nd`;
   if (r10 === 3 && r100 !== 13) return `${n}rd`;
   return `${n}th`;
+}
+
+// A small status pill for the prediction tiles: grass when done, gold when there's
+// still something left to pick.
+function PickBadge({ done = false, children }: { done?: boolean; children: ReactNode }) {
+  return (
+    <span
+      className={`mt-0.5 inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+        done ? "bg-grass/20 text-grass" : "bg-gold/20 text-gold"
+      }`}
+    >
+      {children}
+    </span>
+  );
 }
 
 export default async function DashboardPage({
@@ -88,6 +105,22 @@ export default async function DashboardPage({
   // and could surface a different one — e.g. a leftover Sandbox test score — so Home
   // and Matches disagreed.
   const predLeague = await primaryPredictionLeague(supabase, user.id);
+
+  // Pre-tournament picks progress — drives the home "finish before kickoff" nudge.
+  // Bracket + awards both live in one bracket_predictions row.
+  let predRow: BracketPredictionRow = null;
+  if (predLeague) {
+    const { data } = await supabase
+      .from("bracket_predictions")
+      .select("champion_team_id, knockout, group_order, awards")
+      .eq("league_id", predLeague.id)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    predRow = data as unknown as BracketPredictionRow;
+  }
+  const picks = predictionProgress(predRow, AWARD_KEYS.length);
+  const picksLocked = nowMs() >= KICKOFF_MS;
+  const showPicksNudge = !!predLeague && !picksLocked && !picks.allDone;
 
   // The next matchday: every game on the soonest upcoming day, grouped in the
   // tournament's North-American timezone so a day's full slate stays together even
@@ -171,6 +204,30 @@ export default async function DashboardPage({
       ? `Standings for your ${leagueCount} ${leagueCount === 1 ? "league" : "leagues"} + the world`
       : "See where you rank — and start a league";
 
+  // Per-tile status badges + the nudge copy. The amber "to-do" only shows while you
+  // can still act; a grass ✓ stays afterward as positive confirmation.
+  const bracketBadge = !predLeague ? null : picks.bracketDone ? (
+    <PickBadge done>✓ Done</PickBadge>
+  ) : !picksLocked ? (
+    <PickBadge>{picks.bracketStarted ? "Finish" : "To do"}</PickBadge>
+  ) : null;
+  const awardsBadge = !predLeague ? null : picks.awardsDone ? (
+    <PickBadge done>✓ Done</PickBadge>
+  ) : !picksLocked ? (
+    <PickBadge>
+      {Math.min(picks.awardsPicked, picks.awardsTotal)}/{picks.awardsTotal}
+    </PickBadge>
+  ) : null;
+  const need: string[] = [];
+  if (!picks.bracketDone) need.push("bracket");
+  if (!picks.awardsDone) need.push("awards");
+  const nudgeLine =
+    need.length === 2
+      ? "Your bracket and award picks lock when the tournament kicks off — you can't change them after."
+      : need[0] === "bracket"
+        ? "Your bracket locks when the tournament kicks off — you can't change it after."
+        : "Your award picks lock when the tournament kicks off — you can't change them after.";
+
   return (
     <main className="mx-auto w-full max-w-2xl lg:max-w-[1600px] flex-1 space-y-4 p-4 sm:space-y-6 sm:p-6 lg:p-8">
       <AutoRefresh enabled={nowMs() >= KICKOFF_MS} />
@@ -212,6 +269,38 @@ export default async function DashboardPage({
             </div>
           </Reveal>
 
+          {showPicksNudge && (
+            <Reveal>
+              <div className="rounded-3xl border border-gold/40 bg-gold/10 p-4 sm:p-5">
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl leading-none">⏳</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-display text-base text-chalk">Lock in your picks before kickoff</p>
+                    <p className="mt-0.5 text-sm text-chalk-dim">{nudgeLine}</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {!picks.bracketDone && (
+                        <Link
+                          href="/bracket"
+                          className="inline-flex min-h-9 items-center rounded-xl bg-gradient-to-b from-gold-bright to-gold px-3.5 py-2 text-xs font-bold text-night glow-gold shine transition hover:brightness-105"
+                        >
+                          {picks.bracketStarted ? "Finish bracket" : "Start bracket"} →
+                        </Link>
+                      )}
+                      {!picks.awardsDone && (
+                        <Link
+                          href="/awards"
+                          className="inline-flex min-h-9 items-center rounded-xl bg-night/5 px-3.5 py-2 text-xs font-bold text-chalk ring-1 ring-night/10 transition hover:bg-night/10"
+                        >
+                          {picks.awardsPicked > 0 ? `Pick awards (${picks.awardsTotal - picks.awardsPicked} left)` : "Pick awards"} →
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Reveal>
+          )}
+
           <Reveal>
             <NotificationToggle placement="top" />
           </Reveal>
@@ -245,9 +334,9 @@ export default async function DashboardPage({
               <h2 className="font-display text-lg text-chalk">Your predictions</h2>
               <div className="grid grid-cols-3 gap-2 sm:gap-3">
                 {[
-                  { href: "/bracket", icon: <Trophy size={26} />, label: "Bracket" },
-                  { href: "/predict", icon: <Ball size={26} />, label: "Matches" },
-                  { href: "/awards", icon: <Medal size={26} />, label: "Awards" },
+                  { href: "/bracket", icon: <Trophy size={26} />, label: "Bracket", badge: bracketBadge },
+                  { href: "/predict", icon: <Ball size={26} />, label: "Matches", badge: null },
+                  { href: "/awards", icon: <Medal size={26} />, label: "Awards", badge: awardsBadge },
                 ].map((p) => (
                   <Link
                     key={p.href}
@@ -256,6 +345,7 @@ export default async function DashboardPage({
                   >
                     <span className="text-gold">{p.icon}</span>
                     <span className="text-sm font-semibold text-chalk">{p.label}</span>
+                    {p.badge}
                   </Link>
                 ))}
               </div>
