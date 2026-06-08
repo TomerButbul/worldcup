@@ -3,6 +3,7 @@ import Flag from "@/components/Flag";
 import MatchCountdown from "@/components/MatchCountdown";
 import { Upfront } from "@/components/icons";
 import { stageLabel } from "@/lib/stages";
+import LocalTime from "@/components/LocalTime";
 
 export interface NextMatchData {
   stage: string;
@@ -36,14 +37,6 @@ export default function NextMatchCard({
   // the Matches page (/predict), which shows its predict / live / result card.
   leagueId?: string;
 }) {
-  const kickoff = new Date(match.kickoff_at).toLocaleString(undefined, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-
   return (
     <Link
       href={`/predict#match-${matchId}`}
@@ -53,7 +46,11 @@ export default function NextMatchCard({
         <span className="font-display text-gold">{stageLabel(match.stage)}</span>
         <span className="flex shrink-0 items-center gap-2">
           <MatchCountdown kickoff={match.kickoff_at} />
-          <span className="whitespace-nowrap">{kickoff}</span>
+          <LocalTime
+            iso={match.kickoff_at}
+            options={{ weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }}
+            className="whitespace-nowrap"
+          />
         </span>
       </div>
 

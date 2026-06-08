@@ -1,4 +1,5 @@
 import Link from "next/link";
+import LocalTime from "@/components/LocalTime";
 import Flag from "@/components/Flag";
 import { stageLabel } from "@/lib/stages";
 import { venueImage } from "@/lib/venues";
@@ -34,7 +35,6 @@ function verdict(m: ResultCardData): { label: string; cls: string } {
 export default function ResultCard({ leagueId, m }: { leagueId: string; m: ResultCardData }) {
   const v = verdict(m);
   const pick = m.predHome != null ? `${m.predHome}–${m.predAway}` : "—";
-  const date = new Date(m.kickoff).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
   const venueSrc = m.venueId != null ? venueImage(m.venueId) : null;
 
   return (
@@ -44,7 +44,7 @@ export default function ResultCard({ leagueId, m }: { leagueId: string; m: Resul
     >
       <div className="mb-3 flex items-center justify-between gap-2 text-xs text-chalk-dim">
         <span className="font-display text-gold">{stageLabel(m.stage)}</span>
-        <span className="whitespace-nowrap">{date}</span>
+        <LocalTime iso={m.kickoff} mode="date" className="whitespace-nowrap" />
       </div>
 
       <div className="flex items-center justify-center gap-2 text-center sm:gap-4">

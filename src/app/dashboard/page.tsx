@@ -11,6 +11,7 @@ import FavoriteTeamStatus from "@/components/FavoriteTeamStatus";
 import Countdown from "@/components/Countdown";
 import NotificationToggle from "@/components/NotificationToggle";
 import NextMatchCard, { type NextMatchData } from "@/components/NextMatchCard";
+import LocalTime from "@/components/LocalTime";
 import InstallPrompt from "@/components/InstallPrompt";
 import { computeFavStatus } from "@/lib/favoriteStatus";
 import AutoRefresh from "@/components/AutoRefresh";
@@ -142,15 +143,6 @@ export default async function DashboardPage({
   const upcoming = upcomingRows ?? [];
   const nextDayKey = upcoming.length ? dayKeyOf(upcoming[0].kickoff_at) : null;
   const nextDayMatches = upcoming.filter((m) => dayKeyOf(m.kickoff_at) === nextDayKey);
-  const nextDayLabel =
-    nextDayMatches.length > 0
-      ? new Date(nextDayMatches[0].kickoff_at).toLocaleDateString("en-US", {
-          timeZone: TOURNAMENT_TZ,
-          weekday: "long",
-          month: "short",
-          day: "numeric",
-        })
-      : null;
 
   const canPredict = predictionLeagues.length > 0;
   const teamById = new Map(teams.map((t) => [t.id, t]));
@@ -305,11 +297,11 @@ export default async function DashboardPage({
             <NotificationToggle placement="top" />
           </Reveal>
 
-          {nextDayCards.length > 0 && nextDayLabel && (
+          {nextDayCards.length > 0 && (
             <Reveal>
               <section className="space-y-2">
                 <h2 className="font-display text-lg text-chalk">
-                  Next up · <span className="text-chalk-dim">{nextDayLabel}</span>
+                  Next up · <LocalTime iso={nextDayMatches[0].kickoff_at} mode="weekday-long" className="text-chalk-dim" />
                 </h2>
                 <div className="grid gap-3 sm:grid-cols-2">
                   {nextDayCards.map((c) => (

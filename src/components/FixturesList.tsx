@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Flag from "@/components/Flag";
+import LocalTime from "@/components/LocalTime";
 
 // A single fixture, fully resolved on the server (no Maps cross the client
 // boundary). `homeExtra` / `awayExtra` are optional small lines under each team
@@ -18,10 +19,6 @@ export type FixtureRowLite = {
   awayExtra?: string | null;
 };
 export type FixtureDay = { day: string; matches: FixtureRowLite[] };
-
-function timeLabel(iso: string) {
-  return new Date(iso).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
-}
 
 function FixtureRow({ leagueId, m }: { leagueId: string; m: FixtureRowLite }) {
   const live = m.status === "live";
@@ -53,7 +50,7 @@ function FixtureRow({ leagueId, m }: { leagueId: string; m: FixtureRowLite }) {
             {m.homeGoals}–{m.awayGoals}
           </span>
         ) : (
-          <span className="text-[11px] text-chalk-dim">{timeLabel(m.kickoff)}</span>
+          <LocalTime iso={m.kickoff} options={{ hour: "2-digit", minute: "2-digit" }} className="text-[11px] text-chalk-dim" />
         )}
         {live && (
           <span className="mt-0.5 flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-red-600">
@@ -102,7 +99,7 @@ export default function FixturesList({
       {days.map((d) => (
         <div key={d.day}>
           <p className="sticky top-0 z-10 bg-white/85 py-1 text-xs font-semibold uppercase tracking-wider text-chalk-dim backdrop-blur-sm">
-            {d.day}
+            <LocalTime iso={d.matches[0].kickoff} mode="weekday-long" />
           </p>
           <div>
             {d.matches.map((m) => (

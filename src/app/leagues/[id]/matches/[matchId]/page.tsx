@@ -1,4 +1,5 @@
 import Link from "next/link";
+import LocalTime from "@/components/LocalTime";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import Flag from "@/components/Flag";
@@ -117,13 +118,6 @@ export default async function MatchSummaryPage({
   const finished = match.status === "finished";
   const live = match.status === "live";
   const locked = new Date(match.kickoff_at).getTime() <= nowMs();
-  const kickoff = new Date(match.kickoff_at).toLocaleString(undefined, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 
   // --- Predictor (reused on this page before kickoff) ----------------------
   // Pre-kickoff this page IS the predictor: the existing <MatchCard> needs the full
@@ -421,7 +415,11 @@ export default async function MatchSummaryPage({
                     {match.elapsed != null ? ` ${match.elapsed}'` : ""}
                   </span>
                 ) : null}
-                <span className="whitespace-nowrap">{kickoff}</span>
+                <LocalTime
+                  iso={match.kickoff_at}
+                  options={{ weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }}
+                  className="whitespace-nowrap"
+                />
               </span>
             </div>
 
