@@ -87,13 +87,13 @@ export default function OgImage() {
         {/* title */}
         <div
           style={{
-            marginTop: 46,
+            marginTop: 40,
             display: "flex",
             alignItems: "baseline",
-            fontSize: 150,
+            fontSize: 128,
             fontWeight: 800,
             lineHeight: 1,
-            letterSpacing: -4,
+            letterSpacing: -3,
           }}
         >
           <span style={{ color: GOLD }}>TopCorner</span>
