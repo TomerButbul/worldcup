@@ -19,6 +19,9 @@ export function isPublicPath(pathname: string): boolean {
     pathname.startsWith("/reset-password") ||
     pathname.startsWith("/how-it-works") ||
     pathname.startsWith("/install") ||
+    // Legal pages (privacy policy) — reachable logged-out so store reviewers and
+    // visitors can read them without an account.
+    pathname.startsWith("/privacy") ||
     // The "scan to play" page is meant to be shown to logged-out people (that's
     // the whole point of a QR you point at strangers).
     pathname === "/qr" ||

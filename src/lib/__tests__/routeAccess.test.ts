@@ -10,6 +10,9 @@ describe("isPublicPath", () => {
     expect(isPublicPath("/reset-password")).toBe(true);
     expect(isPublicPath("/how-it-works")).toBe(true);
     expect(isPublicPath("/install")).toBe(true);
+    // Legal pages must be reachable logged-out — store reviewers + users read them
+    // without an account.
+    expect(isPublicPath("/privacy")).toBe(true);
   });
 
   it("keeps API routes public so they return JSON, not an HTML redirect", () => {

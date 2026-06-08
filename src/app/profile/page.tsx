@@ -11,11 +11,17 @@ import FavoriteTeamPicker from "@/components/FavoriteTeamPicker";
 import NotificationToggle from "@/components/NotificationToggle";
 import ShareBracket from "@/components/ShareBracket";
 import SupportCard from "@/components/SupportCard";
+import DeleteAccount from "@/components/DeleteAccount";
 import type { Team } from "@/lib/types";
 
 export const metadata = { title: "Profile" };
 
-export default async function ProfilePage() {
+export default async function ProfilePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const { error } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -38,6 +44,9 @@ export default async function ProfilePage() {
 
   return (
     <main className="mx-auto w-full max-w-2xl lg:max-w-[1600px] flex-1 space-y-4 p-4 sm:space-y-6 sm:p-6 lg:p-8">
+      {error && (
+        <p className="rounded-2xl bg-red-500/15 px-4 py-3 text-sm text-red-600">{error}</p>
+      )}
       {/* Header card — who you are at a glance */}
       <Reveal>
         <header className="glass-strong rounded-3xl p-5 sm:p-6">
@@ -142,6 +151,16 @@ export default async function ProfilePage() {
                 </span>
                 <span className="text-gold transition group-hover:translate-x-0.5">&rarr;</span>
               </Link>
+              <Link
+                href="/privacy"
+                className="group flex items-center justify-between gap-3 rounded-xl px-2 py-3 transition hover:bg-night/5"
+              >
+                <span className="flex items-center gap-3">
+                  <span aria-hidden className="text-xl">🔒</span>
+                  <span className="text-sm font-semibold text-chalk">Privacy &amp; data</span>
+                </span>
+                <span className="text-gold transition group-hover:translate-x-0.5">&rarr;</span>
+              </Link>
             </section>
           </Reveal>
 
@@ -158,6 +177,12 @@ export default async function ProfilePage() {
                 Log out
               </button>
             </form>
+          </Reveal>
+
+          <Reveal index={4}>
+            <div className="flex justify-center pt-1">
+              <DeleteAccount />
+            </div>
           </Reveal>
         </div>
       </div>
