@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getInvitePreview } from "@/lib/invite";
 import { acceptInvite } from "./actions";
 import Trophy from "@/components/art/Trophy";
+import LocalTime from "@/components/LocalTime";
 
 // The invite landing page. Replaces the old redirect-only route handler so a shared
 // /join/<code> link gets a real HTML page with per-league OG tags (see
@@ -15,19 +16,16 @@ export const dynamic = "force-dynamic";
 type Params = { params: Promise<{ code: string }> };
 
 // World Cup 2026 opener / bracket-lock fallback when a league has no explicit lock.
-const DEFAULT_LOCK_MS = Date.parse("2026-06-11T19:00:00Z");
+const DEFAULT_LOCK_ISO = "2026-06-11T19:00:00Z";
 
-function lockLine(lockAt: string | null): { date: string; rel: string | null } {
-  const ms = lockAt ? Date.parse(lockAt) : DEFAULT_LOCK_MS;
-  const date = new Date(ms).toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    timeZone: "UTC",
-  });
-  const days = Math.ceil((ms - Date.now()) / 86_400_000);
+// The lock instant + a relative "in N days". The exact date is rendered client-side
+// (LocalTime) in the viewer's zone — a deadline must read in the reader's own time
+// (e.g. a Tokyo viewer's lock is the early hours of the next calendar day).
+function lockLine(lockAt: string | null): { iso: string; rel: string | null } {
+  const iso = lockAt ?? DEFAULT_LOCK_ISO;
+  const days = Math.ceil((Date.parse(iso) - Date.now()) / 86_400_000);
   const rel = days > 1 ? `in ${days} days` : days === 1 ? "tomorrow" : days === 0 ? "today" : null;
-  return { date, rel };
+  return { iso, rel };
 }
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
@@ -95,7 +93,7 @@ export default async function JoinPage({ params }: Params) {
     isMember = !!m;
   }
 
-  const { date, rel } = lockLine(league.lockAt);
+  const { iso: lockIso, rel } = lockLine(league.lockAt);
   const isDraft = league.kind === "draft";
   const eyebrow = league.ownerName ? `${league.ownerName} invited you to` : "You’re invited to";
   const dots = Math.min(5, Math.max(1, league.memberCount));
@@ -149,8 +147,7 @@ export default async function JoinPage({ params }: Params) {
 
         {/* lock urgency */}
         <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-night/[0.06] px-3 py-1.5 text-xs font-semibold text-chalk-dim">
-          🔒 Picks lock {date}
-          {rel ? ` · ${rel}` : ""}
+          <span>🔒 Picks lock <LocalTime iso={lockIso} mode="date" />{rel ? ` · ${rel}` : ""}</span>
         </div>
 
         {/* CTA */}

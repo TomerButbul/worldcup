@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { TOURNAMENT_TZ } from "@/lib/datetime";
 import { createClient } from "@/lib/supabase/server";
 import DraftRoom from "./DraftRoom";
 import type { FixtureDay } from "./DraftFixtures";
@@ -219,8 +220,10 @@ export default async function LeaguePage({
       const mgr = memberById.get(p.user_id);
       if (tid != null && mgr) managerByTeamId.set(tid, mgr.name);
     }
+    // Group league fixtures by the tournament (host) day so the day matches the header
+    // FixturesList renders (also tournament TZ), instead of the server's zone.
     const fxDayLabel = (iso: string) =>
-      new Date(iso).toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
+      new Date(iso).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric", timeZone: TOURNAMENT_TZ });
     const fixtures: FixtureDay[] = [];
     const sortedFixtures = [...(matchesRes.data ?? [])].sort(
       (a, b) => new Date(a.kickoff_at ?? 0).getTime() - new Date(b.kickoff_at ?? 0).getTime(),

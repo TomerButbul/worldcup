@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { TOURNAMENT_TZ } from "@/lib/datetime";
 import { getInvitePreview } from "@/lib/invite";
 
 // Per-league invite card — the 1200×630 image that unfurls when a /join/<code> link
@@ -28,7 +29,7 @@ export default async function Image({ params }: { params: Promise<{ code: string
   const lockDate = new Date(lockMs).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
-    timeZone: "UTC",
+    timeZone: TOURNAMENT_TZ,
   });
 
   // Scale the league name down a touch for long names so it stays on ~2 lines.

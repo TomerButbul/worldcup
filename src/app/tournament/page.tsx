@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { TOURNAMENT_TZ } from "@/lib/datetime";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { getCachedTeams } from "@/lib/tournamentData";
 import { liveGroupStandings } from "@/lib/tournament-standings";
@@ -156,10 +157,11 @@ export default async function TournamentPage() {
   // Per-round date windows for the (mostly empty) knockout bracket. Every knockout
   // fixture is seeded with a kickoff even before its teams are known, so grouping
   // by stage → min/max kickoff tells viewers WHEN each round is played. Formatted
-  // date-only in UTC on the server → one stable string, no client-tz hydration drift.
+  // date-only in the tournament (host) timezone → one stable string for everyone, and
+  // it matches the tournament-day framing used for the matchday groups.
   const KO_STAGES = ["round_of_32", "round_of_16", "quarter", "semi", "third_place", "final"];
   const fmtDay = (ms: number) =>
-    new Date(ms).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+    new Date(ms).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: TOURNAMENT_TZ });
   const roundDates: Record<string, string> = {};
   for (const stage of KO_STAGES) {
     const ks = matches
