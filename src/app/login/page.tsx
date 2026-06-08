@@ -2,6 +2,7 @@ import Link from "next/link";
 import { login, playAsGuest } from "@/app/auth/actions";
 import GameButton from "@/components/GameButton";
 import GoogleSignInButton from "@/components/GoogleSignInButton";
+import AppleSignInButton from "@/components/AppleSignInButton";
 import Reveal from "@/components/Reveal";
 
 export default async function LoginPage({
@@ -65,6 +66,9 @@ export default async function LoginPage({
           </div>
 
           <GoogleSignInButton label="Continue with Google" />
+          <div className="mt-2.5">
+            <AppleSignInButton label="Continue with Apple" />
+          </div>
 
           <div className="mt-5 space-y-2 text-center text-sm text-chalk-dim">
             <p>

@@ -113,6 +113,24 @@ export async function signInWithGoogle() {
   redirect(data.url);
 }
 
+export async function signInWithApple() {
+  const supabase = await createClient();
+  const origin = (await headers()).get("origin") ?? "";
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "apple",
+    options: { redirectTo: `${origin}/auth/callback` },
+  });
+
+  if (error) {
+    redirect(`/login?error=${encodeURIComponent(error.message)}`);
+  }
+  if (!data.url) {
+    redirect("/login?error=Could+not+start+Apple+sign-in");
+  }
+  // data.url points at Apple's consent screen.
+  redirect(data.url);
+}
+
 export async function logout() {
   const supabase = await createClient();
   await supabase.auth.signOut();
