@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import LocalTime from "@/components/LocalTime";
 import { createClient } from "@/lib/supabase/server";
 import { getCachedTeams, getCachedPlayers } from "@/lib/tournamentData";
 import type { Player } from "@/lib/types";
@@ -352,9 +351,12 @@ export default async function PredictPage() {
               <p className="glass rounded-2xl p-6 text-center text-sm text-chalk-dim">No upcoming matches.</p>
             ) : (
               <div className="space-y-5">
+                <p className="text-xs text-chalk-dim">
+                  🌐 Dates are tournament days · kickoff times shown in your local timezone
+                </p>
                 {upcomingByDay.map((d) => (
                   <div key={d.day} className="space-y-3">
-                    <h3 className="font-display text-base text-chalk-dim"><LocalTime iso={d.matches[0].kickoff_at} mode="weekday-long" /></h3>
+                    <h3 className="font-display text-base text-chalk-dim">{d.day}</h3>
                     <div className="grid gap-4 lg:grid-cols-2">{d.matches.map(renderCard)}</div>
                   </div>
                 ))}

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Flag from "@/components/Flag";
 import LocalTime from "@/components/LocalTime";
+import { formatInZone, TOURNAMENT_TZ } from "@/lib/datetime";
 
 // A single fixture, fully resolved on the server (no Maps cross the client
 // boundary). `homeExtra` / `awayExtra` are optional small lines under each team
@@ -99,7 +100,7 @@ export default function FixturesList({
       {days.map((d) => (
         <div key={d.day}>
           <p className="sticky top-0 z-10 bg-white/85 py-1 text-xs font-semibold uppercase tracking-wider text-chalk-dim backdrop-blur-sm">
-            <LocalTime iso={d.matches[0].kickoff} mode="weekday-long" />
+            {formatInZone(d.matches[0].kickoff, { weekday: "long", month: "short", day: "numeric" }, TOURNAMENT_TZ)}
           </p>
           <div>
             {d.matches.map((m) => (
