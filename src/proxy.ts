@@ -8,10 +8,12 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Run on everything except static assets, images, and the PWA files
-    // (manifest + service worker) — those must be served directly, not routed
-    // through the auth session handler (which would return HTML and break
-    // install / SW registration).
-    "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|json|txt|xml|webmanifest)$).*)",
+    // Run on everything except static assets, images, the PWA files (manifest +
+    // service worker), and the generated metadata images — those must be served
+    // directly, not routed through the auth session handler (which would 307 a
+    // logged-out request to /signup). That gating silently broke the homepage's
+    // og:image for social scrapers (they're never logged in), so the share card
+    // had no image. Nested OG routes (/b, /join) stay matched but are allow-listed.
+    "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|opengraph-image|twitter-image|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|json|txt|xml|webmanifest)$).*)",
   ],
 };

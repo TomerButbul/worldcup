@@ -38,11 +38,11 @@ export const metadata: Metadata = {
   // cards and clean canonicals. Change SITE_URL (lib/site) to move domains.
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "World Cup 2026 Predictions — Bracket & Pick'em Game",
-    template: "%s · World Cup",
+    default: "TopCorner — World Cup 2026 Predictions, Bracket & Pick'em",
+    template: "%s · TopCorner",
   },
   description: SITE_DESCRIPTION,
-  applicationName: "World Cup",
+  applicationName: "TopCorner",
   keywords: [
     "World Cup 2026",
     "World Cup predictions",
@@ -64,18 +64,18 @@ export const metadata: Metadata = {
     // iOS ignores SVG apple-touch-icons — must be a PNG, or it falls back to a cached/old icon.
     apple: "/apple-icon.png",
   },
-  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "World Cup" },
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "TopCorner" },
   openGraph: {
-    title: "World Cup 2026 — Bracket & Prediction Game",
+    title: "TopCorner — World Cup 2026 predictions",
     description: SITE_DESCRIPTION,
     type: "website",
-    siteName: "World Cup",
+    siteName: "TopCorner",
     url: SITE_URL,
     locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
-    title: "World Cup 2026 — Bracket & Prediction Game",
+    title: "TopCorner — World Cup 2026 predictions",
     description: "Predict the 2026 World Cup — bracket, scores & goal scorers. Compete with friends.",
   },
   // Google Search Console site-ownership verification (HTML-tag method).

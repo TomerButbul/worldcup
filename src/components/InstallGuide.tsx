@@ -215,7 +215,7 @@ const STEPS: Record<Platform, Step[]> = {
   ],
   desktop: [
     { title: "Click the Install icon", sub: "On the right of the address bar.", tile: <DesktopBar /> },
-    { title: "Click “Install”", sub: "No icon? Open the ⋮ menu → “Install World Cup.”", tile: <AndroidDialog /> },
+    { title: "Click “Install”", sub: "No icon? Open the ⋮ menu → “Install TopCorner.”", tile: <AndroidDialog /> },
   ],
 };
 

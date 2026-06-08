@@ -7,6 +7,14 @@ import Trophy from "@/components/art/Trophy";
 export default function Hero() {
   return (
     <div className="space-y-5">
+      <motion.p
+        className="font-display text-sm uppercase tracking-[0.35em] text-gold/90 sm:text-base"
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        TopCorner
+      </motion.p>
       <motion.div
         className="text-6xl sm:text-8xl"
         initial={{ scale: 0, rotate: -20 }}

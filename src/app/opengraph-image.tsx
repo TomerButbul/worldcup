@@ -80,7 +80,7 @@ export default function OgImage() {
               display: "flex",
             }}
           >
-            THE 2026 PREDICTION GAME
+            WORLD CUP 2026 PREDICTIONS
           </div>
         </div>
 
@@ -90,15 +90,13 @@ export default function OgImage() {
             marginTop: 46,
             display: "flex",
             alignItems: "baseline",
-            gap: 26,
-            fontSize: 132,
+            fontSize: 150,
             fontWeight: 800,
             lineHeight: 1,
-            letterSpacing: -3,
+            letterSpacing: -4,
           }}
         >
-          <span>World Cup</span>
-          <span style={{ color: GOLD }}>2026</span>
+          <span style={{ color: GOLD }}>TopCorner</span>
         </div>
 
         {/* tagline */}
