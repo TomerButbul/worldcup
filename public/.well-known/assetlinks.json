@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.vercel.worldcup_liart.twa",
+      "sha256_cert_fingerprints": [
+        "1C:30:80:37:BC:89:3C:01:72:A7:4A:37:7A:A9:AF:CE:81:F2:C7:A5:21:0E:2B:97:73:5B:6E:57:91:48:18:DE"
+      ]
+    }
+  }
+]
