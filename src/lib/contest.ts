@@ -3,7 +3,7 @@
 // (the prize-league header + the refer-to-unlock card) and the /rules page, so the
 // wording, prize and dates never drift between surfaces.
 
-export const INVITATIONAL_NAME = "The TopCorner Invitational";
+export const INVITATIONAL_NAME = "Invitational";
 export const INVITATIONAL_TAGLINE = "Invite a friend. Build your bracket. Best one wins.";
 
 // The contest awards a cash prize. The amount isn't fixed yet — it depends on how

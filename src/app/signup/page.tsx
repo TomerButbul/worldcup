@@ -43,7 +43,7 @@ export default async function SignupPage({
           {invited && (
             <div className="mt-6 rounded-xl border border-gold/40 bg-gold/10 px-3 py-2.5 text-sm text-chalk">
               <span className="font-semibold text-gold">🏆 You&rsquo;re invited.</span> Sign up and
-              your bracket joins {INVITATIONAL_NAME} — the best one wins {PRIZE_LABEL}.
+              your bracket joins the {INVITATIONAL_NAME} — the best one wins {PRIZE_LABEL}.
             </div>
           )}
 
