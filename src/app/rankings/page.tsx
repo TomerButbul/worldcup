@@ -67,17 +67,16 @@ export default async function RankingsPage({
     const lg = Array.isArray(m.leagues) ? m.leagues[0] : m.leagues;
     if (!lg) continue;
     if (lg.id === SANDBOX_LEAGUE_ID || lg.is_global) continue;
+    // The cash prize is now awarded on the Global board, so the prize league is no
+    // longer surfaced as its own board — skip it like the global/sandbox leagues.
+    if (lg.id === prizeLeagueId) continue;
     if ((lg.kind ?? "classic") === "draft") {
       drafts.push({ id: lg.id, name: lg.name });
       continue;
     }
     friend.push(lg);
   }
-  // Feature the prize league first; everything else alphabetical.
-  friend.sort(
-    (a, b) =>
-      Number(b.id === prizeLeagueId) - Number(a.id === prizeLeagueId) || a.name.localeCompare(b.name),
-  );
+  friend.sort((a, b) => a.name.localeCompare(b.name));
   drafts.sort((a, b) => a.name.localeCompare(b.name));
 
   const leagues: LeagueBoard[] = await Promise.all(
@@ -112,7 +111,6 @@ export default async function RankingsPage({
         joinCode: lg.join_code,
         isOwner: lg.owner_id === user.id,
         locked: new Date(lg.bracket_lock_at).getTime() <= nowMs(),
-        isPrize: lg.id === prizeLeagueId,
         rows,
       };
     }),

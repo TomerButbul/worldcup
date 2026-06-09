@@ -11,7 +11,6 @@ import LocalTime from "@/components/LocalTime";
 import Reveal from "@/components/Reveal";
 import GameButton from "@/components/GameButton";
 import { createLeague, joinLeague } from "@/app/dashboard/actions";
-import { INVITATIONAL_NAME, PRIZE_COUNT_VISIBLE_AT } from "@/lib/contest";
 import type { GlobalRank } from "@/lib/globalRankings";
 
 // The Invitational bracket lock = the World Cup opener (Jun 11, 19:00 UTC).
@@ -24,7 +23,6 @@ export type LeagueBoard = {
   joinCode: string;
   isOwner: boolean;
   locked: boolean;
-  isPrize?: boolean;
   rows: LeaderboardRow[];
 };
 
@@ -61,8 +59,6 @@ export default function RankingsHub({
     initialLeagueId && leagues.some((l) => l.id === initialLeagueId) ? initialLeagueId : "global",
   );
   const league = sel === "global" ? null : leagues.find((l) => l.id === sel) ?? null;
-  // The prize league shows in the switcher like any league once you're a member.
-  const prizeMember = leagues.some((l) => l.isPrize);
 
   // Create/join a private league lives here now — the Leagues hub owns leagues.
   // Auto-open for newcomers (no private league yet) or when a create/join bounced
@@ -90,7 +86,6 @@ export default function RankingsHub({
             </button>
             {leagues.map((l) => (
               <button key={l.id} type="button" onClick={() => setSel(l.id)} className={pill(sel === l.id)}>
-                {l.isPrize ? "🏆 " : ""}
                 {l.name}
               </button>
             ))}
@@ -119,89 +114,46 @@ export default function RankingsHub({
             // via useState) remount with the right name/code on switch — same stale-
             // state trap the board had.
             <div key={league.id} className="mt-4 space-y-2">
-              {league.isPrize ? (
-                <>
-                  <h2 className="font-display text-xl text-chalk">🏆 {league.name}</h2>
-                  <p className="text-sm text-chalk-dim">
-                    Prize league
-                    {league.rows.length >= PRIZE_COUNT_VISIBLE_AT
-                      ? ` · ${league.rows.length} players`
-                      : ""}
-                    {" · "}
-                    <span className={league.locked ? "text-chalk-dim" : "text-grass"}>
-                      {league.locked ? "🔒 picks locked" : "picks open"}
-                    </span>
-                  </p>
-                  <p className="text-sm text-chalk-dim">
-                    You&rsquo;re in. Invite friends with your link — when they join, they&rsquo;re in
-                    too, and the bigger the prize gets.{" "}
-                    <Link href="/rules" className="font-semibold text-gold hover:underline">
-                      Rules
-                    </Link>
-                  </p>
-                  {referralLink && (
-                    <div className="pt-1">
-                      <ReferralLink link={referralLink} />
-                    </div>
-                  )}
-                </>
-              ) : (
-                <>
-                  <LeagueNameEditor leagueId={league.id} initialName={league.name} isOwner={league.isOwner} />
-                  <p className="text-sm text-chalk-dim">
-                    Private league · {league.rows.length} {league.rows.length === 1 ? "manager" : "managers"}
-                    {" · "}
-                    <span className={league.locked ? "text-chalk-dim" : "text-grass"}>
-                      {league.locked ? "🔒 picks locked" : "picks open"}
-                    </span>
-                  </p>
-                  <div className="pt-1">
-                    <ShareInvite code={league.joinCode} name={league.name} />
-                  </div>
-                </>
-              )}
+              <LeagueNameEditor leagueId={league.id} initialName={league.name} isOwner={league.isOwner} />
+              <p className="text-sm text-chalk-dim">
+                Private league · {league.rows.length} {league.rows.length === 1 ? "manager" : "managers"}
+                {" · "}
+                <span className={league.locked ? "text-chalk-dim" : "text-grass"}>
+                  {league.locked ? "🔒 picks locked" : "picks open"}
+                </span>
+              </p>
+              <div className="pt-1">
+                <ShareInvite code={league.joinCode} name={league.name} />
+              </div>
             </div>
           ) : (
             <div className="mt-4">
               <h1 className="font-display text-3xl text-gradient-gold">Global rankings</h1>
               <p className="text-sm text-chalk-dim">Every player, ranked by their best score.</p>
+              {prizeExists && (
+                <div className="mt-3 rounded-2xl border border-gold/40 bg-gold/[0.06] p-4">
+                  <p className="text-sm leading-relaxed text-chalk">
+                    <span className="font-semibold text-gold">🏆 Cash prize</span> — finish #1 on
+                    this board to win. The pool grows with every player who joins.{" "}
+                    <Link href="/rules" className="font-semibold text-gold hover:underline">
+                      Rules
+                    </Link>
+                  </p>
+                  <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-night/[0.06] px-3 py-1 text-xs font-semibold text-chalk-dim">
+                    🔒 Picks lock <LocalTime iso={PRIZE_LOCK_ISO} mode="date" />
+                    {lockRel ? ` · ${lockRel}` : ""}
+                  </div>
+                  {referralLink && (
+                    <div className="mt-3">
+                      <ReferralLink link={referralLink} />
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
       </Reveal>
-
-      {prizeExists && !prizeMember && (
-        <Reveal>
-          <div className="glass-strong rounded-3xl border border-gold/40 bg-gold/5 p-5 sm:p-6">
-            <div className="flex items-start gap-3">
-              <span className="text-2xl">🏆</span>
-              <div className="min-w-0 flex-1">
-                <h2 className="font-display text-lg text-chalk">{INVITATIONAL_NAME}</h2>
-                <p className="mt-0.5 text-sm text-chalk-dim">
-                  A prize league for players who bring a friend. Share your link — when a friend signs
-                  up with it, you&rsquo;re both in. The more players join, the bigger the prize.{" "}
-                  <Link href="/rules" className="font-semibold text-gold hover:underline">
-                    Rules
-                  </Link>
-                </p>
-                <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-night/[0.06] px-3 py-1 text-xs font-semibold text-chalk-dim">
-                  🔒 Brackets lock <LocalTime iso={PRIZE_LOCK_ISO} mode="date" />
-                  {lockRel ? ` · ${lockRel}` : ""}
-                </div>
-                {referralLink ? (
-                  <div className="mt-4">
-                    <ReferralLink link={referralLink} />
-                  </div>
-                ) : (
-                  <p className="mt-3 text-xs text-chalk-dim">
-                    Your invite link is being set up — check back in a moment.
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-        </Reveal>
-      )}
 
       {showNew && (
         <Reveal>
