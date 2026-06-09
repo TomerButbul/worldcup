@@ -43,7 +43,7 @@ export default function RankingsBoard({
         key={r.user_id}
         layout
         transition={{ type: "spring", stiffness: 500, damping: 40 }}
-        className={`flex items-center gap-3 border-b border-night/5 px-3 py-3 last:border-b-0 sm:px-4 ${
+        className={`flex items-center gap-3 break-inside-avoid border-b border-night/5 px-3 py-3 last:border-b-0 sm:px-4 ${
           isMe ? "bg-gold/15 ring-1 ring-inset ring-gold/50" : ""
         }`}
       >
@@ -63,12 +63,11 @@ export default function RankingsBoard({
     );
   };
 
-  const half = Math.ceil(sorted.length / 2);
-
   return (
-    <div className="space-y-3 sm:space-y-4">
-      {/* Crown tabs — switch which leaderboard you're viewing. */}
-      <div className="flex flex-col items-center gap-2">
+    <div className="glass-strong overflow-hidden rounded-3xl">
+      {/* Crown switch — a header bar attached to the board it controls, so it reads as
+          this list's controls rather than floating in the gap above it. */}
+      <div className="border-b border-night/10 px-3 py-3 sm:px-4">
         <div className="inline-flex rounded-xl bg-night/5 p-0.5 text-sm font-semibold">
           {TABS.map(({ key, label, Icon }) => (
             <button
@@ -76,7 +75,7 @@ export default function RankingsBoard({
               type="button"
               onClick={() => setBy(key)}
               aria-current={by === key}
-              className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition ${
+              className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 transition sm:px-3 ${
                 by === key ? "bg-gold text-night glow-gold" : "text-chalk-dim hover:text-chalk"
               }`}
             >
@@ -84,25 +83,17 @@ export default function RankingsBoard({
             </button>
           ))}
         </div>
-        <p className="text-xs text-chalk-dim">{active.blurb}</p>
+        <p className="mt-1.5 text-xs text-chalk-dim">{active.blurb}</p>
       </div>
 
+      {/* One continuous list on mobile; two balanced columns on large screens
+          (break-inside-avoid keeps each row whole across the column split). */}
       {sorted.length === 0 ? (
-        <div className="glass rounded-2xl p-8 text-center text-sm text-chalk-dim">
+        <p className="p-8 text-center text-sm text-chalk-dim">
           No scores yet — check back once games kick off.
-        </div>
-      ) : sorted.length < 8 ? (
-        <ul className="glass-strong mx-auto w-full max-w-2xl overflow-hidden rounded-2xl">
-          {sorted.map((r, i) => row(r, i))}
-        </ul>
+        </p>
       ) : (
-        <div className="grid gap-3 lg:grid-cols-2 lg:items-start lg:gap-5">
-          {[sorted.slice(0, half), sorted.slice(half)].map((col, ci) => (
-            <ul key={ci} className="glass-strong overflow-hidden rounded-2xl">
-              {col.map((r, j) => row(r, ci === 0 ? j : half + j))}
-            </ul>
-          ))}
-        </div>
+        <ul className="lg:columns-2 lg:gap-x-8">{sorted.map((r, i) => row(r, i))}</ul>
       )}
     </div>
   );
