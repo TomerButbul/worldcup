@@ -5,8 +5,11 @@ import { getAdminProvenance } from "@/lib/invitational";
 import { INVITATIONAL_NAME, PRIZE_USD, CONTACT_EMAIL } from "@/lib/contest";
 
 export const dynamic = "force-dynamic";
+// No title on purpose: a non-admin hitting this route triggers notFound(), but page
+// metadata still resolves first — so a descriptive "Admin · …" <title> would leak the
+// route's purpose to anyone who probes the URL. Falling back to the site-default title
+// keeps a non-admin response indistinguishable from any nonexistent page. noindex too.
 export const metadata = {
-  title: `Admin · ${INVITATIONAL_NAME}`,
   robots: { index: false, follow: false },
 };
 
