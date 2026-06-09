@@ -36,7 +36,7 @@ export async function recomputeAllScores(supabase: SupabaseClient) {
 
     const { data: brackets } = await supabase
       .from("bracket_predictions")
-      .select("user_id, group_scores, group_order, third_qualifiers, knockout, champion_team_id, awards")
+      .select("user_id, group_scores, group_order, third_qualifiers, knockout, champion_team_id, awards, reset_at")
       .eq("league_id", league.id);
 
     const { data: matchPreds } = await supabase
@@ -53,7 +53,9 @@ export async function recomputeAllScores(supabase: SupabaseClient) {
     const updates = (brackets ?? []).map((b) => ({
       league_id: league.id,
       user_id: b.user_id,
-      upfront_points: scoreUpfront(cfg, actual, b, { groupFixtures, fifaRank }),
+      // reset_at set → this player took the second chance, so their group-table
+      // points are forfeited (their knockout still scores in full).
+      upfront_points: scoreUpfront(cfg, actual, b, { groupFixtures, fifaRank }, b.reset_at != null),
       live_points: scoreLive(cfg, actual, predsByUser.get(b.user_id) ?? []),
       updated_at: new Date().toISOString(),
     }));

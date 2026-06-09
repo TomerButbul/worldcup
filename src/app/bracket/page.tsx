@@ -4,7 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import { getCachedTeams } from "@/lib/tournamentData";
 import type { Team } from "@/lib/types";
 import BracketEditor, { type EditorTeam } from "@/app/leagues/[id]/bracket/BracketEditor";
-import { nowMs } from "@/lib/clock";
+import { nowMs, knockoutLockMs } from "@/lib/clock";
+import { bracketLockState } from "@/lib/bracketLock";
+import ResetBracketButton from "@/components/ResetBracketButton";
 import Ball from "@/components/art/Ball";
 import { Medal } from "@/components/icons";
 import { primaryPredictionLeague } from "@/lib/predictionSync";
@@ -27,18 +29,48 @@ export default async function BracketPage() {
   if (!league) return <NoPredictionLeague title="Build your upfront bracket" />;
   const leagueId = league.id;
 
-  const locked = new Date(league.bracket_lock_at).getTime() <= nowMs();
-
-  const [teams, { data: prediction }, { data: profile }] = await Promise.all([
+  const [teams, { data: prediction }, { data: profile }, { data: koMatch }] = await Promise.all([
     getCachedTeams(),
     supabase
       .from("bracket_predictions")
-      .select("group_order, third_qualifiers, knockout, champion_team_id")
+      .select(
+        "group_order, third_qualifiers, knockout, champion_team_id, submitted_at, reset_at, original_bracket",
+      )
       .eq("league_id", leagueId)
       .eq("user_id", user.id)
       .maybeSingle(),
     supabase.from("profiles").select("favorite_team_id, share_slug").eq("id", user.id).maybeSingle(),
+    // First knockout kickoff = the Round-of-32 lock (null until those fixtures sync).
+    supabase
+      .from("matches")
+      .select("kickoff_at")
+      .neq("stage", "group")
+      .order("kickoff_at", { ascending: true })
+      .limit(1)
+      .maybeSingle(),
   ]);
+
+  const kickoffMs = new Date(league.bracket_lock_at).getTime();
+  const state = bracketLockState({
+    now: nowMs(),
+    kickoffMs,
+    knockoutLockMs: knockoutLockMs(
+      koMatch?.kickoff_at ? new Date(koMatch.kickoff_at as string).getTime() : null,
+    ),
+    submittedAtMs: prediction?.submitted_at ? new Date(prediction.submitted_at as string).getTime() : null,
+    resetAtMs: prediction?.reset_at ? new Date(prediction.reset_at as string).getTime() : null,
+    hasGroupBracket: !!(prediction?.group_order && Object.keys(prediction.group_order).length),
+  });
+  // The editor is read-only whenever the bracket isn't currently editable for this
+  // player (committed + locked at kickoff, or everyone after R32).
+  const locked = !state.knockoutEditable;
+  const afterKickoff = nowMs() >= kickoffMs;
+  const orig = (prediction?.original_bracket ?? null) as {
+    group_order?: Record<string, number[]>;
+    third_qualifiers?: string[];
+    knockout?: Record<string, number>;
+    champion_team_id?: number | null;
+  } | null;
 
   const teamList = teams as (Team & { fifa_rank: number | null })[];
 
@@ -87,6 +119,41 @@ export default async function BracketPage() {
         )}
       </div>
 
+      {/* Second-chance + late-joiner status */}
+      {state.canReset && (
+        <div className="glass rounded-3xl border border-gold/30 p-5 sm:p-6">
+          <p className="font-semibold text-chalk">🔄 Second chance</p>
+          <p className="mt-1 text-sm text-chalk-dim">
+            Groups didn&rsquo;t go your way? Forfeit your group-stage points to re-open your knockout
+            bracket and re-pick it on the real field — editable right up to the Round of 32, scoring
+            in full. Your original bracket is kept so you can still look back on it.
+          </p>
+          <div className="mt-3">
+            <ResetBracketButton leagueId={leagueId} />
+          </div>
+        </div>
+      )}
+
+      {state.inReset && (
+        <div className="glass rounded-3xl border border-grass/40 p-5 sm:p-6">
+          <p className="font-semibold text-chalk">✅ Second chance active</p>
+          <p className="mt-1 text-sm text-chalk-dim">
+            Your knockout is open to edit until the Round of 32 and scores in full; group-stage points
+            are forfeited. Edit below — and scroll down to revisit your original bracket.
+          </p>
+        </div>
+      )}
+
+      {!state.committed && !state.inReset && state.knockoutEditable && afterKickoff && (
+        <div className="glass rounded-3xl border border-gold/40 p-5 sm:p-6">
+          <p className="font-semibold text-chalk">You&rsquo;re not too late 🙌</p>
+          <p className="mt-1 text-sm text-chalk-dim">
+            Groups are only ~13% of the game — and the knockout, where it&rsquo;s won, is fully open to
+            you until the Round of 32. Build your bracket below; it scores in full.
+          </p>
+        </div>
+      )}
+
       {!hasGroups ? (
         <p className="glass rounded-2xl p-8 text-center text-sm text-chalk-dim">
           <Ball size={14} className="mr-1 inline-block align-[-2px]" />Tournament teams haven&apos;t been loaded yet. Run the sync to import the 2026
@@ -104,6 +171,27 @@ export default async function BracketPage() {
           favoriteTeamId={profile?.favorite_team_id ?? null}
           locked={locked}
         />
+      )}
+
+      {state.inReset && orig && hasGroups && (
+        <details className="glass rounded-3xl p-5 sm:p-6">
+          <summary className="cursor-pointer font-semibold text-chalk">
+            📜 Your original bracket — for the memories (doesn&rsquo;t score)
+          </summary>
+          <div className="mt-4">
+            <BracketEditor
+              leagueId={leagueId}
+              groups={groups}
+              fifaRank={fifaRank}
+              initialOrder={orig.group_order ?? {}}
+              initialThirds={orig.third_qualifiers ?? []}
+              initialKnockout={orig.knockout ?? {}}
+              initialChampion={orig.champion_team_id ?? null}
+              favoriteTeamId={profile?.favorite_team_id ?? null}
+              locked={true}
+            />
+          </div>
+        </details>
       )}
     </main>
   );

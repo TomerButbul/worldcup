@@ -275,22 +275,32 @@ function scoreThirdPlace(cfg: ScoringConfig, actual: ActualOutcomes, bracket: Br
 // + the chosen thirds, then award group-order points (per-position, perfect-group
 // bonus, group winner) plus the shared advance / sweep / champion / award points.
 // No scorelines — group scores live in match predictions now.
-function scoreUpfrontFromOrder(cfg: ScoringConfig, actual: ActualOutcomes, bracket: BracketPick): number {
+function scoreUpfrontFromOrder(
+  cfg: ScoringConfig,
+  actual: ActualOutcomes,
+  bracket: BracketPick,
+  reset = false,
+): number {
   let pts = 0;
   const groupOrder = bracket.group_order ?? {};
   const { round32 } = buildBracketFromOrder(groupOrder, bracket.third_qualifiers ?? []);
   const adv = predictedAdvancers(round32, bracket.knockout ?? {});
 
-  const groupPosition = cfg.upfront.group_position ?? DEFAULT_SCORING.upfront.group_position;
-  const groupOrderBonus = cfg.upfront.group_order_bonus ?? DEFAULT_SCORING.upfront.group_order_bonus;
-  for (const [label, actualOrder] of Object.entries(actual.groupStandings)) {
-    const predicted = groupOrder[label];
-    if (!predicted || predicted.length !== 4 || actualOrder.length !== 4) continue;
-    if (predicted[0] === actualOrder[0]) pts += cfg.upfront.group_winner;
-    let matched = 0;
-    for (let i = 0; i < 4; i++) if (predicted[i] === actualOrder[i]) matched++;
-    pts += matched * groupPosition;
-    if (matched === 4) pts += groupOrderBonus;
+  // A player who took the second-chance reset forfeits ALL group-table points (group
+  // winner / per-position / perfect-group bonus). Their knockout, champion and award
+  // picks below still score in full — that's the trade.
+  if (!reset) {
+    const groupPosition = cfg.upfront.group_position ?? DEFAULT_SCORING.upfront.group_position;
+    const groupOrderBonus = cfg.upfront.group_order_bonus ?? DEFAULT_SCORING.upfront.group_order_bonus;
+    for (const [label, actualOrder] of Object.entries(actual.groupStandings)) {
+      const predicted = groupOrder[label];
+      if (!predicted || predicted.length !== 4 || actualOrder.length !== 4) continue;
+      if (predicted[0] === actualOrder[0]) pts += cfg.upfront.group_winner;
+      let matched = 0;
+      for (let i = 0; i < 4; i++) if (predicted[i] === actualOrder[i]) matched++;
+      pts += matched * groupPosition;
+      if (matched === 4) pts += groupOrderBonus;
+    }
   }
 
   for (const [stage, key] of Object.entries(ADVANCE_KEYS)) {
@@ -339,12 +349,13 @@ export function scoreUpfront(
   actual: ActualOutcomes,
   bracket: BracketPick | null,
   ctx: { groupFixtures: MatchRow[]; fifaRank: Map<number, number> },
+  reset = false,
 ): number {
   if (!bracket) return 0;
   // Table-pick model: when the manager predicted a group ORDER, score from that
   // (+ chosen thirds). Legacy scoreline predictions fall through to the path below.
   if (bracket.group_order && Object.keys(bracket.group_order).length > 0) {
-    return scoreUpfrontFromOrder(cfg, actual, bracket);
+    return scoreUpfrontFromOrder(cfg, actual, bracket, reset);
   }
   let pts = 0;
 
@@ -358,40 +369,44 @@ export function scoreUpfront(
   const { round32 } = buildBracket(tables, ctx.fifaRank);
   const adv = predictedAdvancers(round32, bracket.knockout ?? {});
 
-  // Group-stage scoreline accuracy: an exact score beats a merely correct result.
-  for (const [idStr, guess] of Object.entries(bracket.group_scores ?? {})) {
-    const r = actual.results.get(Number(idStr));
-    if (!r) continue;
-    if (guess.h === r.home && guess.a === r.away) {
-      pts += cfg.upfront.group_exact_score;
-    } else if (Math.sign(guess.h - guess.a) === Math.sign(r.home - r.away)) {
-      pts += cfg.upfront.group_correct_result;
+  // Group-table points (legacy scoreline model) — forfeited by a reset player, same
+  // as the table-pick path above.
+  if (!reset) {
+    // Group-stage scoreline accuracy: an exact score beats a merely correct result.
+    for (const [idStr, guess] of Object.entries(bracket.group_scores ?? {})) {
+      const r = actual.results.get(Number(idStr));
+      if (!r) continue;
+      if (guess.h === r.home && guess.a === r.away) {
+        pts += cfg.upfront.group_exact_score;
+      } else if (Math.sign(guess.h - guess.a) === Math.sign(r.home - r.away)) {
+        pts += cfg.upfront.group_correct_result;
+      }
     }
-  }
 
-  // Group-winner bonus: predicted 1st place matches the real 1st place.
-  for (const [label, actualOrder] of Object.entries(actual.groupStandings)) {
-    const predictedWinner = tables[label]?.order[0];
-    if (predictedWinner != null && predictedWinner === actualOrder[0]) {
-      pts += cfg.upfront.group_winner;
+    // Group-winner bonus: predicted 1st place matches the real 1st place.
+    for (const [label, actualOrder] of Object.entries(actual.groupStandings)) {
+      const predictedWinner = tables[label]?.order[0];
+      if (predictedWinner != null && predictedWinner === actualOrder[0]) {
+        pts += cfg.upfront.group_winner;
+      }
     }
-  }
 
-  // Group-order points: per finishing position the user called correctly, plus a
-  // bonus for nailing all four. Scored only when both the actual table (keys of
-  // groupStandings are already complete-only) and the user's predicted table are
-  // full 4-team orders.
-  const groupPosition = cfg.upfront.group_position ?? DEFAULT_SCORING.upfront.group_position;
-  const groupOrderBonus = cfg.upfront.group_order_bonus ?? DEFAULT_SCORING.upfront.group_order_bonus;
-  for (const [label, actualOrder] of Object.entries(actual.groupStandings)) {
-    const predictedOrder = tables[label]?.order;
-    if (!predictedOrder || predictedOrder.length !== 4 || actualOrder.length !== 4) continue;
-    let matched = 0;
-    for (let i = 0; i < 4; i++) {
-      if (predictedOrder[i] === actualOrder[i]) matched++;
+    // Group-order points: per finishing position the user called correctly, plus a
+    // bonus for nailing all four. Scored only when both the actual table (keys of
+    // groupStandings are already complete-only) and the user's predicted table are
+    // full 4-team orders.
+    const groupPosition = cfg.upfront.group_position ?? DEFAULT_SCORING.upfront.group_position;
+    const groupOrderBonus = cfg.upfront.group_order_bonus ?? DEFAULT_SCORING.upfront.group_order_bonus;
+    for (const [label, actualOrder] of Object.entries(actual.groupStandings)) {
+      const predictedOrder = tables[label]?.order;
+      if (!predictedOrder || predictedOrder.length !== 4 || actualOrder.length !== 4) continue;
+      let matched = 0;
+      for (let i = 0; i < 4; i++) {
+        if (predictedOrder[i] === actualOrder[i]) matched++;
+      }
+      pts += matched * groupPosition;
+      if (matched === 4) pts += groupOrderBonus;
     }
-    pts += matched * groupPosition;
-    if (matched === 4) pts += groupOrderBonus;
   }
 
   // Survival/advancement: per stage, award for each predicted team that the real

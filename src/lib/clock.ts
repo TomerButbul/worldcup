@@ -10,6 +10,19 @@ export const nowMs = (): number => Date.now();
 // the leagues.bracket_lock_at default (see supabase/migrations/0032).
 export const KICKOFF_MS = Date.parse("2026-06-11T19:00:00Z");
 
+// The Round of 32 begins right after the group stage — the moment the KNOCKOUT
+// bracket locks for everyone (late joiners + reset players included). The 2026 R32
+// kicks off ~Jun 28; the exact first-match time isn't in our fixtures yet (knockout
+// games sync once the field is known), so this is the fallback. Once knockout
+// fixtures load, the real lock is the first knockout kickoff — see knockoutLockMs().
+export const KNOCKOUT_LOCK_FALLBACK_MS = Date.parse("2026-06-28T16:00:00Z");
+
+// The actual knockout lock: the first knockout kickoff if we have it, else the
+// fallback above. Pass min(matches.kickoff_at where stage <> 'group') or null.
+export function knockoutLockMs(firstKnockoutKickoffMs: number | null): number {
+  return firstKnockoutKickoffMs ?? KNOCKOUT_LOCK_FALLBACK_MS;
+}
+
 export type CountdownParts = { days: number; hours: number; mins: number; secs: number };
 
 // Time remaining until `target`, broken into units. Returns null once the

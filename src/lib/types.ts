@@ -118,9 +118,14 @@ export const DEFAULT_SCORING: ScoringConfig = {
   upfront: {
     group_exact_score: 3,
     group_correct_result: 1,
-    group_winner: 3,
-    group_position: 1,
-    group_order_bonus: 3,
+    // Group bracket is deliberately light (~13% of a strong knockout bracket, per the
+    // Monte-Carlo balance): groups are easy to call, and the reset/second-chance lets
+    // anyone trade their group points for a fresh knockout — so a perfect group sweep
+    // is a tie-breaker, never enough to beat a clearly-better bracket. Only the group
+    // WINNER scores; per-position + perfect-group bonus dropped (3rd/4th order is luck).
+    group_winner: 1,
+    group_position: 0,
+    group_order_bonus: 0,
     // March Madness doubling: each tier has half the picks of the last, so
     // doubling the per-pick value makes every round worth the same 32 aggregate.
     advance_round_of_32: 1,

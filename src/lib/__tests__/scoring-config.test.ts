@@ -13,7 +13,6 @@ describe("DEFAULT_SCORING", () => {
   });
 
   it("uses March Madness advancement values (1-2-4-8-16-32)", () => {
-    expect(DEFAULT_SCORING.upfront.group_winner).toBe(3);
     expect(DEFAULT_SCORING.upfront.advance_round_of_32).toBe(1);
     expect(DEFAULT_SCORING.upfront.advance_round_of_16).toBe(2);
     expect(DEFAULT_SCORING.upfront.advance_quarter).toBe(4);
@@ -47,9 +46,13 @@ describe("DEFAULT_SCORING", () => {
     expect(DEFAULT_SCORING.live.group_exact_score).toBeLessThan(DEFAULT_SCORING.live.exact_score);
   });
 
-  it("defines group-order point defaults", () => {
-    expect(DEFAULT_SCORING.upfront.group_position).toBe(1);
-    expect(DEFAULT_SCORING.upfront.group_order_bonus).toBe(3);
+  it("keeps the group bracket light (~13%) for the reset/second-chance balance", () => {
+    // Only the group WINNER scores (1 pt). Per-position + perfect-group bonus dropped:
+    // groups are easy + resettable, so a perfect sweep is a tie-breaker, never enough
+    // to overturn a clearly-better knockout bracket (verified by Monte-Carlo).
+    expect(DEFAULT_SCORING.upfront.group_winner).toBe(1);
+    expect(DEFAULT_SCORING.upfront.group_position).toBe(0);
+    expect(DEFAULT_SCORING.upfront.group_order_bonus).toBe(0);
   });
 
   it("defines stage-sweep bonus defaults", () => {
