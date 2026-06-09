@@ -43,10 +43,9 @@ describe("isPublicPath", () => {
   // /r/<slug> referral links stash the ref_by cookie BEFORE sign-up (exactly like
   // /join), and the prize landing + official rules are public so visitors and store
   // reviewers can read them without an account.
-  it("keeps the Invitational referral + prize pages public", () => {
+  it("keeps the referral links + rules page public", () => {
     expect(isPublicPath("/r/abc123")).toBe(true);
     expect(isPublicPath("/r/any-slug-here")).toBe(true);
-    expect(isPublicPath("/invitational")).toBe(true);
     expect(isPublicPath("/rules")).toBe(true);
   });
 

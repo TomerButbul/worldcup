@@ -202,8 +202,8 @@ export default function RulesPage() {
       </div>
 
       <div className="flex flex-wrap gap-4 border-t border-night/10 pt-4">
-        <Link href="/invitational" className="text-sm font-semibold text-gold hover:text-gold-bright">
-          ← Back to {INVITATIONAL_NAME}
+        <Link href="/rankings" className="text-sm font-semibold text-gold hover:text-gold-bright">
+          ← Back to leagues
         </Link>
       </div>
     </main>

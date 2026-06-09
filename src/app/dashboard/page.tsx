@@ -21,9 +21,6 @@ import { globalRankOf } from "@/lib/globalRank";
 import { SANDBOX_LEAGUE_ID, primaryPredictionLeague } from "@/lib/predictionSync";
 import { predictionProgress, type BracketPredictionRow } from "@/lib/predictionProgress";
 import { AWARD_KEYS } from "@/lib/scoring-core";
-import { INVITATIONAL_NAME, PRIZE_LABEL } from "@/lib/contest";
-import InvitationalBanner from "@/components/InvitationalBanner";
-import { isAdminEmail } from "@/lib/admin";
 import type { Team, Match } from "@/lib/types";
 import type { ReactNode } from "react";
 
@@ -264,12 +261,6 @@ export default async function DashboardPage({
         </header>
       </Reveal>
 
-      {/* Announcement banner — pinned to the top of Home. Visible to admins always
-          (live preview), and to everyone once INVITATIONAL_BANNER_ENABLED is set. */}
-      {(isAdminEmail(user.email) || process.env.INVITATIONAL_BANNER_ENABLED === "true") && (
-        <InvitationalBanner />
-      )}
-
       {/* Desktop: two-column layout — primary content left, secondary sidebar right */}
       <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-6 lg:items-start">
         {/* Primary column */}
@@ -382,26 +373,6 @@ export default async function DashboardPage({
               <FavoriteTeamStatus status={favStatus} />
             </Reveal>
           )}
-
-          <Reveal>
-            <Link
-              href="/invitational"
-              className="group relative flex items-center justify-between overflow-hidden rounded-2xl border border-gold/40 bg-gold/10 p-4 transition hover:bg-gold/15"
-            >
-              <span className="flex min-w-0 items-center gap-3">
-                <span className="text-2xl">🏆</span>
-                <span className="min-w-0">
-                  <span className="block font-semibold text-chalk">{INVITATIONAL_NAME}</span>
-                  <span className="block truncate text-xs text-chalk-dim">
-                    Invite a friend — best bracket wins {PRIZE_LABEL}
-                  </span>
-                </span>
-              </span>
-              <span className="shrink-0 font-display text-gold transition group-hover:translate-x-0.5">
-                →
-              </span>
-            </Link>
-          </Reveal>
 
           <Reveal>
             <Link

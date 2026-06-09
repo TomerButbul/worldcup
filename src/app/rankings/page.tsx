@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCachedGlobalRankings } from "@/lib/globalRankings";
 import { getCachedTeams } from "@/lib/tournamentData";
 import { SANDBOX_LEAGUE_ID } from "@/lib/predictionSync";
+import { referralLink } from "@/lib/referral";
 import { nowMs } from "@/lib/clock";
 import type { LeaderboardRow } from "@/app/leagues/[id]/Leaderboard";
 import RankingsHub, { type LeagueBoard } from "./RankingsHub";
@@ -34,15 +35,23 @@ export default async function RankingsPage({
   } = await supabase.auth.getUser();
   if (!user) redirect("/signup");
 
-  const [ranks, teams, { data: memberships }] = await Promise.all([
-    getCachedGlobalRankings(),
-    getCachedTeams(),
-    supabase
-      .from("league_members")
-      .select("leagues ( id, name, join_code, owner_id, kind, is_global, bracket_lock_at )")
-      .eq("user_id", user.id),
-  ]);
+  const [ranks, teams, { data: memberships }, { data: prizeLeague }, { data: meProfile }] =
+    await Promise.all([
+      getCachedGlobalRankings(),
+      getCachedTeams(),
+      supabase
+        .from("league_members")
+        .select("leagues ( id, name, join_code, owner_id, kind, is_global, bracket_lock_at )")
+        .eq("user_id", user.id),
+      // Defensive: pre-migration the is_prize column doesn't exist — supabase returns
+      // an error (not a throw), so prizeLeague stays null and the feature stays dark.
+      supabase.from("leagues").select("id").eq("is_prize", true).maybeSingle(),
+      supabase.from("profiles").select("share_slug").eq("id", user.id).maybeSingle(),
+    ]);
   const slimTeams = teams.map((t) => ({ id: t.id, name: t.name, code: t.code, logo_url: t.logo_url }));
+  const prizeLeagueId = (prizeLeague as { id: string } | null)?.id ?? null;
+  const referralSlug = (meProfile as { share_slug: string | null } | null)?.share_slug ?? null;
+  const myReferralLink = referralSlug ? referralLink(referralSlug) : null;
 
   // Your private (friend) leagues = prediction leagues you're in, minus the global
   // World league (that's the Global board) and the sandbox test league.
@@ -60,7 +69,11 @@ export default async function RankingsPage({
     }
     friend.push(lg);
   }
-  friend.sort((a, b) => a.name.localeCompare(b.name));
+  // Feature the prize league first; everything else alphabetical.
+  friend.sort(
+    (a, b) =>
+      Number(b.id === prizeLeagueId) - Number(a.id === prizeLeagueId) || a.name.localeCompare(b.name),
+  );
   drafts.sort((a, b) => a.name.localeCompare(b.name));
 
   const leagues: LeagueBoard[] = await Promise.all(
@@ -95,6 +108,7 @@ export default async function RankingsPage({
         joinCode: lg.join_code,
         isOwner: lg.owner_id === user.id,
         locked: new Date(lg.bracket_lock_at).getTime() <= nowMs(),
+        isPrize: lg.id === prizeLeagueId,
         rows,
       };
     }),
@@ -108,6 +122,8 @@ export default async function RankingsPage({
         global={ranks}
         leagues={leagues}
         drafts={drafts}
+        referralLink={myReferralLink}
+        prizeExists={!!prizeLeagueId}
         initialLeagueId={leagueParam ?? null}
         error={error ?? null}
       />

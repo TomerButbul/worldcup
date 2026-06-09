@@ -6,9 +6,11 @@ import RankingsBoard from "./RankingsBoard";
 import Leaderboard, { type LeaderboardRow } from "@/app/leagues/[id]/Leaderboard";
 import LeagueNameEditor from "@/app/leagues/[id]/LeagueNameEditor";
 import ShareInvite from "@/components/ShareInvite";
+import ReferralLink from "@/components/ReferralLink";
 import Reveal from "@/components/Reveal";
 import GameButton from "@/components/GameButton";
 import { createLeague, joinLeague } from "@/app/dashboard/actions";
+import { INVITATIONAL_NAME } from "@/lib/contest";
 import type { GlobalRank } from "@/lib/globalRankings";
 
 type SlimTeam = { id: number; name: string; code: string | null; logo_url: string | null };
@@ -18,6 +20,7 @@ export type LeagueBoard = {
   joinCode: string;
   isOwner: boolean;
   locked: boolean;
+  isPrize?: boolean;
   rows: LeaderboardRow[];
 };
 
@@ -33,6 +36,8 @@ export default function RankingsHub({
   global,
   leagues,
   drafts,
+  referralLink,
+  prizeExists,
   initialLeagueId,
   error,
 }: {
@@ -41,6 +46,8 @@ export default function RankingsHub({
   global: GlobalRank[];
   leagues: LeagueBoard[];
   drafts: { id: string; name: string }[];
+  referralLink: string | null;
+  prizeExists: boolean;
   initialLeagueId: string | null;
   error: string | null;
 }): JSX.Element {
@@ -48,6 +55,8 @@ export default function RankingsHub({
     initialLeagueId && leagues.some((l) => l.id === initialLeagueId) ? initialLeagueId : "global",
   );
   const league = sel === "global" ? null : leagues.find((l) => l.id === sel) ?? null;
+  // The prize league shows in the switcher like any league once you're a member.
+  const prizeMember = leagues.some((l) => l.isPrize);
 
   // Create/join a private league lives here now — the Leagues hub owns leagues.
   // Auto-open for newcomers (no private league yet) or when a create/join bounced
@@ -75,6 +84,7 @@ export default function RankingsHub({
             </button>
             {leagues.map((l) => (
               <button key={l.id} type="button" onClick={() => setSel(l.id)} className={pill(sel === l.id)}>
+                {l.isPrize ? "🏆 " : ""}
                 {l.name}
               </button>
             ))}
@@ -103,17 +113,44 @@ export default function RankingsHub({
             // via useState) remount with the right name/code on switch — same stale-
             // state trap the board had.
             <div key={league.id} className="mt-4 space-y-2">
-              <LeagueNameEditor leagueId={league.id} initialName={league.name} isOwner={league.isOwner} />
-              <p className="text-sm text-chalk-dim">
-                Private league · {league.rows.length} {league.rows.length === 1 ? "manager" : "managers"}
-                {" · "}
-                <span className={league.locked ? "text-chalk-dim" : "text-grass"}>
-                  {league.locked ? "🔒 picks locked" : "picks open"}
-                </span>
-              </p>
-              <div className="pt-1">
-                <ShareInvite code={league.joinCode} />
-              </div>
+              {league.isPrize ? (
+                <>
+                  <h2 className="font-display text-xl text-chalk">🏆 {league.name}</h2>
+                  <p className="text-sm text-chalk-dim">
+                    Prize league · {league.rows.length} {league.rows.length === 1 ? "player" : "players"}
+                    {" · "}
+                    <span className={league.locked ? "text-chalk-dim" : "text-grass"}>
+                      {league.locked ? "🔒 picks locked" : "picks open"}
+                    </span>
+                  </p>
+                  <p className="text-sm text-chalk-dim">
+                    You&rsquo;re in. Invite friends with your link — when they join, they&rsquo;re in
+                    too.{" "}
+                    <Link href="/rules" className="font-semibold text-gold hover:underline">
+                      Rules
+                    </Link>
+                  </p>
+                  {referralLink && (
+                    <div className="pt-1">
+                      <ReferralLink link={referralLink} />
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <LeagueNameEditor leagueId={league.id} initialName={league.name} isOwner={league.isOwner} />
+                  <p className="text-sm text-chalk-dim">
+                    Private league · {league.rows.length} {league.rows.length === 1 ? "manager" : "managers"}
+                    {" · "}
+                    <span className={league.locked ? "text-chalk-dim" : "text-grass"}>
+                      {league.locked ? "🔒 picks locked" : "picks open"}
+                    </span>
+                  </p>
+                  <div className="pt-1">
+                    <ShareInvite code={league.joinCode} />
+                  </div>
+                </>
+              )}
             </div>
           ) : (
             <div className="mt-4">
@@ -123,6 +160,35 @@ export default function RankingsHub({
           )}
         </div>
       </Reveal>
+
+      {prizeExists && !prizeMember && (
+        <Reveal>
+          <div className="glass-strong rounded-3xl border border-gold/40 bg-gold/5 p-5 sm:p-6">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">🏆</span>
+              <div className="min-w-0 flex-1">
+                <h2 className="font-display text-lg text-chalk">{INVITATIONAL_NAME}</h2>
+                <p className="mt-0.5 text-sm text-chalk-dim">
+                  A prize league for players who bring a friend. Share your link — when a friend signs
+                  up with it, you&rsquo;re both in.{" "}
+                  <Link href="/rules" className="font-semibold text-gold hover:underline">
+                    Rules
+                  </Link>
+                </p>
+                {referralLink ? (
+                  <div className="mt-4">
+                    <ReferralLink link={referralLink} />
+                  </div>
+                ) : (
+                  <p className="mt-3 text-xs text-chalk-dim">
+                    Your invite link is being set up — check back in a moment.
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        </Reveal>
+      )}
 
       {showNew && (
         <Reveal>

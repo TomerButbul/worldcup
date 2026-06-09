@@ -1,7 +1,7 @@
-// Single source of truth for "The TopCorner Invitational" — the free, skill-based
-// cash-prize best-bracket contest. Reused by the signup invite banner, /invitational,
-// /rules, the dashboard card and the admin vetting view so the wording, prize and
-// dates never drift between surfaces.
+// Single source of truth for "The TopCorner Invitational" — the free, skill-based,
+// referral-gated prize league. Reused by the signup invite banner, the Leagues hub
+// (the prize-league header + the refer-to-unlock card) and the /rules page, so the
+// wording, prize and dates never drift between surfaces.
 
 export const INVITATIONAL_NAME = "The TopCorner Invitational";
 export const INVITATIONAL_TAGLINE = "Invite a friend. Build your bracket. Best one wins.";

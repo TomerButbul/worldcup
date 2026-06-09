@@ -43,10 +43,8 @@ export function isPublicPath(pathname: string): boolean {
     // like /join. The trailing slash is deliberate so this can't swallow /rankings
     // or /reset-password.
     pathname.startsWith("/r/") ||
-    // The prize landing (/invitational) and its official rules (/rules) are public
-    // so visitors and app-store reviewers can read them — and convert — without an
-    // account. (The /invitational/admin sub-route self-gates inside the page.)
-    pathname.startsWith("/invitational") ||
+    // Official rules (/rules) is public so visitors and app-store reviewers can read
+    // it without an account.
     pathname.startsWith("/rules") ||
     isAuthPath(pathname) ||
     // API routes self-authenticate (e.g. /api/sync via SYNC_SECRET) and must return
