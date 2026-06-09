@@ -80,31 +80,13 @@ export default function RulesPage() {
           </p>
         </Section>
 
-        <Section title="5. How to enter (two free ways)">
-          <p>You become eligible to compete in either of these free ways:</p>
-          <ul className="ml-4 list-disc space-y-1.5">
-            <li>
-              <span className="font-semibold text-chalk">Invite or be invited.</span> Share your
-              personal invite link and have at least one friend create a new account through it — or
-              join through a friend&rsquo;s link yourself. Either side of a referral qualifies. This
-              is free.
-            </li>
-            <li>
-              <span className="font-semibold text-chalk">Alternative free entry (no referral).</span>{" "}
-              Don&rsquo;t want to invite anyone? Email{" "}
-              <a
-                href={`mailto:${CONTACT_EMAIL}?subject=Invitational%20entry`}
-                className="text-gold underline underline-offset-2 hover:text-gold-bright"
-              >
-                {CONTACT_EMAIL}
-              </a>{" "}
-              from your account email with the subject &ldquo;Invitational entry&rdquo; and we&rsquo;ll
-              add you to the contest at no cost. There is no advantage to referring versus this method
-              — both simply get you in.
-            </li>
-          </ul>
+        <Section title="5. How to enter">
           <p>
-            You must also build a bracket (your tournament predictions) before the lock in section 4.
+            Entry is automatic and completely free. Every registered {SPONSOR_NAME} player is in the
+            Invitational — there&rsquo;s nothing to buy and no referral required. Just create a free
+            account and build a bracket before the lock in section 4. Inviting friends is welcome —
+            the more players who join, the bigger the prize pool — but it is never required to enter
+            or to win.
           </p>
         </Section>
 
@@ -125,8 +107,9 @@ export default function RulesPage() {
 
         <Section title="7. Prize">
           <p>
-            One (1) cash prize, awarded to the single highest-scoring eligible player. The exact
-            amount will be confirmed and posted on this page before brackets lock (see section 4).
+            One (1) cash prize, awarded to the single highest-scoring eligible player. The pool grows
+            with the number of players; the exact amount is confirmed and posted on this page before
+            brackets lock (see section 4).
             It is paid by the Sponsor via a common electronic method (e.g. PayPal, Venmo or Zelle)
             within 30 days of the winner confirming their details. One prize total; one winner. The
             prize is non-transferable and cannot be exchanged for anything else.

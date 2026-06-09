@@ -156,7 +156,7 @@ export default function RankingsHub({
                     </span>
                   </p>
                   <div className="pt-1">
-                    <ShareInvite code={league.joinCode} />
+                    <ShareInvite code={league.joinCode} name={league.name} />
                   </div>
                 </>
               )}
