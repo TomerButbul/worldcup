@@ -82,11 +82,11 @@ export default function RulesPage() {
 
         <Section title="5. How to enter">
           <p>
-            Entry is automatic and completely free. Every registered {SPONSOR_NAME} player is in the
-            Invitational — there&rsquo;s nothing to buy and no referral required. Just create a free
-            account and build a bracket before the lock in section 4. Inviting friends is welcome —
-            the more players who join, the bigger the prize pool — but it is never required to enter
-            or to win.
+            Entry is automatic and completely free: create a {SPONSOR_NAME} account and you&rsquo;re
+            in the Invitational — nothing to buy, no referral required. Just build a bracket before
+            the lock in section 4. (You can also play as a guest, but you&rsquo;ll need a full account
+            to compete for the prize.) Inviting friends is welcome — the more players who join, the
+            bigger the prize pool — but it is never required to enter or to win.
           </p>
         </Section>
 
