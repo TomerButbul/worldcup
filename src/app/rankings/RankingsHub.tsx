@@ -131,21 +131,30 @@ export default function RankingsHub({
               <h1 className="font-display text-3xl text-gradient-gold">Global rankings</h1>
               <p className="text-sm text-chalk-dim">Every player, ranked by their best score.</p>
               {prizeExists && (
-                <div className="mt-3 rounded-2xl border border-gold/40 bg-gold/[0.06] p-4">
-                  <p className="text-sm leading-relaxed text-chalk">
-                    <span className="font-semibold text-gold">🏆 Cash prize</span> — finish #1 on
-                    this board to win. The pool grows with every player who joins.{" "}
-                    <Link href="/rules" className="font-semibold text-gold hover:underline">
-                      Rules
-                    </Link>
-                  </p>
-                  <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-night/[0.06] px-3 py-1 text-xs font-semibold text-chalk-dim">
-                    🔒 Picks lock <LocalTime iso={PRIZE_LOCK_ISO} mode="date" />
-                    {lockRel ? ` · ${lockRel}` : ""}
+                <div className="mt-4 rounded-2xl border border-gold/30 bg-gradient-to-br from-gold/[0.14] via-gold/[0.05] to-transparent p-4">
+                  <div className="flex items-start gap-3">
+                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gold/15 text-xl ring-1 ring-inset ring-gold/25">
+                      🏆
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-display text-lg leading-tight text-chalk">
+                        Cash prize <span className="text-gold-bright">— finish #1 to win</span>
+                      </p>
+                      <p className="mt-1 text-xs leading-relaxed text-chalk-dim">
+                        The pool grows with every player who joins.{" "}
+                        <Link href="/rules" className="font-semibold text-gold hover:underline">
+                          See rules
+                        </Link>
+                      </p>
+                      <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-night/[0.06] px-2.5 py-1 text-[11px] font-semibold text-chalk-dim">
+                        🔒 Locks <LocalTime iso={PRIZE_LOCK_ISO} mode="date" />
+                        {lockRel ? ` · ${lockRel}` : ""}
+                      </p>
+                    </div>
                   </div>
                   {referralLink && (
                     <div className="mt-3">
-                      <ReferralLink link={referralLink} />
+                      <ReferralLink link={referralLink} compact />
                     </div>
                   )}
                 </div>

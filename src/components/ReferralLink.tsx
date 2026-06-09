@@ -5,10 +5,12 @@ import { LinkIcon, ShareIcon } from "@/components/icons";
 import { copyText } from "@/lib/clipboard";
 import { playPop } from "@/lib/sound";
 
-// The viewer's personal invite link for The TopCorner Invitational. Copying it (or
-// sharing via the native sheet) is the entire growth loop — a friend who signs up
-// through it puts BOTH of you in the running for the prize.
-export default function ReferralLink({ link }: { link: string }) {
+// The viewer's personal invite link. Copying it (or sharing via the native sheet) is
+// the entire growth loop — a friend who signs up through it grows the prize pool you
+// both compete for. `compact` renders one subtle button (used inside the prize
+// callout) instead of the full link-pill + buttons, so the bare deployment URL never
+// shows on screen.
+export default function ReferralLink({ link, compact = false }: { link: string; compact?: boolean }) {
   const [copied, setCopied] = useState(false);
 
   async function copy() {
@@ -22,8 +24,8 @@ export default function ReferralLink({ link }: { link: string }) {
   async function share() {
     try {
       await navigator.share({
-        title: "The TopCorner Invitational",
-        text: `Play World Cup TopCorner with me — sign up with my link and we're both in the running for the prize:`,
+        title: "TopCorner",
+        text: `Play World Cup TopCorner with me — sign up with my link and you grow the prize pool we both compete for:`,
         url: link,
       });
     } catch {
@@ -32,6 +34,28 @@ export default function ReferralLink({ link }: { link: string }) {
   }
 
   const canShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
+
+  // Compact: one subtle full-width button — share on mobile, copy on desktop. The bare
+  // deployment URL never renders (it looked unpolished and untrustworthy on screen).
+  if (compact) {
+    return (
+      <button
+        type="button"
+        onClick={() => void (canShare ? share() : copy())}
+        aria-label="Invite friends with your link"
+        className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-night/[0.05] px-3 py-2.5 text-sm font-semibold text-chalk ring-1 ring-inset ring-gold/30 transition hover:bg-gold/10"
+      >
+        {copied ? (
+          "✓ Invite link copied!"
+        ) : (
+          <span className="inline-flex items-center gap-1.5">
+            {canShare ? <ShareIcon size={15} /> : <LinkIcon size={15} />} Invite friends — grow the pool
+          </span>
+        )}
+      </button>
+    );
+  }
+
   // Show the link without the protocol so it reads cleanly in the pill.
   const pretty = link.replace(/^https?:\/\//, "");
 
