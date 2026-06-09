@@ -22,6 +22,8 @@ import { SANDBOX_LEAGUE_ID, primaryPredictionLeague } from "@/lib/predictionSync
 import { predictionProgress, type BracketPredictionRow } from "@/lib/predictionProgress";
 import { AWARD_KEYS } from "@/lib/scoring-core";
 import { INVITATIONAL_NAME, PRIZE_LABEL } from "@/lib/contest";
+import InvitationalBanner from "@/components/InvitationalBanner";
+import { isAdminEmail } from "@/lib/admin";
 import type { Team, Match } from "@/lib/types";
 import type { ReactNode } from "react";
 
@@ -261,6 +263,12 @@ export default async function DashboardPage({
           </Link>
         </header>
       </Reveal>
+
+      {/* Announcement banner — pinned to the top of Home. Visible to admins always
+          (live preview), and to everyone once INVITATIONAL_BANNER_ENABLED is set. */}
+      {(isAdminEmail(user.email) || process.env.INVITATIONAL_BANNER_ENABLED === "true") && (
+        <InvitationalBanner />
+      )}
 
       {/* Desktop: two-column layout — primary content left, secondary sidebar right */}
       <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-6 lg:items-start">

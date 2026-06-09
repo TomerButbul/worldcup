@@ -2,7 +2,8 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getAdminProvenance } from "@/lib/invitational";
-import { INVITATIONAL_NAME, CONTACT_EMAIL } from "@/lib/contest";
+import { INVITATIONAL_NAME } from "@/lib/contest";
+import { isAdminEmail } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
 // No title on purpose: a non-admin hitting this route triggers notFound(), but page
@@ -13,26 +14,15 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
-// Who may view this. Defaults to the owner's email so it works out of the box;
-// override with ADMIN_EMAILS (comma-separated) in the environment. An unset/empty
-// value means ONLY the default — never "everyone".
-function adminEmails(): string[] {
-  return (process.env.ADMIN_EMAILS ?? CONTACT_EMAIL)
-    .split(",")
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean);
-}
-
 export default async function InvitationalAdminPage() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const email = user?.email?.toLowerCase() ?? "";
 
   // Default-safe gate: anyone who isn't an admin (incl. logged-out) gets a 404 —
   // the page simply doesn't exist for them.
-  if (!user || !adminEmails().includes(email)) notFound();
+  if (!user || !isAdminEmail(user.email)) notFound();
 
   const rows = await getAdminProvenance();
 
