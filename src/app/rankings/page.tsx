@@ -52,6 +52,10 @@ export default async function RankingsPage({
   const prizeLeagueId = (prizeLeague as { id: string } | null)?.id ?? null;
   const referralSlug = (meProfile as { share_slug: string | null } | null)?.share_slug ?? null;
   const myReferralLink = referralSlug ? referralLink(referralSlug) : null;
+  // Server-computed so the client hub doesn't call Date.now() in render (hydration-safe).
+  const lockDays = Math.ceil((Date.parse("2026-06-11T19:00:00Z") - nowMs()) / 86_400_000);
+  const lockRel =
+    lockDays > 1 ? `in ${lockDays} days` : lockDays === 1 ? "tomorrow" : lockDays === 0 ? "today" : null;
 
   // Your private (friend) leagues = prediction leagues you're in, minus the global
   // World league (that's the Global board) and the sandbox test league.
@@ -124,6 +128,7 @@ export default async function RankingsPage({
         drafts={drafts}
         referralLink={myReferralLink}
         prizeExists={!!prizeLeagueId}
+        lockRel={lockRel}
         initialLeagueId={leagueParam ?? null}
         error={error ?? null}
       />

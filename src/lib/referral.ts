@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { SITE_URL } from "@/lib/site";
@@ -18,6 +19,27 @@ export const REF_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
 export function referralLink(slug: string): string {
   return `${SITE_URL}/r/${slug}`;
 }
+
+// The public face of a referral link for the /r/<slug> landing page + its OG card:
+// just the referrer's display name, nothing sensitive. Service client so it resolves
+// for LOGGED-OUT visitors (RLS hides other profiles). cache() = one read per request
+// even though generateMetadata, the OG image and the page body all ask for it.
+export const getReferrerPreview = cache(async (slug: string): Promise<{ name: string } | null> => {
+  const clean = (slug ?? "").replace(/[^a-zA-Z0-9]/g, "");
+  if (!clean) return null;
+  try {
+    const db = createServiceClient();
+    const { data } = await db
+      .from("profiles")
+      .select("display_name, team_name")
+      .eq("share_slug", clean)
+      .maybeSingle();
+    if (!data) return null;
+    return { name: (data.team_name as string) || (data.display_name as string) || "A friend" };
+  } catch {
+    return null;
+  }
+});
 
 // Attribute a pending referral once a session exists. Mirrors consumePendingInvite:
 // called from every auth entry point that creates a NEW account (email signup,

@@ -7,11 +7,15 @@ import Leaderboard, { type LeaderboardRow } from "@/app/leagues/[id]/Leaderboard
 import LeagueNameEditor from "@/app/leagues/[id]/LeagueNameEditor";
 import ShareInvite from "@/components/ShareInvite";
 import ReferralLink from "@/components/ReferralLink";
+import LocalTime from "@/components/LocalTime";
 import Reveal from "@/components/Reveal";
 import GameButton from "@/components/GameButton";
 import { createLeague, joinLeague } from "@/app/dashboard/actions";
 import { INVITATIONAL_NAME } from "@/lib/contest";
 import type { GlobalRank } from "@/lib/globalRankings";
+
+// The Invitational bracket lock = the World Cup opener (Jun 11, 19:00 UTC).
+const PRIZE_LOCK_ISO = "2026-06-11T19:00:00Z";
 
 type SlimTeam = { id: number; name: string; code: string | null; logo_url: string | null };
 export type LeagueBoard = {
@@ -38,6 +42,7 @@ export default function RankingsHub({
   drafts,
   referralLink,
   prizeExists,
+  lockRel,
   initialLeagueId,
   error,
 }: {
@@ -48,6 +53,7 @@ export default function RankingsHub({
   drafts: { id: string; name: string }[];
   referralLink: string | null;
   prizeExists: boolean;
+  lockRel: string | null;
   initialLeagueId: string | null;
   error: string | null;
 }): JSX.Element {
@@ -125,7 +131,7 @@ export default function RankingsHub({
                   </p>
                   <p className="text-sm text-chalk-dim">
                     You&rsquo;re in. Invite friends with your link — when they join, they&rsquo;re in
-                    too.{" "}
+                    too, and the bigger the prize gets.{" "}
                     <Link href="/rules" className="font-semibold text-gold hover:underline">
                       Rules
                     </Link>
@@ -170,11 +176,15 @@ export default function RankingsHub({
                 <h2 className="font-display text-lg text-chalk">{INVITATIONAL_NAME}</h2>
                 <p className="mt-0.5 text-sm text-chalk-dim">
                   A prize league for players who bring a friend. Share your link — when a friend signs
-                  up with it, you&rsquo;re both in.{" "}
+                  up with it, you&rsquo;re both in. The more players join, the bigger the prize.{" "}
                   <Link href="/rules" className="font-semibold text-gold hover:underline">
                     Rules
                   </Link>
                 </p>
+                <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-night/[0.06] px-3 py-1 text-xs font-semibold text-chalk-dim">
+                  🔒 Brackets lock <LocalTime iso={PRIZE_LOCK_ISO} mode="date" />
+                  {lockRel ? ` · ${lockRel}` : ""}
+                </div>
                 {referralLink ? (
                   <div className="mt-4">
                     <ReferralLink link={referralLink} />
