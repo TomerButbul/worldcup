@@ -10,7 +10,8 @@ import ReferralLink from "@/components/ReferralLink";
 import LocalTime from "@/components/LocalTime";
 import Reveal from "@/components/Reveal";
 import GameButton from "@/components/GameButton";
-import { Globe, Plus, ArrowUpRight } from "@/components/icons";
+import Trophy from "@/components/art/Trophy";
+import { Globe, Plus, ArrowUpRight, Lock } from "@/components/icons";
 import { createLeague, joinLeague } from "@/app/dashboard/actions";
 import type { GlobalRank } from "@/lib/globalRankings";
 
@@ -136,9 +137,7 @@ export default function RankingsHub({
               {prizeExists && (
                 <div className="mt-4 rounded-2xl border border-gold/30 bg-gradient-to-br from-gold/[0.14] via-gold/[0.05] to-transparent p-4">
                   <div className="flex items-start gap-3">
-                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gold/15 text-xl ring-1 ring-inset ring-gold/25">
-                      🏆
-                    </span>
+                    <Trophy size={48} className="mt-0.5 drop-shadow-[0_3px_10px_rgba(245,196,64,0.4)]" />
                     <div className="min-w-0 flex-1">
                       <p className="font-display text-lg leading-tight text-chalk">
                         Cash prize <span className="text-gold-bright">— finish #1 to win</span>
@@ -149,9 +148,13 @@ export default function RankingsHub({
                           See rules
                         </Link>
                       </p>
-                      <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-night/[0.06] px-2.5 py-1 text-[11px] font-semibold text-chalk-dim">
-                        🔒 Locks <LocalTime iso={PRIZE_LOCK_ISO} mode="date" />
-                        {lockRel ? ` · ${lockRel}` : ""}
+                      <p className="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-night/[0.06] px-3 py-1.5 text-xs font-semibold text-chalk-dim">
+                        <Lock size={13} className="text-gold" />
+                        <span>
+                          Picks lock{" "}
+                          <LocalTime iso={PRIZE_LOCK_ISO} mode="date" className="text-chalk" />
+                          {lockRel ? ` · ${lockRel}` : ""}
+                        </span>
                       </p>
                     </div>
                   </div>

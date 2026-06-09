@@ -163,3 +163,11 @@ export const ArrowUpRight = (p: IconProps) => (
     <path d="M8 7h9v9" />
   </Svg>
 );
+
+// Locked / deadline (a padlock).
+export const Lock = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="5" y="11" width="14" height="9" rx="2" />
+    <path d="M8 11V7.5a4 4 0 0 1 8 0V11" />
+  </Svg>
+);
