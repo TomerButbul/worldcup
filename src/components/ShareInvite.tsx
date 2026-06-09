@@ -6,21 +6,22 @@ import { LinkIcon, ShareIcon } from "@/components/icons";
 import { copyText } from "@/lib/clipboard";
 import { playPop } from "@/lib/sound";
 
-// Invite share affordances for a league: copy link, copy code, native share, and a
-// scan-to-join QR popup (great for showing your phone to a friend across the table).
+// Invite share affordances for a league: copy link, native share, and a scan-to-join
+// QR popup (great for showing your phone to a friend across the table). The join code
+// itself lives inside the QR popup, so there's no separate "copy code" button.
 export default function ShareInvite({ code, name }: { code: string; name?: string }) {
-  const [copied, setCopied] = useState<"link" | "code" | null>(null);
+  const [copied, setCopied] = useState(false);
   const [showQr, setShowQr] = useState(false);
 
   const inviteLink = () =>
     typeof window !== "undefined" ? `${window.location.origin}/join/${code}` : `/join/${code}`;
 
-  async function copy(what: "link" | "code") {
-    const ok = await copyText(what === "link" ? inviteLink() : code);
+  async function copyLink() {
+    const ok = await copyText(inviteLink());
     if (!ok) return;
     playPop();
-    setCopied(what);
-    setTimeout(() => setCopied((c) => (c === what ? null : c)), 1500);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
   }
 
   async function share() {
@@ -45,15 +46,15 @@ export default function ShareInvite({ code, name }: { code: string; name?: strin
       <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
-          onClick={() => void copy("link")}
+          onClick={() => void copyLink()}
           className={`${base} text-night bg-gradient-to-b from-gold-bright to-gold glow-gold shine hover:brightness-105`}
           aria-label="Copy invite link"
         >
-          {copied === "link" ? (
+          {copied ? (
             "✓ Link copied!"
           ) : (
             <span className="inline-flex items-center gap-1.5">
-              <LinkIcon size={14} /> Copy invite link
+              <LinkIcon size={14} /> Copy link
             </span>
           )}
         </button>
@@ -66,14 +67,6 @@ export default function ShareInvite({ code, name }: { code: string; name?: strin
           <span className="inline-flex items-center gap-1.5" aria-hidden>
             <QrGlyph /> QR
           </span>
-        </button>
-        <button
-          type="button"
-          onClick={() => void copy("code")}
-          className={`${base} glass text-chalk hover:bg-night/5`}
-          aria-label="Copy join code"
-        >
-          {copied === "code" ? "✓ Code copied!" : "Copy code"}
         </button>
         {canShare && (
           <button
