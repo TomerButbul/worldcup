@@ -10,6 +10,7 @@ import ReferralLink from "@/components/ReferralLink";
 import LocalTime from "@/components/LocalTime";
 import Reveal from "@/components/Reveal";
 import GameButton from "@/components/GameButton";
+import { Globe, Plus, ArrowUpRight } from "@/components/icons";
 import { createLeague, joinLeague } from "@/app/dashboard/actions";
 import type { GlobalRank } from "@/lib/globalRankings";
 
@@ -82,7 +83,9 @@ export default function RankingsHub({
               to new lines (no horizontal scroll) so no league pill ever gets clipped. */}
           <div className="flex flex-wrap gap-1.5">
             <button type="button" onClick={() => setSel("global")} className={pill(sel === "global")}>
-              🌍 Global
+              <span className="inline-flex items-center gap-1.5">
+                <Globe size={14} /> Global
+              </span>
             </button>
             {leagues.map((l) => (
               <button key={l.id} type="button" onClick={() => setSel(l.id)} className={pill(sel === l.id)}>
@@ -93,18 +96,18 @@ export default function RankingsHub({
               <Link
                 key={d.id}
                 href={`/leagues/${d.id}`}
-                className="flex shrink-0 items-center gap-1 rounded-full bg-electric/15 px-3.5 py-1.5 text-sm font-semibold text-electric ring-1 ring-inset ring-electric/30 transition hover:bg-electric/25"
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-electric/15 px-3.5 py-1.5 text-sm font-semibold text-electric ring-1 ring-inset ring-electric/30 transition hover:bg-electric/25"
               >
-                ⚽ {d.name} <span aria-hidden className="text-xs opacity-70">↗</span>
+                {d.name} <ArrowUpRight size={12} className="opacity-80" />
               </Link>
             ))}
             <button
               type="button"
               onClick={() => setShowNew((v) => !v)}
               aria-expanded={showNew}
-              className="flex shrink-0 items-center rounded-full border border-dashed border-gold/50 px-3.5 py-1.5 text-sm font-semibold text-gold transition hover:bg-gold/10"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-dashed border-gold/50 px-3.5 py-1.5 text-sm font-semibold text-gold transition hover:bg-gold/10"
             >
-              + League
+              <Plus size={14} /> League
             </button>
           </div>
 

@@ -138,3 +138,28 @@ export const PencilIcon = (p: IconProps) => (
     <path d="M13.6 6.8l3.6 3.6" />
   </Svg>
 );
+
+// ── Navigation / board switcher ──────────────────────────────────────────
+// Global (worldwide board) — globe with equator + meridian.
+export const Globe = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M3 12h18" />
+    <path d="M12 3c2.5 2.45 3.8 5.6 3.8 9s-1.3 6.55-3.8 9c-2.5-2.45-3.8-5.6-3.8-9S9.5 5.45 12 3Z" />
+  </Svg>
+);
+
+// Create / add a new league.
+export const Plus = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M12 5v14M5 12h14" />
+  </Svg>
+);
+
+// Opens in its own room (draft leagues link out to their draft board).
+export const ArrowUpRight = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M7 17 17 7" />
+    <path d="M8 7h9v9" />
+  </Svg>
+);
