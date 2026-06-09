@@ -1,5 +1,13 @@
 import { signInWithApple } from "@/app/auth/actions";
 
+// Apple sign-in stays hidden until the Supabase Apple provider is configured —
+// otherwise the button renders but every click dead-ends. Flip APPLE_SIGN_IN_ENABLED
+// to "true" in the environment (read server-side, so a redeploy switches it on
+// everywhere at once) once the provider, Services ID and key are set up.
+export function isAppleSignInEnabled(): boolean {
+  return process.env.APPLE_SIGN_IN_ENABLED === "true";
+}
+
 // Apple's brand guidelines: a black button with the white Apple mark + "Continue with
 // Apple". Required on iOS (App Store guideline 4.8) alongside the Google option.
 export default function AppleSignInButton({
@@ -7,6 +15,8 @@ export default function AppleSignInButton({
 }: {
   label?: string;
 }) {
+  // Safety net: never render when disabled, even if a caller forgets to gate.
+  if (!isAppleSignInEnabled()) return null;
   return (
     <form action={signInWithApple}>
       <button

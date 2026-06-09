@@ -3,7 +3,7 @@ import { signup, playAsGuest } from "@/app/auth/actions";
 import { createClient } from "@/lib/supabase/server";
 import GameButton from "@/components/GameButton";
 import GoogleSignInButton from "@/components/GoogleSignInButton";
-import AppleSignInButton from "@/components/AppleSignInButton";
+import AppleSignInButton, { isAppleSignInEnabled } from "@/components/AppleSignInButton";
 import Reveal from "@/components/Reveal";
 import Ball from "@/components/art/Ball";
 import { INVITATIONAL_NAME, PRIZE_USD } from "@/lib/contest";
@@ -78,9 +78,11 @@ export default async function SignupPage({
           </div>
 
           <GoogleSignInButton label="Continue with Google" />
-          <div className="mt-2.5">
-            <AppleSignInButton label="Continue with Apple" />
-          </div>
+          {isAppleSignInEnabled() && (
+            <div className="mt-2.5">
+              <AppleSignInButton label="Continue with Apple" />
+            </div>
+          )}
 
           <p className="mt-5 text-center text-sm text-chalk-dim">
             Already have an account?{" "}
