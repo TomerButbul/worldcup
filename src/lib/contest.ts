@@ -25,3 +25,8 @@ export const CONTEST_END_LABEL = "the World Cup 2026 Final (July 19, 2026)";
 // Who may receive the cash prize. Eligibility to COMPETE is separate (referral —
 // see prizeEligibility.ts); this is the legal floor for actually being paid.
 export const MIN_AGE = 18;
+
+// Social proof cuts both ways: a big number sells, "1 player" deflates. Hide the
+// Invitational's player count until it crosses this bar — then it reveals itself
+// automatically. Set to 0 to always show the count.
+export const PRIZE_COUNT_VISIBLE_AT = 10;

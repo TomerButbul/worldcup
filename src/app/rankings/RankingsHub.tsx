@@ -11,7 +11,7 @@ import LocalTime from "@/components/LocalTime";
 import Reveal from "@/components/Reveal";
 import GameButton from "@/components/GameButton";
 import { createLeague, joinLeague } from "@/app/dashboard/actions";
-import { INVITATIONAL_NAME } from "@/lib/contest";
+import { INVITATIONAL_NAME, PRIZE_COUNT_VISIBLE_AT } from "@/lib/contest";
 import type { GlobalRank } from "@/lib/globalRankings";
 
 // The Invitational bracket lock = the World Cup opener (Jun 11, 19:00 UTC).
@@ -123,7 +123,10 @@ export default function RankingsHub({
                 <>
                   <h2 className="font-display text-xl text-chalk">🏆 {league.name}</h2>
                   <p className="text-sm text-chalk-dim">
-                    Prize league · {league.rows.length} {league.rows.length === 1 ? "player" : "players"}
+                    Prize league
+                    {league.rows.length >= PRIZE_COUNT_VISIBLE_AT
+                      ? ` · ${league.rows.length} players`
+                      : ""}
                     {" · "}
                     <span className={league.locked ? "text-chalk-dim" : "text-grass"}>
                       {league.locked ? "🔒 picks locked" : "picks open"}
