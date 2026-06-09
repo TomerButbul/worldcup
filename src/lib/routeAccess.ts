@@ -38,6 +38,16 @@ export function isPublicPath(pathname: string): boolean {
     // that's the whole point of a share link. The trailing slash is deliberate so we
     // don't accidentally make the auth-gated /bracket page public.
     pathname.startsWith("/b/") ||
+    // Invitational referral links (/r/<slug>) must reach logged-out invitees: the
+    // route handler stashes the ref_by cookie and THEN sends them to sign up, just
+    // like /join. The trailing slash is deliberate so this can't swallow /rankings
+    // or /reset-password.
+    pathname.startsWith("/r/") ||
+    // The prize landing (/invitational) and its official rules (/rules) are public
+    // so visitors and app-store reviewers can read them — and convert — without an
+    // account. (The /invitational/admin sub-route self-gates inside the page.)
+    pathname.startsWith("/invitational") ||
+    pathname.startsWith("/rules") ||
     isAuthPath(pathname) ||
     // API routes self-authenticate (e.g. /api/sync via SYNC_SECRET) and must return
     // JSON, never an HTML redirect to /login — otherwise the cron silently 307s.

@@ -21,6 +21,7 @@ import { globalRankOf } from "@/lib/globalRank";
 import { SANDBOX_LEAGUE_ID, primaryPredictionLeague } from "@/lib/predictionSync";
 import { predictionProgress, type BracketPredictionRow } from "@/lib/predictionProgress";
 import { AWARD_KEYS } from "@/lib/scoring-core";
+import { INVITATIONAL_NAME, PRIZE_USD } from "@/lib/contest";
 import type { Team, Match } from "@/lib/types";
 import type { ReactNode } from "react";
 
@@ -373,6 +374,26 @@ export default async function DashboardPage({
               <FavoriteTeamStatus status={favStatus} />
             </Reveal>
           )}
+
+          <Reveal>
+            <Link
+              href="/invitational"
+              className="group relative flex items-center justify-between overflow-hidden rounded-2xl border border-gold/40 bg-gold/10 p-4 transition hover:bg-gold/15"
+            >
+              <span className="flex min-w-0 items-center gap-3">
+                <span className="text-2xl">🏆</span>
+                <span className="min-w-0">
+                  <span className="block font-semibold text-chalk">{INVITATIONAL_NAME}</span>
+                  <span className="block truncate text-xs text-chalk-dim">
+                    Invite a friend — best bracket wins ${PRIZE_USD}
+                  </span>
+                </span>
+              </span>
+              <span className="shrink-0 font-display text-gold transition group-hover:translate-x-0.5">
+                →
+              </span>
+            </Link>
+          </Reveal>
 
           <Reveal>
             <Link

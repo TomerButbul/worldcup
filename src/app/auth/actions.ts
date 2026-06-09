@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { consumePendingInvite } from "@/app/dashboard/actions";
+import { consumePendingReferral } from "@/lib/referral";
 import { containsProfanity } from "@/lib/profanity";
 
 export async function signup(formData: FormData) {
@@ -39,6 +40,13 @@ export async function signup(formData: FormData) {
       .from("profiles")
       .update({ is_guest: false, display_name: displayName })
       .eq("id", current.id);
+    // A guest who arrived via a /r/<slug> invite is attributed now that they're a
+    // real account (their referrer finally gets the credit). Best-effort.
+    try {
+      await consumePendingReferral();
+    } catch {
+      /* never block the upgrade */
+    }
     const invited = await consumePendingInvite();
     redirect(invited ? `/leagues/${invited}` : "/dashboard");
   }
@@ -59,8 +67,14 @@ export async function signup(formData: FormData) {
     redirect("/login?info=Check+your+email+to+confirm+your+account");
   }
 
-  // Auto-join a pending invite (from a /join/<code> link) now that we have a
-  // session; otherwise land on the dashboard.
+  // Record a pending referral (from a /r/<slug> link) and auto-join a pending
+  // invite (from a /join/<code> link) now that we have a session; otherwise land
+  // on the dashboard. Both are best-effort and must never block the redirect.
+  try {
+    await consumePendingReferral();
+  } catch {
+    /* never block sign-up */
+  }
   const invitedLeagueId = await consumePendingInvite();
   redirect(invitedLeagueId ? `/leagues/${invitedLeagueId}` : "/dashboard");
 }

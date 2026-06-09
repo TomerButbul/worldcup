@@ -39,6 +39,23 @@ describe("isPublicPath", () => {
     expect(isPublicPath("/auth/callback")).toBe(true);
   });
 
+  // The Invitational is the growth loop and must reach logged-out people:
+  // /r/<slug> referral links stash the ref_by cookie BEFORE sign-up (exactly like
+  // /join), and the prize landing + official rules are public so visitors and store
+  // reviewers can read them without an account.
+  it("keeps the Invitational referral + prize pages public", () => {
+    expect(isPublicPath("/r/abc123")).toBe(true);
+    expect(isPublicPath("/r/any-slug-here")).toBe(true);
+    expect(isPublicPath("/invitational")).toBe(true);
+    expect(isPublicPath("/rules")).toBe(true);
+  });
+
+  // The /r/ referral prefix needs the trailing slash so it can't swallow other
+  // /r… routes — /rankings in particular must stay gated.
+  it("does not let the /r/ prefix leak /rankings", () => {
+    expect(isPublicPath("/rankings")).toBe(false);
+  });
+
   it("gates protected app routes (logged-out visitors get bounced to sign-up)", () => {
     expect(isPublicPath("/dashboard")).toBe(false);
     expect(isPublicPath("/leagues/123")).toBe(false);

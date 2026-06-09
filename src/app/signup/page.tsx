@@ -6,13 +6,14 @@ import GoogleSignInButton from "@/components/GoogleSignInButton";
 import AppleSignInButton from "@/components/AppleSignInButton";
 import Reveal from "@/components/Reveal";
 import Ball from "@/components/art/Ball";
+import { INVITATIONAL_NAME, PRIZE_USD } from "@/lib/contest";
 
 export default async function SignupPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; invited?: string }>;
 }) {
-  const { error } = await searchParams;
+  const { error, invited } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -38,6 +39,13 @@ export default async function SignupPage({
               {upgrading ? "Add an email to keep your guest progress and compete." : "Create your World Cup account"}
             </p>
           </div>
+
+          {invited && (
+            <div className="mt-6 rounded-xl border border-gold/40 bg-gold/10 px-3 py-2.5 text-sm text-chalk">
+              <span className="font-semibold text-gold">🏆 You&rsquo;re invited.</span> Sign up and
+              your bracket joins {INVITATIONAL_NAME} — the best one wins ${PRIZE_USD}.
+            </div>
+          )}
 
           {error && (
             <p className="mt-6 rounded-lg bg-red-500/15 px-3 py-2 text-sm text-red-600">{error}</p>
