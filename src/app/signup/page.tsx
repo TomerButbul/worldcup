@@ -6,7 +6,7 @@ import GoogleSignInButton from "@/components/GoogleSignInButton";
 import AppleSignInButton, { isAppleSignInEnabled } from "@/components/AppleSignInButton";
 import Reveal from "@/components/Reveal";
 import Ball from "@/components/art/Ball";
-import { INVITATIONAL_NAME, PRIZE_USD } from "@/lib/contest";
+import { INVITATIONAL_NAME, PRIZE_LABEL } from "@/lib/contest";
 
 export default async function SignupPage({
   searchParams,
@@ -43,7 +43,7 @@ export default async function SignupPage({
           {invited && (
             <div className="mt-6 rounded-xl border border-gold/40 bg-gold/10 px-3 py-2.5 text-sm text-chalk">
               <span className="font-semibold text-gold">🏆 You&rsquo;re invited.</span> Sign up and
-              your bracket joins {INVITATIONAL_NAME} — the best one wins ${PRIZE_USD}.
+              your bracket joins {INVITATIONAL_NAME} — the best one wins {PRIZE_LABEL}.
             </div>
           )}
 

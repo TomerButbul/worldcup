@@ -8,7 +8,7 @@ import { playPop } from "@/lib/sound";
 // The viewer's personal invite link for The TopCorner Invitational. Copying it (or
 // sharing via the native sheet) is the entire growth loop — a friend who signs up
 // through it puts BOTH of you in the running for the prize.
-export default function ReferralLink({ link, prize }: { link: string; prize: number }) {
+export default function ReferralLink({ link }: { link: string }) {
   const [copied, setCopied] = useState(false);
 
   async function copy() {
@@ -23,7 +23,7 @@ export default function ReferralLink({ link, prize }: { link: string; prize: num
     try {
       await navigator.share({
         title: "The TopCorner Invitational",
-        text: `Play World Cup TopCorner with me — sign up with my link and we're both in the running for $${prize}:`,
+        text: `Play World Cup TopCorner with me — sign up with my link and we're both in the running for the prize:`,
         url: link,
       });
     } catch {

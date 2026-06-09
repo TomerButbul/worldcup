@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getAdminProvenance } from "@/lib/invitational";
-import { INVITATIONAL_NAME, PRIZE_USD, CONTACT_EMAIL } from "@/lib/contest";
+import { INVITATIONAL_NAME, CONTACT_EMAIL } from "@/lib/contest";
 
 export const dynamic = "force-dynamic";
 // No title on purpose: a non-admin hitting this route triggers notFound(), but page
@@ -43,7 +43,7 @@ export default async function InvitationalAdminPage() {
           {INVITATIONAL_NAME} — vetting
         </h1>
         <p className="text-sm text-chalk-dim">
-          Eligible players ranked by score. Before paying the ${PRIZE_USD}, confirm the leader
+          Eligible players ranked by score. Before paying out, confirm the leader
           qualified legitimately (real referral, not a fake/duplicate account). The winner&rsquo;s
           payout email is in your Supabase Auth dashboard.
         </p>

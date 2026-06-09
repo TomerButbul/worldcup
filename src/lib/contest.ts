@@ -1,12 +1,16 @@
 // Single source of truth for "The TopCorner Invitational" — the free, skill-based
-// $75 best-bracket contest. Reused by the signup invite banner, /invitational,
+// cash-prize best-bracket contest. Reused by the signup invite banner, /invitational,
 // /rules, the dashboard card and the admin vetting view so the wording, prize and
 // dates never drift between surfaces.
 
 export const INVITATIONAL_NAME = "The TopCorner Invitational";
 export const INVITATIONAL_TAGLINE = "Invite a friend. Build your bracket. Best one wins.";
 
-export const PRIZE_USD = 75;
+// The contest awards a cash prize. The amount isn't fixed yet — it depends on how
+// many players join — so nothing hardcodes a figure. Copy uses this label inline
+// ("wins a cash prize"); when you settle on an amount, set it to e.g. "$150" and the
+// surrounding sentences still read naturally ("wins $150").
+export const PRIZE_LABEL = "a cash prize";
 
 // Sponsor + contact. The contact address doubles as the free alternative means of
 // entry (AMOE) described in the official rules.

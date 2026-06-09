@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import {
   INVITATIONAL_NAME,
-  PRIZE_USD,
+  PRIZE_LABEL,
   SPONSOR_NAME,
   CONTACT_EMAIL,
   CONTEST_LOCK_LABEL,
@@ -12,7 +12,7 @@ import {
 
 export const metadata = {
   title: `Official Rules — ${INVITATIONAL_NAME}`,
-  description: `Official rules for ${INVITATIONAL_NAME}: a free, skill-based World Cup bracket contest with a $${PRIZE_USD} prize. No purchase necessary.`,
+  description: `Official rules for ${INVITATIONAL_NAME}: a free, skill-based World Cup bracket contest with ${PRIZE_LABEL}. No purchase necessary.`,
 };
 
 const UPDATED = "June 2026";
@@ -40,7 +40,7 @@ export default function RulesPage() {
         The short version: it&rsquo;s <span className="font-semibold">free</span> to enter,{" "}
         <span className="font-semibold">no purchase necessary</span>, and it&rsquo;s a game of{" "}
         <span className="font-semibold">skill</span> — whoever builds the highest-scoring World Cup
-        bracket wins ${PRIZE_USD}. No gambling, no entry fee, no catch.
+        bracket wins {PRIZE_LABEL}. No gambling, no entry fee, no catch.
       </p>
 
       <div className="space-y-6">
@@ -125,10 +125,11 @@ export default function RulesPage() {
 
         <Section title="7. Prize">
           <p>
-            One (1) prize of ${PRIZE_USD} USD, paid by the Sponsor via a common electronic method
-            (e.g. PayPal, Venmo or Zelle) within 30 days of the winner confirming their details. One
-            prize total; one winner. The prize is non-transferable and cannot be exchanged for
-            anything else.
+            One (1) cash prize, awarded to the single highest-scoring eligible player. The exact
+            amount will be confirmed and posted on this page before brackets lock (see section 4).
+            It is paid by the Sponsor via a common electronic method (e.g. PayPal, Venmo or Zelle)
+            within 30 days of the winner confirming their details. One prize total; one winner. The
+            prize is non-transferable and cannot be exchanged for anything else.
           </p>
         </Section>
 

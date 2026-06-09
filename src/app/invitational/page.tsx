@@ -6,7 +6,7 @@ import ReferralLink from "@/components/ReferralLink";
 import {
   INVITATIONAL_NAME,
   INVITATIONAL_TAGLINE,
-  PRIZE_USD,
+  PRIZE_LABEL,
   CONTEST_LOCK_LABEL,
   CONTEST_END_LABEL,
 } from "@/lib/contest";
@@ -15,7 +15,7 @@ import {
 export const dynamic = "force-dynamic";
 export const metadata = {
   title: INVITATIONAL_NAME,
-  description: `Invite a friend, build your World Cup bracket, and the best one wins $${PRIZE_USD}. Free to enter — no purchase necessary.`,
+  description: `Invite a friend, build your World Cup bracket, and the best one wins ${PRIZE_LABEL}. Free to enter — no purchase necessary.`,
 };
 
 export default async function InvitationalPage() {
@@ -42,9 +42,9 @@ export default async function InvitationalPage() {
           </p>
           <h1 className="mt-1 font-display text-3xl text-chalk sm:text-4xl">{INVITATIONAL_NAME}</h1>
           <p className="mt-2 text-sm text-chalk-dim">{INVITATIONAL_TAGLINE}</p>
-          <div className="mt-5 inline-flex items-baseline gap-2 rounded-2xl border border-gold/30 bg-gold/10 px-5 py-3">
-            <span className="font-display text-4xl text-gold sm:text-5xl">${PRIZE_USD}</span>
-            <span className="text-sm text-chalk-dim">to the top bracket</span>
+          <div className="mt-5 inline-flex items-center gap-2 rounded-2xl border border-gold/30 bg-gold/10 px-5 py-3">
+            <span className="text-2xl">🏆</span>
+            <span className="font-display text-lg text-gold sm:text-xl">Cash prize to the top bracket</span>
           </div>
         </div>
       </section>
@@ -70,7 +70,7 @@ export default async function InvitationalPage() {
             Pick the whole tournament before {CONTEST_LOCK_LABEL}. Predict matches and goal scorers
             for live points too.
           </Step>
-          <Step n={3} title={`Top bracket wins $${PRIZE_USD}`}>
+          <Step n={3} title={`Top bracket wins ${PRIZE_LABEL}`}>
             The single highest score when {CONTEST_END_LABEL} arrives takes the prize. Pure skill —
             no luck of the draw.
           </Step>
@@ -97,7 +97,7 @@ export default async function InvitationalPage() {
                 <span className="text-2xl">👑</span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-semibold text-chalk">{leader.name}</p>
-                  <p className="text-xs text-gold">Leading for ${PRIZE_USD}</p>
+                  <p className="text-xs text-gold">Leading the pack</p>
                 </div>
                 <span className="font-display text-xl text-chalk">{leader.total}</span>
               </div>
@@ -205,7 +205,7 @@ function YourStatus({
         <p className="font-semibold text-chalk">Finish your account to compete</p>
         <p className="mt-1 text-sm text-chalk-dim">
           You&rsquo;re playing as a guest. Add an email to lock in your picks and become eligible for
-          the ${PRIZE_USD} prize.
+          the prize.
         </p>
         <Link
           href="/signup"
@@ -228,12 +228,12 @@ function YourStatus({
           </p>
         </div>
         <p className="mt-1 text-sm text-chalk-dim">
-          Your bracket is competing for ${PRIZE_USD}. Want company at the top? Invite more friends —
+          Your bracket is competing for the prize. Want company at the top? Invite more friends —
           each one you bring in is one more person you can beat.
         </p>
         {myLink && (
           <div className="mt-4">
-            <ReferralLink link={myLink} prize={PRIZE_USD} />
+            <ReferralLink link={myLink} />
           </div>
         )}
       </section>
@@ -246,12 +246,12 @@ function YourStatus({
       <p className="font-semibold text-chalk">You&rsquo;re one invite away 🎟️</p>
       <p className="mt-1 text-sm text-chalk-dim">
         Share your link. When a friend signs up with it, you&rsquo;re{" "}
-        <span className="font-semibold text-chalk">both</span> entered for the ${PRIZE_USD} prize —
+        <span className="font-semibold text-chalk">both</span> entered for the prize —
         free, instantly.
       </p>
       {myLink ? (
         <div className="mt-4">
-          <ReferralLink link={myLink} prize={PRIZE_USD} />
+          <ReferralLink link={myLink} />
         </div>
       ) : (
         <p className="mt-3 text-xs text-chalk-dim">

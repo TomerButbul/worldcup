@@ -21,7 +21,7 @@ import { globalRankOf } from "@/lib/globalRank";
 import { SANDBOX_LEAGUE_ID, primaryPredictionLeague } from "@/lib/predictionSync";
 import { predictionProgress, type BracketPredictionRow } from "@/lib/predictionProgress";
 import { AWARD_KEYS } from "@/lib/scoring-core";
-import { INVITATIONAL_NAME, PRIZE_USD } from "@/lib/contest";
+import { INVITATIONAL_NAME, PRIZE_LABEL } from "@/lib/contest";
 import type { Team, Match } from "@/lib/types";
 import type { ReactNode } from "react";
 
@@ -385,7 +385,7 @@ export default async function DashboardPage({
                 <span className="min-w-0">
                   <span className="block font-semibold text-chalk">{INVITATIONAL_NAME}</span>
                   <span className="block truncate text-xs text-chalk-dim">
-                    Invite a friend — best bracket wins ${PRIZE_USD}
+                    Invite a friend — best bracket wins {PRIZE_LABEL}
                   </span>
                 </span>
               </span>
