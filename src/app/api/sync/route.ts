@@ -515,6 +515,7 @@ export async function GET(request: NextRequest) {
               : null,
             kickoff_at: f.fixture.date,
             status: mapStatus(f.fixture.status.short),
+            status_short: f.fixture.status.short,
             home_team_id: f.teams.home?.id ?? null,
             away_team_id: f.teams.away?.id ?? null,
             home_goals: f.goals.home,
