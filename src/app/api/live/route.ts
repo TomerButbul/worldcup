@@ -2,13 +2,11 @@ import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getCachedTeams } from "@/lib/tournamentData";
 
-// Edge-cache the public live feed for a short window so a match-day crowd polling
-// every 45s collapses to ~one DB read per 15s globally (served from Vercel's CDN)
-// instead of one read per viewer. The cookie-free service client makes the response
-// identical for everyone, so it's safe to share-cache; data is at most ~15s staler
-// than the ~60s sync — fine for an ambient scores pill. Next emits the matching
-// `s-maxage=15, stale-while-revalidate` Cache-Control for the CDN from this.
-export const revalidate = 15;
+// No CDN cache — stale-while-revalidate caused the widget to serve an old
+// empty response for 60-90s after kickoff when the DB first flipped to live.
+// The route only reads our own matches table (no external API call) so each
+// DB hit is cheap; the 45s client poll provides its own natural throttle.
+export const dynamic = "force-dynamic";
 
 // How long a finished match lingers in the widget after the final whistle. A result
 // is only useful as a brief "catch the score I just missed" glance; after this it's
