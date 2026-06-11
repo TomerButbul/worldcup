@@ -69,10 +69,12 @@ export default async function PredictPage() {
   const past: typeof matches = [];
   for (const m of matches ?? []) {
     // Finished → always Played; live → Live now; otherwise split by kickoff.
+    // If kickoff has passed but status isn't "finished" yet (API-Football lag),
+    // treat as live — never show an in-progress game in the Played tab.
     if (m.status === "live") live.push(m);
     else if (m.status === "finished") past.push(m);
     else if (new Date(m.kickoff_at).getTime() > now) upcoming.push(m);
-    else past.push(m);
+    else live.push(m);
   }
   past.reverse(); // most recent first
   const liveCount = live.length; // captured for the closure below (live re-widens to null inside it)
