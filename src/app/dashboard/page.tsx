@@ -21,6 +21,7 @@ import { globalRankOf } from "@/lib/globalRank";
 import { SANDBOX_LEAGUE_ID, primaryPredictionLeague } from "@/lib/predictionSync";
 import { predictionProgress, type BracketPredictionRow } from "@/lib/predictionProgress";
 import { AWARD_KEYS } from "@/lib/scoring-core";
+import { stageLabel } from "@/lib/stages";
 import type { Team, Match } from "@/lib/types";
 import type { ReactNode } from "react";
 
@@ -125,16 +126,24 @@ export default async function DashboardPage({
   // The next matchday: every game on the soonest upcoming day, grouped in the
   // tournament's North-American timezone so a day's full slate stays together even
   // when a late kickoff crosses midnight UTC (e.g. June 11 keeps both its games).
-  const { data: upcomingRows } = await supabase
-    .from("matches")
-    .select("id, stage, kickoff_at, home_team_id, away_team_id, venue_name, venue_city")
-    .gt("kickoff_at", new Date(nowMs()).toISOString())
-    // Skip knockout fixtures whose teams aren't set yet (no dead "TBD vs TBD").
-    .not("home_team_id", "is", null)
-    .not("away_team_id", "is", null)
-    .lt("id", 9_000_000) // hide sentinel test fixtures
-    .order("kickoff_at")
-    .limit(16);
+  const [{ data: upcomingRows }, { data: liveMatchRows }] = await Promise.all([
+    supabase
+      .from("matches")
+      .select("id, stage, kickoff_at, home_team_id, away_team_id, venue_name, venue_city")
+      .gt("kickoff_at", new Date(nowMs()).toISOString())
+      // Skip knockout fixtures whose teams aren't set yet (no dead "TBD vs TBD").
+      .not("home_team_id", "is", null)
+      .not("away_team_id", "is", null)
+      .lt("id", 9_000_000) // hide sentinel test fixtures
+      .order("kickoff_at")
+      .limit(16),
+    supabase
+      .from("matches")
+      .select("id, stage, home_team_id, away_team_id, home_goals, away_goals, elapsed")
+      .eq("status", "live")
+      .lt("id", 9_000_000)
+      .order("kickoff_at"),
+  ]);
 
   const TOURNAMENT_TZ = "America/New_York";
   const dayKeyOf = (iso: string) =>
@@ -156,6 +165,26 @@ export default async function DashboardPage({
 
   const canPredict = predictionLeagues.length > 0;
   const teamById = new Map(teams.map((t) => [t.id, t]));
+
+  const liveMatchCards = (liveMatchRows ?? []).map((m) => {
+    const home = m.home_team_id ? teamById.get(m.home_team_id) : null;
+    const away = m.away_team_id ? teamById.get(m.away_team_id) : null;
+    return {
+      id: m.id,
+      stage: m.stage as string,
+      homeGoals: m.home_goals ?? 0,
+      awayGoals: m.away_goals ?? 0,
+      elapsed: m.elapsed ?? null,
+      homeTeamId: m.home_team_id,
+      awayTeamId: m.away_team_id,
+      homeName: home?.name ?? "TBD",
+      awayName: away?.name ?? "TBD",
+      homeCode: home?.code ?? null,
+      awayCode: away?.code ?? null,
+      homeLogoUrl: home?.logo_url ?? null,
+      awayLogoUrl: away?.logo_url ?? null,
+    };
+  });
 
   // One prediction lookup for the whole matchday (account-level picks).
   const predByMatch = new Map<number, { home: number; away: number }>();
@@ -306,6 +335,61 @@ export default async function DashboardPage({
           <Reveal>
             <NotificationToggle placement="top" />
           </Reveal>
+
+          {liveMatchCards.length > 0 && (
+            <Reveal>
+              <section className="space-y-2">
+                <h2 className="flex items-center gap-2 font-display text-lg">
+                  <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
+                  <span className="text-red-500">Live now</span>
+                </h2>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {liveMatchCards.map((c) => (
+                    <Link
+                      key={c.id}
+                      href={`/predict#match-${c.id}`}
+                      className="block rounded-2xl glass p-4 transition hover:border-red-500/30 hover:bg-night/5"
+                    >
+                      <div className="mb-3 flex items-center justify-between text-xs">
+                        <span className="font-display text-gold">{stageLabel(c.stage)}</span>
+                        <span className="flex items-center gap-1 rounded-full bg-red-500/15 px-2 py-0.5 font-bold text-red-600">
+                          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-500" />
+                          {c.elapsed != null ? `${c.elapsed}'` : "LIVE"}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-center gap-2 text-center">
+                        <span className="flex min-w-0 flex-1 items-center justify-end gap-1.5 text-sm font-semibold text-chalk">
+                          <span className="truncate">{c.homeName}</span>
+                          <Flag
+                            teamId={c.homeTeamId}
+                            logoUrl={c.homeLogoUrl}
+                            code={c.homeCode}
+                            name={c.homeName}
+                            size={26}
+                            className="shrink-0"
+                          />
+                        </span>
+                        <span className="net rounded-xl bg-night/5 px-4 py-2 font-display text-lg text-chalk">
+                          {c.homeGoals}–{c.awayGoals}
+                        </span>
+                        <span className="flex min-w-0 flex-1 items-center justify-start gap-1.5 text-sm font-semibold text-chalk">
+                          <Flag
+                            teamId={c.awayTeamId}
+                            logoUrl={c.awayLogoUrl}
+                            code={c.awayCode}
+                            name={c.awayName}
+                            size={26}
+                            className="shrink-0"
+                          />
+                          <span className="truncate">{c.awayName}</span>
+                        </span>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            </Reveal>
+          )}
 
           {nextDayCards.length > 0 && nextDayLabel && (
             <Reveal>
