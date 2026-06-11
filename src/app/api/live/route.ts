@@ -34,6 +34,7 @@ export async function GET() {
     .from("matches")
     .select("id, stage, status, home_team_id, away_team_id, home_goals, away_goals, elapsed, kickoff_at, updated_at")
     .or(`status.eq.live,and(status.eq.finished,updated_at.gte.${cutoff})`)
+    .lt("id", 9_000_000) // exclude sentinel/sim matches (id >= 9_000_000)
     .order("kickoff_at");
 
   const teams = await getCachedTeams();
