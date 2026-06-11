@@ -20,10 +20,14 @@ async function apiGet<T>(
   const url = new URL(BASE + path);
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, String(v));
 
+  // revalidateSeconds === 0 → no-store (live data; never serve stale)
+  const cacheOpts: RequestInit =
+    revalidateSeconds === 0
+      ? { cache: "no-store" }
+      : { next: { revalidate: revalidateSeconds } };
   const res = await fetch(url, {
     headers: { "x-apisports-key": key },
-    // Cache to respect the free-tier rate limit.
-    next: { revalidate: revalidateSeconds },
+    ...cacheOpts,
   });
   if (!res.ok) {
     throw new Error(`API-Football ${path} -> ${res.status} ${res.statusText}`);
@@ -89,7 +93,8 @@ export function fetchFixtures() {
 // Only currently-live fixtures (scores + status) — one cheap call for the live
 // sync. Cache 20s so the per-minute live pinger always gets fresh numbers.
 export function fetchLiveFixtures() {
-  return apiGet<AfFixture>("/fixtures", { league: LEAGUE(), season: SEASON(), live: "all" }, 20);
+  // 0 = no-store: live scores must never be served from a stale cache.
+  return apiGet<AfFixture>("/fixtures", { league: LEAGUE(), season: SEASON(), live: "all" }, 0);
 }
 
 // A single fixture by its API id (score/status/elapsed). Used by the proxy
