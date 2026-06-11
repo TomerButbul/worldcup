@@ -10,6 +10,7 @@ import HalfTime from "@/components/HalfTime";
 import Ball from "@/components/art/Ball";
 import Pitch, { type EventRow, type LineupRow } from "./Pitch";
 import MatchPredictions from "./MatchPredictions";
+import MatchTabs from "./MatchTabs";
 import { buildPredRows, type MatchPredictionRow, type BracketPredictionRow } from "@/lib/matchPredictions";
 import MatchStats, { type StatMap } from "@/components/match/MatchStats";
 import MatchTimeline from "@/components/match/MatchTimeline";
@@ -323,6 +324,11 @@ export default async function MatchSummaryPage({
       </section>
     ) : null;
 
+  const statsTab =
+    homeStats != null || awayStats != null ? (
+      <MatchStats homeStats={homeStats} awayStats={awayStats} />
+    ) : null;
+
   // Always offer the Predictions tab pre-kickoff so a manager who hasn't picked
   // can jump straight to making one. Picks are account-level, so the CTA links to
   // the global /predict page (anchored to this match). Draft leagues don't predict.
@@ -485,23 +491,13 @@ export default async function MatchSummaryPage({
             )}
           </div>
 
-          {lineupsTab && (
-            <section className="space-y-3">
-              <h2 className="font-display text-lg text-chalk">Lineups</h2>
-              {lineupsTab}
-            </section>
-          )}
-          <section className="space-y-3">
-            <h2 className="font-display text-lg text-chalk">Stats</h2>
-            <MatchStats homeStats={homeStats} awayStats={awayStats} />
-          </section>
-          {summaryTab && (
-            <section className="space-y-3">
-              <h2 className="font-display text-lg text-chalk">Match events</h2>
-              {summaryTab}
-            </section>
-          )}
-          {predictionsTab}
+          <MatchTabs
+            summary={summaryTab}
+            lineups={lineupsTab}
+            stats={statsTab}
+            predictions={predictionsTab}
+            defaultTab={summaryTab != null ? "summary" : "lineups"}
+          />
         </>
       )}
     </main>
