@@ -198,6 +198,15 @@ function Legend({ className, label }: { className: string; label: string }) {
 
 function GroupTable({ g, teamsById, live }: { g: GroupStandings; teamsById: Record<number, TeamMini>; live: LiveMatch[] }) {
   const code = (t: TeamMini | null) => t?.code ?? t?.name?.slice(0, 3).toUpperCase() ?? "—";
+
+  // Per-team live score from their own perspective (for–against + clock).
+  // Disappears automatically once the match leaves the liveMatches feed.
+  const liveScoreByTeam = new Map<number, { for: number; against: number; elapsed: number | null }>();
+  for (const m of live) {
+    if (m.homeTeamId != null) liveScoreByTeam.set(m.homeTeamId, { for: m.homeGoals, against: m.awayGoals, elapsed: m.elapsed });
+    if (m.awayTeamId != null) liveScoreByTeam.set(m.awayTeamId, { for: m.awayGoals, against: m.homeGoals, elapsed: m.elapsed });
+  }
+
   return (
     <div className="glass overflow-hidden rounded-2xl">
       <div className="flex items-center justify-between border-b border-night/10 px-3 py-2">
@@ -211,8 +220,8 @@ function GroupTable({ g, teamsById, live }: { g: GroupStandings; teamsById: Reco
         ) : null}
       </div>
 
-      {/* In-progress game(s) in this group — the table above already reflects the
-          provisional points; this line shows the actual live scoreline. */}
+      {/* In-progress game(s) — the table already reflects provisional points;
+          this strip shows the scoreline at a glance above the rows. */}
       {live.map((m, i) => {
         const h = m.homeTeamId != null ? teamsById[m.homeTeamId] : null;
         const a = m.awayTeamId != null ? teamsById[m.awayTeamId] : null;
@@ -249,7 +258,7 @@ function GroupTable({ g, teamsById, live }: { g: GroupStandings; teamsById: Reco
         </thead>
         <tbody>
           {g.rows.map((r, i) => (
-            <StandingTr key={r.teamId} r={r} pos={i} team={teamsById[r.teamId] ?? null} />
+            <StandingTr key={r.teamId} r={r} pos={i} team={teamsById[r.teamId] ?? null} liveScore={liveScoreByTeam.get(r.teamId)} />
           ))}
         </tbody>
       </table>
@@ -257,7 +266,7 @@ function GroupTable({ g, teamsById, live }: { g: GroupStandings; teamsById: Reco
   );
 }
 
-function StandingTr({ r, pos, team }: { r: StandingRow; pos: number; team: TeamMini | null }) {
+function StandingTr({ r, pos, team, liveScore }: { r: StandingRow; pos: number; team: TeamMini | null; liveScore?: { for: number; against: number; elapsed: number | null } }) {
   // Qualification zones: top 2 advance (grass), 3rd contends for a best-thirds slot (gold).
   const zone = pos < 2 ? "border-l-2 border-grass bg-grass/5" : pos === 2 ? "border-l-2 border-gold/70 bg-gold/5" : "border-l-2 border-transparent";
   const name = team?.name ?? `#${r.teamId}`;
@@ -265,10 +274,18 @@ function StandingTr({ r, pos, team }: { r: StandingRow; pos: number; team: TeamM
     <tr className={`${zone} border-b border-night/5 last:border-0`}>
       <td className="py-1.5 pl-2 text-left tabular-nums text-chalk-dim">{pos + 1}</td>
       <td className="py-1.5">
-        <TeamCardButton teamId={r.teamId} name={name} className="flex items-center gap-1.5 transition hover:opacity-80">
-          <Flag teamId={team?.id ?? null} logoUrl={team?.logo_url ?? null} code={team?.code ?? null} name={name} size={16} />
-          <span className="min-w-0 max-w-[8rem] truncate font-semibold text-chalk">{name}</span>
-        </TeamCardButton>
+        <div className="flex items-center gap-1.5">
+          <TeamCardButton teamId={r.teamId} name={name} className="flex min-w-0 items-center gap-1.5 transition hover:opacity-80">
+            <Flag teamId={team?.id ?? null} logoUrl={team?.logo_url ?? null} code={team?.code ?? null} name={name} size={16} />
+            <span className="min-w-0 max-w-[6rem] truncate font-semibold text-chalk">{name}</span>
+          </TeamCardButton>
+          {liveScore && (
+            <span className="inline-flex shrink-0 items-center gap-0.5 rounded bg-red-500/15 px-1 py-0.5 font-display text-[10px] font-bold tabular-nums text-red-600">
+              {liveScore.for}–{liveScore.against}
+              {liveScore.elapsed != null && <span className="ml-0.5 font-sans font-semibold">{liveScore.elapsed}&apos;</span>}
+            </span>
+          )}
+        </div>
       </td>
       <td className="py-1.5 text-center tabular-nums text-chalk-dim">{r.played}</td>
       <td className="hidden py-1.5 text-center tabular-nums text-chalk-dim sm:table-cell">{r.won}</td>

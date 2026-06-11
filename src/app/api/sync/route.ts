@@ -353,6 +353,10 @@ export async function GET(request: NextRequest) {
     }
     summary.group_labels = groupUpdates.length;
 
+    // Team → group letter map: used below as a fallback when the API-Football round
+    // string doesn't embed the group letter (WC 2026 uses "Group Stage - 1" not "Group A - 1").
+    const teamGroupMap = new Map<number, string>(groupUpdates.map((g) => [g.id, g.group_label]));
+
     // 2b) Squads (on demand only — 1 API call per team, so guard behind ?squads=1)
     if (request.nextUrl.searchParams.get("squads") === "1") {
       const { data: allTeams } = await supabase.from("teams").select("id");
@@ -506,7 +510,11 @@ export async function GET(request: NextRequest) {
           return {
             id: f.fixture.id,
             stage,
-            group_label: stage === "group" ? roundGroup(f.league.round) : null,
+            // WC 2026 round strings are "Group Stage - 1" — no group letter.
+            // Fall back to the home team's group_label (synced in step 2).
+            group_label: stage === "group"
+              ? (roundGroup(f.league.round) ?? teamGroupMap.get(f.teams.home?.id ?? 0) ?? null)
+              : null,
             kickoff_at: f.fixture.date,
             status: mapStatus(f.fixture.status.short),
             home_team_id: f.teams.home?.id ?? null,
