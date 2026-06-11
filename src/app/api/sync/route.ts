@@ -71,34 +71,32 @@ export async function GET(request: NextRequest) {
           prevHalftime.set(r.id, r.second_half_at ?? null);
         }
 
-        await supabase.from("matches").upsert(
-          liveFixtures.map((f) => {
-            const short = f.fixture.status.short;
-            return {
-              id: f.fixture.id,
-              status: mapStatus(short),
-              status_short: short, // raw API state (1H/HT/2H/FT…) for the half-time UI
-              home_goals: f.goals.home,
-              away_goals: f.goals.away,
-              // Live minute (status.elapsed isn't in the shared AfFixture type).
-              elapsed: (f.fixture.status as { elapsed?: number | null }).elapsed ?? null,
-              // Half-time: stamp the expected 2nd-half time on FIRST detection and
-              // keep it stable (so the UI can count down); clear once play resumes.
-              second_half_at:
-                short === "HT"
-                  ? (prevHalftime.get(f.fixture.id) ?? new Date(Date.now() + 15 * 60 * 1000).toISOString())
-                  : ["2H", "ET", "BT", "P"].includes(short)
-                    ? null
-                    : (prevHalftime.get(f.fixture.id) ?? null),
-              winner_team_id: f.teams.home?.winner
-                ? (f.teams.home?.id ?? null)
-                : f.teams.away?.winner
-                  ? (f.teams.away?.id ?? null)
-                  : null,
-              updated_at: new Date().toISOString(),
-            };
-          }),
-        );
+        // Use update() not upsert() — live fixtures always already exist in the DB
+        // (the full sync creates them). A partial upsert without `stage` in the
+        // payload fails because `stage` is NOT NULL and PostgREST may attempt an
+        // INSERT rather than a pure UPDATE when the conflict key isn't a declared PK.
+        for (const f of liveFixtures) {
+          const short = f.fixture.status.short;
+          await supabase.from("matches").update({
+            status: mapStatus(short),
+            status_short: short,
+            home_goals: f.goals.home,
+            away_goals: f.goals.away,
+            elapsed: (f.fixture.status as { elapsed?: number | null }).elapsed ?? null,
+            second_half_at:
+              short === "HT"
+                ? (prevHalftime.get(f.fixture.id) ?? new Date(Date.now() + 15 * 60 * 1000).toISOString())
+                : ["2H", "ET", "BT", "P"].includes(short)
+                  ? null
+                  : (prevHalftime.get(f.fixture.id) ?? null),
+            winner_team_id: f.teams.home?.winner
+              ? (f.teams.home?.id ?? null)
+              : f.teams.away?.winner
+                ? (f.teams.away?.id ?? null)
+                : null,
+            updated_at: new Date().toISOString(),
+          }).eq("id", f.fixture.id);
+        }
       }
 
       // Goal-notify accumulator: one entry per fixture whose score increased
