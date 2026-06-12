@@ -35,8 +35,10 @@ export function bracketLockState(i: BracketLockInput): BracketLockState {
     i.hasGroupBracket && i.submittedAtMs != null && i.submittedAtMs <= i.kickoffMs;
   const inReset = i.resetAtMs != null;
 
-  // Group picks: a pre-kickoff window only.
-  const groupEditable = beforeKickoff;
+  // Group picks: pre-kickoff for everyone; late joiners (not committed) also get
+  // a window until R32 so they can seed their knockout bracket with real teams.
+  // No group points are at stake — committed is false, so scoresGroup stays false.
+  const groupEditable = beforeKickoff || (!committed && i.now < i.knockoutLockMs);
 
   // Knockout: open pre-kickoff for all; after kickoff only late joiners + reset
   // players keep editing (until R32); a committed, non-reset player is locked.

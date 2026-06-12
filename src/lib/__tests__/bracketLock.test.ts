@@ -41,12 +41,20 @@ describe("bracketLockState — the two-phase / second-chance rules", () => {
     expect(s.canReset).toBe(false);
   });
 
-  it("late joiner (no committed bracket): knockout open until R32, no group points, no reset prompt", () => {
+  it("late joiner (no committed bracket): group + knockout both open until R32, no group points, no reset prompt", () => {
     const s = bracketLockState({ ...base, now: KICK + 100000, hasGroupBracket: false, submittedAtMs: null });
     expect(s.committed).toBe(false);
+    expect(s.groupEditable).toBe(true);   // can fill in group section to seed knockout bracket
     expect(s.knockoutEditable).toBe(true);
-    expect(s.scoresGroup).toBe(false);
+    expect(s.scoresGroup).toBe(false);    // but earns no group points
     expect(s.canReset).toBe(false);
+  });
+
+  it("late joiner who submitted after kickoff: group still editable, no group points", () => {
+    const s = bracketLockState({ ...base, now: KICK + 100000, hasGroupBracket: true, submittedAtMs: KICK + 50000 });
+    expect(s.committed).toBe(false);
+    expect(s.groupEditable).toBe(true);
+    expect(s.scoresGroup).toBe(false);
   });
 
   it("after R32: knockout locked for everyone (reset + late alike)", () => {
