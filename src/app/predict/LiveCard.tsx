@@ -21,6 +21,8 @@ export type LiveCardProps = {
   elapsed: number | null;
   predHome: number | null;
   predAway: number | null;
+  venueName?: string | null;
+  venueCity?: string | null;
   defaultOpen?: boolean;
   children: ReactNode;
 };
@@ -37,6 +39,8 @@ export default function LiveCard({
   elapsed,
   predHome,
   predAway,
+  venueName,
+  venueCity,
   defaultOpen = false,
   children,
 }: LiveCardProps) {
@@ -76,14 +80,19 @@ export default function LiveCard({
         </div>
 
         <div className="mt-3 flex items-center justify-center gap-3 text-xs text-chalk-dim">
+          {venueName && (
+            <span className="truncate">
+              📍 {venueName}{venueCity ? ` · ${venueCity}` : ""}
+            </span>
+          )}
           {predHome != null ? (
-            <span>
+            <span className="shrink-0">
               Your pick: <span className="font-display tabular-nums text-chalk">{predHome}–{predAway}</span>
             </span>
           ) : (
-            <span>No pick</span>
+            <span className="shrink-0">No pick</span>
           )}
-          <span className="inline-flex items-center gap-1 font-semibold text-chalk-dim">
+          <span className="inline-flex shrink-0 items-center gap-1 font-semibold text-chalk-dim">
             {open ? "Hide" : "Details"}
             <svg viewBox="0 0 12 12" className={`h-3 w-3 transition-transform ${open ? "rotate-180" : ""}`} aria-hidden>
               <path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />

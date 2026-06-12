@@ -291,6 +291,8 @@ export default async function PredictPage() {
           elapsed={m.elapsed ?? null}
           predHome={p?.home_goals ?? null}
           predAway={p?.away_goals ?? null}
+          venueName={m.venue_name ?? null}
+          venueCity={m.venue_city ?? null}
           defaultOpen={liveCount === 1}
         >
           <LiveDetailTabs

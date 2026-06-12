@@ -483,7 +483,12 @@ export default function MatchCard({
           )}
           {allPlayers.length === 0 ? (
             <p className="mt-4 text-xs text-chalk-dim"><Ball size={14} className="mr-1 inline-block align-[-2px]" />Goal-scorer list loads once squads are synced.</p>
-          ) : activeTeam !== null ? (
+          ) : activeTeam === null ? (
+            <p className="mt-3 text-center text-xs text-chalk-dim">
+              <Ball size={12} className="mr-1 inline-block align-[-2px]" />
+              Tap a team name above to pick goal scorers
+            </p>
+          ) : (
             <div className="mt-4 space-y-3">
               {activeTeam === "home" ? (
                 <TeamScorers
@@ -507,7 +512,7 @@ export default function MatchCard({
                 />
               )}
             </div>
-          ) : null}
+          )}
           <div className="mt-4 flex items-center justify-end gap-2">
             <SaveStatus state={saveState} error={saveErr} />
           </div>

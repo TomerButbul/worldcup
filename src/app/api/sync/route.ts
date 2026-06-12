@@ -338,10 +338,10 @@ export async function GET(request: NextRequest) {
     for (const league of standings) {
       for (const group of league.league?.standings ?? []) {
         for (const row of group) {
-          // Only real group tables ("Group A".."Group L"). The 48-team format also
-          // returns a "Ranking of third-placed teams" table that would otherwise
-          // clobber each group's 4th team with a junk label.
-          const m = row.group?.match(/^Group\s+([A-L])$/i);
+          // Only real group tables ("Group A".."Group L" or "Group Stage - Group A").
+          // The 48-team format also returns a "Ranking of third-placed teams" / "Group Stage"
+          // table — the trailing single-letter anchor ensures those are skipped.
+          const m = row.group?.match(/Group\s+([A-L])$/i);
           if (m) groupUpdates.push({ id: row.team.id, group_label: m[1].toUpperCase() });
         }
       }
@@ -354,6 +354,14 @@ export async function GET(request: NextRequest) {
     // Team → group letter map: used below as a fallback when the API-Football round
     // string doesn't embed the group letter (WC 2026 uses "Group Stage - 1" not "Group A - 1").
     const teamGroupMap = new Map<number, string>(groupUpdates.map((g) => [g.id, g.group_label]));
+    // If the standings API returned nothing (format change / off-season), fall back to
+    // what the teams table already has so group_labels never get wiped.
+    if (teamGroupMap.size === 0) {
+      const { data: dbTeams } = await supabase.from("teams").select("id, group_label").not("group_label", "is", null);
+      for (const t of dbTeams ?? []) {
+        if (t.group_label) teamGroupMap.set(t.id, t.group_label as string);
+      }
+    }
 
     // 2b) Squads (on demand only — 1 API call per team, so guard behind ?squads=1)
     if (request.nextUrl.searchParams.get("squads") === "1") {
