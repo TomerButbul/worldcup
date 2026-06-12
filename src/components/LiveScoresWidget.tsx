@@ -6,12 +6,14 @@ import Link from "next/link";
 import Flag from "@/components/Flag";
 import { goalCelebration } from "@/lib/goal";
 import { detectGoals } from "@/lib/liveGoals";
+import { matchClock } from "@/lib/matchClock";
 
 type Mini = { id: number; name: string; code: string | null; logo_url: string | null } | null;
 type Game = {
   id: number;
   stage: string;
   done: boolean; // finished within the linger window — kept briefly so the final score shows
+  statusShort: string | null;
   elapsed: number | null;
   home: Mini;
   away: Mini;
@@ -223,12 +225,12 @@ export default function LiveScoresWidget() {
                     {g.done ? (
                       <span className="flex w-7 shrink-0 justify-end">
                         <span className="rounded bg-night/10 px-1 py-px text-[10px] font-bold tracking-wide text-chalk-dim">
-                          FT
+                          {matchClock(g.statusShort, g.elapsed)}
                         </span>
                       </span>
                     ) : (
                       <span className="w-7 shrink-0 text-right font-semibold tabular-nums text-red-600">
-                        {g.elapsed != null ? `${g.elapsed}'` : "LIVE"}
+                        {matchClock(g.statusShort, g.elapsed)}
                       </span>
                     )}
                     <span className="shrink-0 text-[10px] text-chalk-dim">›</span>

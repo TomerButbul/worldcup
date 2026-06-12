@@ -7,6 +7,7 @@ import { TeamCardButton } from "@/components/TeamCard";
 import { VenueButton } from "@/components/VenueCard";
 import { venueImage } from "@/lib/venues";
 import HalfTime from "@/components/HalfTime";
+import { matchClock } from "@/lib/matchClock";
 import Ball from "@/components/art/Ball";
 import Pitch, { type EventRow, type LineupRow } from "./Pitch";
 import MatchPredictions from "./MatchPredictions";
@@ -417,8 +418,12 @@ export default async function MatchSummaryPage({
                   <HalfTime secondHalfAt={match.second_half_at} />
                 ) : live ? (
                   <span className="flex items-center gap-1 rounded-full bg-red-500/20 px-2 py-0.5 text-red-600">
-                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-400" /> LIVE
-                    {match.elapsed != null ? ` ${match.elapsed}'` : ""}
+                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-400" />
+                    {match.status_short === "BT" ? "BT" : `LIVE ${matchClock(match.status_short, match.elapsed)}`}
+                  </span>
+                ) : ["AET", "PEN"].includes(match.status_short ?? "") ? (
+                  <span className="rounded-full bg-night/10 px-2 py-0.5 text-xs font-semibold text-chalk-dim">
+                    {match.status_short === "AET" ? "AET" : "Pen."}
                   </span>
                 ) : null}
                 <LocalTime

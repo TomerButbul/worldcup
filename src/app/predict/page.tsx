@@ -40,7 +40,7 @@ export default async function PredictPage() {
     supabase
       .from("matches")
       .select(
-        "id, stage, kickoff_at, status, elapsed, home_team_id, away_team_id, home_goals, away_goals, venue_id, venue_name, venue_city",
+        "id, stage, kickoff_at, status, status_short, elapsed, home_team_id, away_team_id, home_goals, away_goals, venue_id, venue_name, venue_city",
       )
       .lt("id", 9_000_000) // hide sentinel test fixtures (only the /sandbox page shows them)
       .order("kickoff_at"),
@@ -289,8 +289,10 @@ export default async function PredictPage() {
           homeGoals={m.home_goals}
           awayGoals={m.away_goals}
           elapsed={m.elapsed ?? null}
+          statusShort={(m as { status_short?: string | null }).status_short ?? null}
           predHome={p?.home_goals ?? null}
           predAway={p?.away_goals ?? null}
+          venueId={m.venue_id ?? null}
           venueName={m.venue_name ?? null}
           venueCity={m.venue_city ?? null}
           defaultOpen={liveCount === 1}

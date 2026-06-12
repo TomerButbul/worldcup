@@ -3,6 +3,7 @@ import LocalTime from "@/components/LocalTime";
 import Flag from "@/components/Flag";
 import { stageLabel } from "@/lib/stages";
 import { venueImage } from "@/lib/venues";
+import { VenueButton } from "@/components/VenueCard";
 
 // A finished match, compact but complete: stage + date, the result, the venue, and
 // how your pick did. Taps through to the match page for the full breakdown.
@@ -63,7 +64,10 @@ export default function ResultCard({ leagueId, m }: { leagueId: string; m: Resul
 
       {m.venueName && (
         <div className="mt-3 flex justify-center">
-          <span className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-night/5 py-0.5 pl-0.5 pr-2.5 text-[11px] text-chalk-dim">
+          <VenueButton
+            venue={{ id: m.venueId, name: m.venueName, city: m.venueCity }}
+            className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-night/5 py-0.5 pl-0.5 pr-2.5 text-[11px] text-chalk-dim transition hover:bg-night/10 hover:text-chalk"
+          >
             {venueSrc && (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={venueSrc} alt="" width={24} height={16} loading="lazy" className="h-4 w-6 shrink-0 rounded-full object-cover" />
@@ -72,7 +76,7 @@ export default function ResultCard({ leagueId, m }: { leagueId: string; m: Resul
               {m.venueName}
               {m.venueCity ? ` · ${m.venueCity}` : ""}
             </span>
-          </span>
+          </VenueButton>
         </div>
       )}
 

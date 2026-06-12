@@ -3,6 +3,9 @@
 import { useEffect, useState, type ReactNode } from "react";
 import Flag from "@/components/Flag";
 import { stageLabel } from "@/lib/stages";
+import { VenueButton } from "@/components/VenueCard";
+import { venueImage } from "@/lib/venues";
+import { matchClock, isClockFrozen } from "@/lib/matchClock";
 
 // A live game on the Matches list, shown as a collapsible card. The score + LIVE
 // minute (and your pick) are always visible; tapping expands to the lineup pitch,
@@ -19,8 +22,10 @@ export type LiveCardProps = {
   homeGoals: number | null;
   awayGoals: number | null;
   elapsed: number | null;
+  statusShort?: string | null;
   predHome: number | null;
   predAway: number | null;
+  venueId?: number | null;
   venueName?: string | null;
   venueCity?: string | null;
   defaultOpen?: boolean;
@@ -37,8 +42,10 @@ export default function LiveCard({
   homeGoals,
   awayGoals,
   elapsed,
+  statusShort,
   predHome,
   predAway,
+  venueId,
   venueName,
   venueCity,
   defaultOpen = false,
@@ -50,6 +57,9 @@ export default function LiveCard({
     if (typeof window !== "undefined" && window.location.hash === `#match-${matchId}`) setOpen(true);
   }, [matchId]);
 
+  const clock = matchClock(statusShort, elapsed);
+  const frozen = isClockFrozen(statusShort);
+
   return (
     <div className="glass overflow-hidden rounded-2xl">
       <button
@@ -60,8 +70,9 @@ export default function LiveCard({
       >
         <div className="flex items-center justify-between gap-2 text-xs">
           <span className="font-display text-gold">{stageLabel(stage)}</span>
-          <span className="flex items-center gap-1 rounded-full bg-red-500/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-red-600">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-400" /> Live{elapsed != null ? ` ${elapsed}'` : ""}
+          <span className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${frozen ? "bg-amber-500/20 text-amber-600" : "bg-red-500/20 text-red-600"}`}>
+            {!frozen && <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-400" />}
+            {frozen ? clock : `Live ${clock}`}
           </span>
         </div>
 
@@ -79,12 +90,32 @@ export default function LiveCard({
           </span>
         </div>
 
+        {venueName && (
+          <div className="mt-2 flex justify-center">
+            <VenueButton
+              venue={{ id: venueId, name: venueName, city: venueCity }}
+              className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-night/5 py-0.5 pl-0.5 pr-2.5 text-[11px] text-chalk-dim transition hover:bg-night/10 hover:text-chalk"
+            >
+              {venueId != null && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={venueImage(venueId) ?? undefined}
+                  alt=""
+                  width={24}
+                  height={16}
+                  loading="lazy"
+                  onError={(e) => { e.currentTarget.style.display = "none"; }}
+                  className="h-4 w-6 shrink-0 rounded-full object-cover"
+                />
+              )}
+              <span className="truncate">
+                {venueName}{venueCity ? ` · ${venueCity}` : ""}
+              </span>
+            </VenueButton>
+          </div>
+        )}
+
         <div className="mt-3 flex items-center justify-center gap-3 text-xs text-chalk-dim">
-          {venueName && (
-            <span className="truncate">
-              📍 {venueName}{venueCity ? ` · ${venueCity}` : ""}
-            </span>
-          )}
           {predHome != null ? (
             <span className="shrink-0">
               Your pick: <span className="font-display tabular-nums text-chalk">{predHome}–{predAway}</span>

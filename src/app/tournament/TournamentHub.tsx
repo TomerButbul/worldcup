@@ -12,10 +12,11 @@ import Ball from "@/components/art/Ball";
 import Trophy from "@/components/art/Trophy";
 import { Boot, Net, Glove } from "@/components/icons";
 import type { GroupStandings, StandingRow } from "@/lib/tournament-standings";
+import { matchClock } from "@/lib/matchClock";
 
 type TeamMini = { id: number; name: string; code: string | null; logo_url: string | null };
 type LeaderRow = { playerId: number; count: number; name: string; teamId: number | null };
-type LiveMatch = { group: string; homeTeamId: number | null; awayTeamId: number | null; homeGoals: number; awayGoals: number; elapsed: number | null };
+type LiveMatch = { group: string; homeTeamId: number | null; awayTeamId: number | null; homeGoals: number; awayGoals: number; statusShort: string | null; elapsed: number | null };
 
 type Tab = "standings" | "bracket" | "leaders";
 
@@ -201,10 +202,10 @@ function GroupTable({ g, teamsById, live }: { g: GroupStandings; teamsById: Reco
 
   // Per-team live score from their own perspective (for–against + clock).
   // Disappears automatically once the match leaves the liveMatches feed.
-  const liveScoreByTeam = new Map<number, { for: number; against: number; elapsed: number | null }>();
+  const liveScoreByTeam = new Map<number, { for: number; against: number; statusShort: string | null; elapsed: number | null }>();
   for (const m of live) {
-    if (m.homeTeamId != null) liveScoreByTeam.set(m.homeTeamId, { for: m.homeGoals, against: m.awayGoals, elapsed: m.elapsed });
-    if (m.awayTeamId != null) liveScoreByTeam.set(m.awayTeamId, { for: m.awayGoals, against: m.homeGoals, elapsed: m.elapsed });
+    if (m.homeTeamId != null) liveScoreByTeam.set(m.homeTeamId, { for: m.homeGoals, against: m.awayGoals, statusShort: m.statusShort, elapsed: m.elapsed });
+    if (m.awayTeamId != null) liveScoreByTeam.set(m.awayTeamId, { for: m.awayGoals, against: m.homeGoals, statusShort: m.statusShort, elapsed: m.elapsed });
   }
 
   return (
@@ -236,7 +237,7 @@ function GroupTable({ g, teamsById, live }: { g: GroupStandings; teamsById: Reco
               {code(a)}
               <Flag teamId={m.awayTeamId} logoUrl={a?.logo_url ?? null} code={a?.code ?? null} name={a?.name ?? "?"} size={13} />
             </span>
-            <span className="ml-0.5 tabular-nums text-red-600">{m.elapsed != null ? `${m.elapsed}'` : "LIVE"}</span>
+            <span className="ml-0.5 tabular-nums text-red-600">{matchClock(m.statusShort, m.elapsed)}</span>
           </div>
         );
       })}
@@ -266,7 +267,7 @@ function GroupTable({ g, teamsById, live }: { g: GroupStandings; teamsById: Reco
   );
 }
 
-function StandingTr({ r, pos, team, liveScore }: { r: StandingRow; pos: number; team: TeamMini | null; liveScore?: { for: number; against: number; elapsed: number | null } }) {
+function StandingTr({ r, pos, team, liveScore }: { r: StandingRow; pos: number; team: TeamMini | null; liveScore?: { for: number; against: number; statusShort: string | null; elapsed: number | null } }) {
   // Qualification zones: top 2 advance (grass), 3rd contends for a best-thirds slot (gold).
   const zone = pos < 2 ? "border-l-2 border-grass bg-grass/5" : pos === 2 ? "border-l-2 border-gold/70 bg-gold/5" : "border-l-2 border-transparent";
   const name = team?.name ?? `#${r.teamId}`;
@@ -282,7 +283,7 @@ function StandingTr({ r, pos, team, liveScore }: { r: StandingRow; pos: number; 
           {liveScore && (
             <span className="inline-flex shrink-0 items-center gap-0.5 rounded bg-red-500/15 px-1 py-0.5 font-display text-[10px] font-bold tabular-nums text-red-600">
               {liveScore.for}–{liveScore.against}
-              {liveScore.elapsed != null && <span className="ml-0.5 font-sans font-semibold">{liveScore.elapsed}&apos;</span>}
+              <span className="ml-0.5 font-sans font-semibold">{matchClock(liveScore.statusShort, liveScore.elapsed)}</span>
             </span>
           )}
         </div>

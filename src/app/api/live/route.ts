@@ -32,7 +32,7 @@ export async function GET() {
   const cutoff = new Date(Date.now() - FINISHED_LINGER_MS).toISOString();
   const { data: matches } = await supabase
     .from("matches")
-    .select("id, stage, status, home_team_id, away_team_id, home_goals, away_goals, elapsed, kickoff_at, updated_at")
+    .select("id, stage, status, status_short, home_team_id, away_team_id, home_goals, away_goals, elapsed, kickoff_at, updated_at")
     .or(`status.eq.live,and(status.eq.finished,updated_at.gte.${cutoff})`)
     .lt("id", 9_000_000) // exclude sentinel/sim matches (id >= 9_000_000)
     .order("kickoff_at");
@@ -52,6 +52,7 @@ export async function GET() {
         id: m.id,
         stage: m.stage as string,
         done,
+        statusShort: (m as { status_short?: string | null }).status_short ?? null,
         elapsed: (m as { elapsed?: number | null }).elapsed ?? null,
         home: mini(m.home_team_id),
         away: mini(m.away_team_id),

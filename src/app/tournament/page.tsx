@@ -28,7 +28,7 @@ export default async function TournamentPage() {
       svc
         .from("matches")
         .select(
-          "id, stage, group_label, kickoff_at, status, elapsed, home_team_id, away_team_id, home_goals, away_goals, winner_team_id, venue_name, venue_city",
+          "id, stage, group_label, kickoff_at, status, status_short, elapsed, home_team_id, away_team_id, home_goals, away_goals, winner_team_id, venue_name, venue_city",
         )
         .lt("id", 9_000_000) // hide sentinel test fixtures (the Sandbox dress-rehearsal game)
         .order("kickoff_at"),
@@ -151,6 +151,7 @@ export default async function TournamentPage() {
       awayTeamId: m.away_team_id,
       homeGoals: m.home_goals ?? 0,
       awayGoals: m.away_goals ?? 0,
+      statusShort: (m as { status_short?: string | null }).status_short ?? null,
       elapsed: m.elapsed ?? null,
     }));
 
