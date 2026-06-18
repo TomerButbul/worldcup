@@ -214,7 +214,9 @@ export default function BracketEditor({
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [errMsg, setErrMsg] = useState<string | null>(null);
   const [activeGroup, setActiveGroup] = useState<string>(() => groupsOrder[0] ?? "A");
-  const [step, setStep] = useState<Step>("groups");
+  // A locked (read-only) viewer opens straight on the finished bracket, not the
+  // group-ordering step they can no longer edit.
+  const [step, setStep] = useState<Step>(locked ? "bracket" : "groups");
   const longPress = useLongPress();
 
   const KO_ORDER = useMemo(

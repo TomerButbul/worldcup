@@ -105,9 +105,10 @@ export default function KnockoutBracket({
   //  • "tree"   — the full two-sided bracket (the big picture). Great on a wide
   //               screen, cramped on a phone, so it's a desktop default + an
   //               opt-in toggle on mobile.
-  // Start paged everywhere; the effect below promotes desktop to the tree once we
-  // know the viewport. (treeOnly forces the tree for read-only embeds.)
-  const [view, setView] = useState<"rounds" | "tree">(treeOnly ? "tree" : "rounds");
+  // Start paged for editing; locked (read-only) and treeOnly open straight on the
+  // full tree (a locked viewer just wants to see their bracket, not page through
+  // it), and the effect below promotes desktop to the tree once we know the viewport.
+  const [view, setView] = useState<"rounds" | "tree">(treeOnly || locked ? "tree" : "rounds");
 
   // Desktop defaults to the full bracket and gets a larger tree; mobile keeps the
   // paged picker (the tree is cramped on a phone). Once locked there's no picking,
