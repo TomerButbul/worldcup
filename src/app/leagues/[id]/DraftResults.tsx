@@ -151,11 +151,15 @@ export default function DraftResults({
               ) : (
                 boardRows.map((r, i) => {
                   const m = memberById.get(r.userId);
-                  // The nation this manager drafted in the pot being shown (one flag per
-                  // manager). The combined Total board has three picks, so no flag there.
-                  const potNum = isTotal ? null : (Number(potBoard) as Pot);
-                  const pick = potNum != null ? byUser.get(r.userId)?.get(potNum) : undefined;
-                  const draftedTeam = pick && potNum != null ? teamAt(potNum, pick.slot) : undefined;
+                  // Nations next to the name: the single pick on a pot board, or all
+                  // three drafted nations on the combined Total board.
+                  const flagPots: Pot[] = isTotal ? [1, 2, 3] : [Number(potBoard) as Pot];
+                  const flagTeams = flagPots
+                    .map((p) => {
+                      const pk = byUser.get(r.userId)?.get(p);
+                      return pk ? teamAt(p, pk.slot) : undefined;
+                    })
+                    .filter((t): t is NonNullable<typeof t> => t != null);
                   const isWinner = !isTotal && i === 0 && r.points > 0;
                   const isSpoon = !isTotal && i === boardRows.length - 1 && boardRows.length > 1 && r.points > 0;
                   return (
@@ -165,9 +169,14 @@ export default function DraftResults({
                     >
                       <span className="w-5 shrink-0 text-center text-xs font-bold tabular-nums text-chalk-dim">{i + 1}</span>
                       <Avatar url={m?.avatarUrl} name={m?.name ?? "?"} size={26} />
-                      {draftedTeam && (
-                        <span className="shrink-0 text-base" title={draftedTeam.name}>
-                          {draftedTeam.flag}
+                      {flagTeams.length > 0 && (
+                        <span
+                          className="flex shrink-0 items-center gap-0.5 text-sm leading-none"
+                          title={flagTeams.map((t) => t.name).join(" · ")}
+                        >
+                          {flagTeams.map((t, k) => (
+                            <span key={k}>{t.flag}</span>
+                          ))}
                         </span>
                       )}
                       <span className="min-w-0 flex-1 truncate font-semibold text-chalk">{m?.name ?? "?"}</span>
