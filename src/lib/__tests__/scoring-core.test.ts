@@ -446,7 +446,7 @@ describe("scoreUpfront — table-pick (group order) model", () => {
     const pts = scoreUpfront(
       cfg,
       actual,
-      { group_scores: {}, group_order: { A: [1, 3, 4, 2] }, third_qualifiers: [], knockout: {}, champion_team_id: null },
+      { group_scores: {}, group_order: { A: [1, 3, 4, 2] }, third_qualifiers: [], knockout: {}, champion_team_id: null, original_bracket: { group_order: { A: [1, 3, 4, 2] } } },
       ctx(groupA),
     );
     expect(pts).toBe(cfg.upfront.group_winner + 4 * cfg.upfront.group_position + cfg.upfront.group_order_bonus);
@@ -458,10 +458,29 @@ describe("scoreUpfront — table-pick (group order) model", () => {
     const pts = scoreUpfront(
       cfg,
       actual,
-      { group_scores: {}, group_order: { A: [1, 3, 2, 4] }, third_qualifiers: [], knockout: {}, champion_team_id: null },
+      { group_scores: {}, group_order: { A: [1, 3, 2, 4] }, third_qualifiers: [], knockout: {}, champion_team_id: null, original_bracket: { group_order: { A: [1, 3, 2, 4] } } },
       ctx(),
     );
     expect(pts).toBe(cfg.upfront.group_winner + 2 * cfg.upfront.group_position);
+  });
+
+  it("group points come from the frozen snapshot, not the edited live order", () => {
+    const actual = computeActuals(groupA, new Map()); // actual Group A order [1, 3, 4, 2]
+    const pts = scoreUpfront(
+      cfg,
+      actual,
+      {
+        group_scores: {},
+        group_order: { A: [4, 2, 3, 1] }, // live edit — team 1 (the real winner) moved to last
+        original_bracket: { group_order: { A: [1, 3, 4, 2] } }, // frozen snapshot — matches reality
+        third_qualifiers: [],
+        knockout: {},
+        champion_team_id: null,
+      },
+      ctx(groupA),
+    );
+    // Group points credited from the SNAPSHOT (perfect order) even though the live order changed.
+    expect(pts).toBe(cfg.upfront.group_winner + 4 * cfg.upfront.group_position + cfg.upfront.group_order_bonus);
   });
 
   it("still scores champion in the order model", () => {

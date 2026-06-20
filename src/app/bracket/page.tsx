@@ -101,7 +101,7 @@ export default async function BracketPage() {
         <p className="text-sm text-chalk-dim">
           {locked
             ? "🔒 Predictions are locked."
-            : "Order each group, pick the 8 best third-place teams, then your knockout bracket builds itself. You set this once — it counts in every league you're in."}
+            : "✏️ Re-pick your whole bracket — free until Sunday night. Order each group, choose the 8 best third-place teams, and your knockout builds itself. Your group order still sets your Round of 32, but your group-stage points stay locked to your original picks."}
         </p>
         <Link
           href="/awards"
@@ -148,8 +148,8 @@ export default async function BracketPage() {
         <div className="glass rounded-3xl border border-gold/40 p-5 sm:p-6">
           <p className="font-semibold text-chalk">You&rsquo;re not too late 🙌</p>
           <p className="mt-1 text-sm text-chalk-dim">
-            Groups are only ~13% of the game — and the knockout, where it&rsquo;s won, is fully open to
-            you until the Round of 32. Build your bracket below; it scores in full.
+            The whole bracket is open to you until Sunday night — build your groups and knockout below.
+            Your knockout scores in full.
           </p>
         </div>
       )}

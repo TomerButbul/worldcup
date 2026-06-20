@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { AWARD_KEYS } from "@/lib/scoring-core";
 import { userPredictionLeagueIds } from "@/lib/predictionSync";
+import { FREE_EDIT_LOCK_MS } from "@/lib/clock";
 
 export async function saveAwards(leagueId: string, awards: Record<string, number>) {
   const supabase = await createClient();
@@ -20,7 +21,7 @@ export async function saveAwards(leagueId: string, awards: Record<string, number
     .eq("id", leagueId)
     .maybeSingle();
   if (!league) return { ok: false, error: "League not found" };
-  if (new Date(league.bracket_lock_at).getTime() <= Date.now()) {
+  if (Date.now() >= FREE_EDIT_LOCK_MS) {
     return { ok: false, error: "Awards are locked" };
   }
 

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { nowMs } from "@/lib/clock";
+import { nowMs, FREE_EDIT_LOCK_MS } from "@/lib/clock";
 import AwardsPicker, { type AwardPlayer } from "@/app/leagues/[id]/awards/AwardsPicker";
 import Ball from "@/components/art/Ball";
 import { Star } from "@/components/icons";
@@ -22,7 +22,7 @@ export default async function AwardsPage() {
   const league = await primaryPredictionLeague(supabase, user.id);
   if (!league) return <NoPredictionLeague title="Predict the individual awards" />;
   const leagueId = league.id;
-  const locked = new Date(league.bracket_lock_at).getTime() <= nowMs();
+  const locked = nowMs() >= FREE_EDIT_LOCK_MS;
 
   // Paginate the squad — PostgREST caps responses at 1000 rows and there are
   // >1000 WC squad players, so a plain select silently drops some (e.g. Messi).

@@ -17,6 +17,14 @@ export const KICKOFF_MS = Date.parse("2026-06-11T19:00:00Z");
 // fixtures load, the real lock is the first knockout kickoff — see knockoutLockMs().
 export const KNOCKOUT_LOCK_FALLBACK_MS = Date.parse("2026-06-28T16:00:00Z");
 
+// Free-edit re-open window: the WHOLE bracket (group order, thirds, knockout,
+// champion, awards) is editable by EVERYONE until this instant, then locks. Set to
+// Sunday night — must stay before any group finishes (~Jun 24) so re-picking the
+// R32 still carries real uncertainty (no advancement hindsight). Group-winner points
+// are frozen to each player's kickoff snapshot regardless of edits. Per-league
+// override lives in leagues.free_edit_lock_at; this is the fallback.
+export const FREE_EDIT_LOCK_MS = Date.parse("2026-06-22T04:00:00Z"); // Sun Jun 21, 00:00 ET
+
 // The actual knockout lock: the first knockout kickoff if we have it, else the
 // fallback above. Pass min(matches.kickoff_at where stage <> 'group') or null.
 export function knockoutLockMs(firstKnockoutKickoffMs: number | null): number {

@@ -34,6 +34,10 @@ export interface BracketPick {
   knockout: Record<string, number>;          // canonical match no (string) → winner team id
   champion_team_id: number | null;
   awards?: Record<string, number>;           // award key → predicted player id
+  // Frozen group snapshot (stored in the reused original_bracket column). Group-stage
+  // points score from THIS, not the live (now editable) group_order — so re-picking
+  // groups reshapes the R32 without moving group points. Null → 0 (late joiners).
+  original_bracket?: { group_order?: Record<string, number[]> } | null;
 }
 
 export interface MatchPick {
@@ -282,18 +286,19 @@ function scoreUpfrontFromOrder(
   reset = false,
 ): number {
   let pts = 0;
-  const groupOrder = bracket.group_order ?? {};
+  const groupOrder = bracket.group_order ?? {}; // live → drives the R32 derivation
+  const scoredOrder = bracket.original_bracket?.group_order ?? {}; // frozen → group-stage points
   const { round32 } = buildBracketFromOrder(groupOrder, bracket.third_qualifiers ?? []);
   const adv = predictedAdvancers(round32, bracket.knockout ?? {});
 
-  // A player who took the second-chance reset forfeits ALL group-table points (group
-  // winner / per-position / perfect-group bonus). Their knockout, champion and award
-  // picks below still score in full — that's the trade.
+  // Group-stage points (winner / per-position / perfect-group bonus) score from the
+  // FROZEN kickoff snapshot, so re-picking your groups after kickoff reshapes your R32
+  // without moving these points. A null snapshot (late joiners) → 0 group points.
   if (!reset) {
     const groupPosition = cfg.upfront.group_position ?? DEFAULT_SCORING.upfront.group_position;
     const groupOrderBonus = cfg.upfront.group_order_bonus ?? DEFAULT_SCORING.upfront.group_order_bonus;
     for (const [label, actualOrder] of Object.entries(actual.groupStandings)) {
-      const predicted = groupOrder[label];
+      const predicted = scoredOrder[label];
       if (!predicted || predicted.length !== 4 || actualOrder.length !== 4) continue;
       if (predicted[0] === actualOrder[0]) pts += cfg.upfront.group_winner;
       let matched = 0;

@@ -30,6 +30,7 @@ describe("scoreUpfront — reset forfeits group-table points only", () => {
   const bracket = {
     group_scores: {},
     group_order: { A: actual.groupStandings.A }, // a perfect group A → earns the group-winner point
+    original_bracket: { group_order: { A: actual.groupStandings.A } }, // group points score from the snapshot
     third_qualifiers: [],
     knockout: {},
     champion_team_id: 1, // correct champion → a knockout point that must survive reset
