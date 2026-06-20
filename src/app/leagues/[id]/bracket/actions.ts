@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { userPredictionLeagueIds } from "@/lib/predictionSync";
 import { bracketLockState } from "@/lib/bracketLock";
 import { knockoutLockMs } from "@/lib/clock";
@@ -82,7 +82,10 @@ export async function saveBracket(
     submitted_at: now,
     updated_at: now,
   }));
-  const { error } = await supabase
+  // Write with the service role: the kickoff-time RLS policy on bracket_predictions
+  // (migration 0034) blocks every write after the opener, but the free-edit re-open
+  // is gated above by `state.knockoutEditable`, so the trusted action does it directly.
+  const { error } = await createServiceClient()
     .from("bracket_predictions")
     .upsert(rows, { onConflict: "league_id,user_id" });
 

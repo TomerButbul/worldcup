@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { AWARD_KEYS } from "@/lib/scoring-core";
 import { userPredictionLeagueIds } from "@/lib/predictionSync";
 import { FREE_EDIT_LOCK_MS } from "@/lib/clock";
@@ -44,7 +44,9 @@ export async function saveAwards(leagueId: string, awards: Record<string, number
     awards: clean,
     updated_at: now,
   }));
-  const { error } = await supabase
+  // Service-role write: bracket_predictions RLS (migration 0034) locks at the opener,
+  // but awards are gated above by the free-edit lock, so the trusted action writes it.
+  const { error } = await createServiceClient()
     .from("bracket_predictions")
     .upsert(rows, { onConflict: "league_id,user_id" });
 
