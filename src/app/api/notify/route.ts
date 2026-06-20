@@ -30,6 +30,23 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: true, test: n });
   }
 
+  // One-off announcement: the bracket re-open window is live. Deduped via notif_sent
+  // so repeated cron/manual hits only ever broadcast it once.
+  if (request.nextUrl.searchParams.get("announce") === "bracket_open") {
+    const svc = createServiceClient();
+    const key = "announce_bracket_open";
+    const { data: existing } = await svc.from("notif_sent").select("key").eq("key", key).maybeSingle();
+    if (existing) return NextResponse.json({ ok: true, already_sent: true });
+    const n = await broadcast({
+      title: "⚽ Your bracket is OPEN to re-pick!",
+      body: "Redo your Round of 32 — free until Sunday night. Your group order still builds your bracket.",
+      url: "/bracket",
+      tag: "bracket-open",
+    });
+    await svc.from("notif_sent").insert({ key });
+    return NextResponse.json({ ok: true, sent: n });
+  }
+
   const s = createServiceClient();
   const now = Date.now();
   const H = 3_600_000;
