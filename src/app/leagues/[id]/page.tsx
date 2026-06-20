@@ -266,12 +266,18 @@ export default async function LeaguePage({
       })
       .filter((id): id is number => id != null);
 
-    // Group-stage board: all 12 groups, each in finishing order. Live tables come
-    // from real results (computeGroupTables resolves a group only once all its
-    // matches are finished); pre-tournament / incomplete groups fall back to FIFA
-    // rank (best first, nulls last), then name. Fully resolved here — no Maps cross
-    // to the client; pts/played are null until a group's table is live.
-    const groupTables = computeGroupTables((matchesRes.data ?? []) as MatchRow[]);
+    // Group-stage board: all 12 groups, each in finishing order. LIVE partial tables
+    // (points → head-to-head → GD → GF → FIFA rank) come from games played so far; a
+    // group with no games yet falls back to FIFA rank (best first), then name, with no
+    // pts shown. Fully resolved here — no Maps cross to the client.
+    const groupTables = computeGroupTables((matchesRes.data ?? []) as MatchRow[], new Map(), { live: true });
+    // Games each nation has actually played so far, for the live "P" column.
+    const playedByTeam = new Map<number, number>();
+    for (const m of (matchesRes.data ?? []) as MatchRow[]) {
+      if (m.stage !== "group" || m.status !== "finished") continue;
+      if (m.home_team_id != null) playedByTeam.set(m.home_team_id, (playedByTeam.get(m.home_team_id) ?? 0) + 1);
+      if (m.away_team_id != null) playedByTeam.set(m.away_team_id, (playedByTeam.get(m.away_team_id) ?? 0) + 1);
+    }
     const teamsByGroup = new Map<string, (typeof fullTeams)[number][]>();
     for (const t of fullTeams) {
       if (!t.group_label) continue;
@@ -303,7 +309,8 @@ export default async function LeaguePage({
             code: t.code,
             logo_url: t.logo_url,
             pts: live ? (table.stats.get(t.id)?.pts ?? 0) : null,
-            played: live ? 3 : null,
+            gd: live ? (table.stats.get(t.id)?.gd ?? 0) : null,
+            played: live ? (playedByTeam.get(t.id) ?? 0) : null,
           })),
         };
       });

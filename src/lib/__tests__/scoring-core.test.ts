@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   computeGroupStandings,
+  computeGroupTables,
   computeActuals,
   scoreUpfront,
   scoreLive,
@@ -58,6 +59,29 @@ const groupA: MatchRow[] = [
   gm(5, "A", 1, 4, 3, 1),
   gm(6, "A", 2, 3, 0, 1),
 ];
+
+describe("computeGroupTables — live (partial) mode", () => {
+  // Only matchday 1 played: 1 beats 2 (2-0), 3 draws 4 (1-1); the rest unplayed.
+  const partial: MatchRow[] = [
+    gm(1, "A", 1, 2, 2, 0),
+    gm(2, "A", 3, 4, 1, 1),
+    gm(3, "A", 1, 3, null, null, "scheduled"),
+    gm(4, "A", 2, 4, null, null, "scheduled"),
+    gm(5, "A", 1, 4, null, null, "scheduled"),
+    gm(6, "A", 2, 3, null, null, "scheduled"),
+  ];
+  it("builds a partial table from played games, ordered by points then GD", () => {
+    const t = computeGroupTables(partial, new Map(), { live: true }).A;
+    expect(t.order[0]).toBe(1); // a win = 3 pts → top
+    expect(t.stats.get(1)!.pts).toBe(3);
+    expect(t.stats.get(1)!.gd).toBe(2); // 2-0
+    expect(t.stats.get(3)!.pts).toBe(1); // draw
+    expect(t.stats.get(2)!.pts).toBe(0); // lost
+  });
+  it("the default complete-only mode still skips an unfinished group", () => {
+    expect(computeGroupTables(partial).A).toBeUndefined();
+  });
+});
 
 describe("computeGroupStandings", () => {
   it("ranks a completed group by points then GD/GF", () => {

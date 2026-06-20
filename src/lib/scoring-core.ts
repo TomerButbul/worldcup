@@ -161,6 +161,7 @@ function resolveTied(
 export function computeGroupTables(
   matches: MatchRow[],
   fifaRank: Map<number, number> = new Map(),
+  opts: { live?: boolean } = {},
 ): Record<string, GroupTable> {
   const byGroup = new Map<string, MatchRow[]>();
   for (const m of matches) {
@@ -171,7 +172,12 @@ export function computeGroupTables(
 
   const tables: Record<string, GroupTable> = {};
   for (const [label, groupMatches] of byGroup) {
-    if (!groupMatches.every((m) => m.status === "finished")) continue;
+    const played = groupMatches.filter((m) => m.status === "finished");
+    // Default (scoring): a group resolves only once ALL its matches are finished.
+    // Live mode (the draft board): build a partial table from whatever's been played
+    // so far (>=1 game), using the same points → H2H → GD → GF → rank ladder.
+    if (opts.live ? played.length === 0 : played.length !== groupMatches.length) continue;
+    const scored = opts.live ? played : groupMatches;
 
     const teamIds = new Set<number>();
     for (const m of groupMatches) {
@@ -179,13 +185,13 @@ export function computeGroupTables(
       if (m.away_team_id != null) teamIds.add(m.away_team_id);
     }
 
-    const overall = tally(teamIds, groupMatches);
+    const overall = tally(teamIds, scored);
     const byPoints = [...teamIds].sort((x, y) => overall.get(y)!.pts - overall.get(x)!.pts);
     const samePoints = (x: number, y: number) => overall.get(x)!.pts === overall.get(y)!.pts;
 
     const order: number[] = [];
     for (const run of runs(byPoints, samePoints)) {
-      order.push(...resolveTied(run, groupMatches, overall, fifaRank));
+      order.push(...resolveTied(run, scored, overall, fifaRank));
     }
     tables[label] = { order, stats: overall };
   }

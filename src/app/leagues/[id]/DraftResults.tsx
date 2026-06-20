@@ -151,6 +151,11 @@ export default function DraftResults({
               ) : (
                 boardRows.map((r, i) => {
                   const m = memberById.get(r.userId);
+                  // The nation this manager drafted in the pot being shown (one flag per
+                  // manager). The combined Total board has three picks, so no flag there.
+                  const potNum = isTotal ? null : (Number(potBoard) as Pot);
+                  const pick = potNum != null ? byUser.get(r.userId)?.get(potNum) : undefined;
+                  const draftedTeam = pick && potNum != null ? teamAt(potNum, pick.slot) : undefined;
                   const isWinner = !isTotal && i === 0 && r.points > 0;
                   const isSpoon = !isTotal && i === boardRows.length - 1 && boardRows.length > 1 && r.points > 0;
                   return (
@@ -160,6 +165,11 @@ export default function DraftResults({
                     >
                       <span className="w-5 shrink-0 text-center text-xs font-bold tabular-nums text-chalk-dim">{i + 1}</span>
                       <Avatar url={m?.avatarUrl} name={m?.name ?? "?"} size={26} />
+                      {draftedTeam && (
+                        <span className="shrink-0 text-base" title={draftedTeam.name}>
+                          {draftedTeam.flag}
+                        </span>
+                      )}
                       <span className="min-w-0 flex-1 truncate font-semibold text-chalk">{m?.name ?? "?"}</span>
                       {isWinner && <Trophy size={15} />}
                       {isSpoon && <span title="Wooden Spoon — last in this pot">🥄</span>}

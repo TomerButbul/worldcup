@@ -13,6 +13,7 @@ export type GroupStageTeam = {
   logo_url: string | null;
   pts: number | null;
   played: number | null;
+  gd: number | null;
 };
 
 // A single group (A..L) with its four teams already in finishing order.
@@ -67,6 +68,7 @@ export default function DraftGroupStage({
               {g.teams.map((t, i) => {
                 const advances = i < 2;
                 const isMine = mine.has(t.id);
+                const gd = t.gd ?? 0;
                 return (
                   <li
                     key={t.id}
@@ -91,11 +93,20 @@ export default function DraftGroupStage({
                         </span>
                       )}
                     </span>
-                    <span className="shrink-0 font-display text-xs tabular-nums text-chalk-dim">
+                    <span className="flex shrink-0 items-center gap-2 text-[11px] tabular-nums">
                       {t.pts != null ? (
                         <>
-                          {t.pts}
-                          <span className="ml-0.5 text-[9px] uppercase tracking-wide">pts</span>
+                          <span
+                            title="Goal difference"
+                            className={gd > 0 ? "text-grass" : gd < 0 ? "text-red-500/80" : "text-chalk-dim"}
+                          >
+                            {gd > 0 ? "+" : ""}
+                            {gd}
+                          </span>
+                          <span className="font-display text-sm text-gold">
+                            {t.pts}
+                            <span className="ml-0.5 text-[8px] uppercase tracking-wide text-chalk-dim">pts</span>
+                          </span>
                         </>
                       ) : (
                         "—"
