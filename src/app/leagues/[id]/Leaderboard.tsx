@@ -138,6 +138,11 @@ export default function Leaderboard({
         })}
       </div>
 
+      <p className="mb-3 -mt-1 text-xs text-chalk-dim">
+        Bracket points — group winners, advancement, champion, awards — score after the group stage. Right
+        now you&rsquo;re seeing live match points.
+      </p>
+
       <div className="glass-strong overflow-hidden rounded-2xl">
         <div className="grid grid-cols-[1.25rem_1fr_2rem_2rem_2.5rem] items-center gap-1.5 border-b border-night/10 px-3 py-2.5 text-xs uppercase tracking-wider text-chalk-dim sm:grid-cols-[2.5rem_1fr_3.5rem_3.5rem_4rem] sm:gap-2 sm:px-4 lg:grid-cols-[3rem_1fr_5rem_5rem_6rem] lg:px-6 lg:py-3.5 lg:text-sm">
           <span>#</span>

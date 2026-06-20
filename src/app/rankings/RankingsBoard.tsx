@@ -15,9 +15,9 @@ type Crown = "total" | "upfront" | "live";
 const RANK_COLOR = ["text-gold", "text-slate-300", "text-amber-600"];
 
 const TABS: { key: Crown; label: string; Icon: ComponentType<{ size?: number }>; blurb: string }[] = [
-  { key: "total", label: "Total", Icon: Trophy, blurb: "Upfront + Live combined" },
-  { key: "upfront", label: "Upfront", Icon: Upfront, blurb: "Bracket + awards" },
-  { key: "live", label: "Live", Icon: Live, blurb: "In-running match picks" },
+  { key: "total", label: "Total", Icon: Trophy, blurb: "Bracket + live match points — bracket scores after the group stage" },
+  { key: "upfront", label: "Upfront", Icon: Upfront, blurb: "Bracket + awards — these score once the group stage ends" },
+  { key: "live", label: "Live", Icon: Live, blurb: "Your match predictions, scored as games finish" },
 ];
 
 export default function RankingsBoard({
