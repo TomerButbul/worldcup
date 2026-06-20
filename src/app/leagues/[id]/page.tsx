@@ -14,7 +14,7 @@ import { nowMs, KICKOFF_MS } from "@/lib/clock";
 import { computeActuals, computeGroupTables, type MatchRow } from "@/lib/scoring-core";
 import { teamAt } from "@/lib/draft";
 import { getCachedTeams } from "@/lib/tournamentData";
-import { draftTeamIds, teamProgressPoints, draftScores } from "@/lib/draft-scoring";
+import { draftTeamIds, teamProgressPoints, draftScores, computeGroupPoints } from "@/lib/draft-scoring";
 import {
   KNOCKOUT_TEMPLATE,
   buildBracket,
@@ -193,6 +193,7 @@ export default async function LeaguePage({
       getCachedTeams(),
     ]);
     const actual = computeActuals((matchesRes.data ?? []) as MatchRow[], new Map());
+    const groupPoints = computeGroupPoints((matchesRes.data ?? []) as MatchRow[]);
     const idByDraftName = draftTeamIds(teamsRes.data ?? []);
     // Map each draft-pool team name → its most-recent lineup (for the tap view).
     const lineupById = new Map(
@@ -206,7 +207,7 @@ export default async function LeaguePage({
     const standings = draftScores(initialPicks, (pot, slot) => {
       const team = teamAt(pot, slot);
       const teamId = team ? (idByDraftName.get(team.name) ?? null) : null;
-      return teamProgressPoints(teamId, actual.advancers, actual.champion);
+      return teamProgressPoints(teamId, actual.advancers, actual.champion, groupPoints);
     });
 
     // Matchday "managers" view: who drafted each nation, mapped onto the fixture

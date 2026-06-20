@@ -29,9 +29,13 @@ export async function recomputeAllScores(supabase: SupabaseClient) {
     if (t.fifa_rank != null) fifaRank.set(t.id, t.fifa_rank);
   }
 
-  const { data: leagues } = await supabase.from("leagues").select("id, scoring");
+  const { data: leagues } = await supabase.from("leagues").select("id, scoring, kind");
 
   for (const league of leagues ?? []) {
+    // Draft leagues keep their own scoring (draftScores() on the draft board) and must
+    // never be scored as prediction leagues — that produced phantom upfront totals from
+    // bracket rows that leaked into the draft league.
+    if ((league as { kind?: string }).kind === "draft") continue;
     const cfg = (league.scoring as ScoringConfig) ?? DEFAULT_SCORING;
 
     const { data: brackets } = await supabase

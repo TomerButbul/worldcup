@@ -38,19 +38,57 @@ export function draftTeamIds(teams: { id: number; name: string }[]): Map<string,
   return out;
 }
 
-// Furthest stage a team reached → points. Group exit = 0, champion = 12.
+// Real group-stage points: 3 for a win, 1 each for a draw, per finished group match.
+// Drafted teams earn these all through the group stage, so the board moves before the
+// knockout even starts. Keyed by team id.
+export const DRAFT_WIN_POINTS = 3;
+export const DRAFT_DRAW_POINTS = 1;
+
+export function computeGroupPoints(
+  matches: {
+    stage: string;
+    status: string;
+    home_team_id: number | null;
+    away_team_id: number | null;
+    home_goals: number | null;
+    away_goals: number | null;
+  }[],
+): Record<number, number> {
+  const pts: Record<number, number> = {};
+  const add = (id: number, n: number) => {
+    pts[id] = (pts[id] ?? 0) + n;
+  };
+  for (const m of matches) {
+    if (m.stage !== "group" || m.status !== "finished") continue;
+    if (m.home_team_id == null || m.away_team_id == null) continue;
+    if (m.home_goals == null || m.away_goals == null) continue;
+    if (m.home_goals > m.away_goals) add(m.home_team_id, DRAFT_WIN_POINTS);
+    else if (m.home_goals < m.away_goals) add(m.away_team_id, DRAFT_WIN_POINTS);
+    else {
+      add(m.home_team_id, DRAFT_DRAW_POINTS);
+      add(m.away_team_id, DRAFT_DRAW_POINTS);
+    }
+  }
+  return pts;
+}
+
+// A team's total draft points: real group results (3/win, 1/draw) PLUS a knockout
+// progress bonus by furthest stage (champion = 12). A team knocked out in the group
+// still keeps whatever it banked there.
 export function teamProgressPoints(
   teamId: number | null | undefined,
   reachedByStage: Record<string, Set<number>>,
   champion: number | null,
+  groupPoints: Record<number, number> = {},
 ): number {
   if (teamId == null) return 0;
-  if (champion != null && teamId === champion) return DRAFT_CHAMPION_POINTS;
-  let pts = 0;
+  const group = groupPoints[teamId] ?? 0;
+  if (champion != null && teamId === champion) return DRAFT_CHAMPION_POINTS + group;
+  let knockout = 0;
   for (const [stage, p] of Object.entries(DRAFT_STAGE_POINTS)) {
-    if (reachedByStage[stage]?.has(teamId)) pts = Math.max(pts, p);
+    if (reachedByStage[stage]?.has(teamId)) knockout = Math.max(knockout, p);
   }
-  return pts;
+  return knockout + group;
 }
 
 export interface DraftPick {
