@@ -430,8 +430,9 @@ function BracketView({
   return (
     <div className="space-y-3">
       <div className="glass rounded-2xl p-3 text-center text-sm text-chalk-dim">
-        The <span className="font-semibold text-chalk">real</span> knockout bracket — it fills in with actual results as
-        the tournament unfolds.{" "}
+        The knockout bracket — the{" "}
+        <span className="font-semibold text-gold">Round of 32 is projected live, &ldquo;as it stands&rdquo;</span> from the
+        current group standings, so it shifts as games play. Deeper rounds lock in once the knockout begins.{" "}
         {!hasResults && (
           <>
             Want to make your call?{" "}

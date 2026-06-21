@@ -84,6 +84,7 @@ export default async function TournamentPage() {
       winner_team_id: m.winner_team_id,
     })),
     new Map(Object.entries(fifaRankRecord).map(([id, r]) => [Number(id), r])),
+    { live: true }, // project the R32 "as it stands" from current group standings
   );
 
   // Top scorers / assists → join the player ids back to a name + team (the photo

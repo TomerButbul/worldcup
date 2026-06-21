@@ -61,9 +61,11 @@ function advancerOf(m: ActualMatch): number | null {
 export function resolveActualBracket(
   matches: ActualMatch[],
   fifaRank: Map<number, number> = new Map(),
+  opts: { live?: boolean } = {},
 ): ActualBracket {
-  // 1. Real group tables → Round of 32 participants (settled groups only).
-  const tables = computeGroupTables(matches as MatchRow[], fifaRank);
+  // 1. Group tables → Round of 32 participants. Default: settled groups only. Live
+  //    mode: project the R32 from the CURRENT standings (it shifts as games play).
+  const tables = computeGroupTables(matches as MatchRow[], fifaRank, { live: opts.live });
   const { round32 } = buildBracket(tables, fifaRank);
 
   // 2. Index every knockout fixture (both teams known) by its participant pair, so
