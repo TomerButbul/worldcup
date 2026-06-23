@@ -39,7 +39,7 @@ export async function savePrediction(
   // Every stage now stores its own scoreline (group scores moved here from the
   // upfront bracket, which is table-order only). A valid score sets the scorer
   // cap; an unset score → cap 0 (scorers-only).
-  const MAX_GOALS_PER_SIDE = 6; // closes the spray-scorers exploit (200:200 → unlimited slots)
+  const MAX_GOALS_PER_SIDE = 10; // closes the spray-scorers exploit (200:200 → unlimited slots)
   const isGroup = match.stage === "group";
   const haveScore =
     Number.isInteger(homeGoals) &&

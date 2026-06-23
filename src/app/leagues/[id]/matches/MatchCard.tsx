@@ -213,7 +213,7 @@ export default function MatchCard({
 
   // Change a side's score. Lowering it (or zeroing it) prunes that team's scorer
   // picks so you can never have more scorers than goals.
-  const MAX_GOALS_PER_SIDE = 6;
+  const MAX_GOALS_PER_SIDE = 10;
   function changeScore(side: "home" | "away", delta: number) {
     setTouched(true);
     const cur = side === "home" ? home : away;
