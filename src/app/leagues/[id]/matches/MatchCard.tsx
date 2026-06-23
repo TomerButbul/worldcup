@@ -213,10 +213,11 @@ export default function MatchCard({
 
   // Change a side's score. Lowering it (or zeroing it) prunes that team's scorer
   // picks so you can never have more scorers than goals.
+  const MAX_GOALS_PER_SIDE = 6;
   function changeScore(side: "home" | "away", delta: number) {
     setTouched(true);
     const cur = side === "home" ? home : away;
-    const v = Math.max(0, cur + delta);
+    const v = Math.min(MAX_GOALS_PER_SIDE, Math.max(0, cur + delta));
     if (side === "home") setHome(v);
     else setAway(v);
     if (delta < 0) {
@@ -352,9 +353,9 @@ export default function MatchCard({
           </span>
         ) : (
           <span className="flex items-center gap-2">
-            <Stepper value={touched ? home : "–"} onDec={() => changeScore("home", -1)} onInc={() => changeScore("home", 1)} />
+            <Stepper value={touched ? home : "–"} onDec={() => changeScore("home", -1)} onInc={() => changeScore("home", 1)} disableInc={home >= MAX_GOALS_PER_SIDE} />
             <span className="text-chalk-dim">–</span>
-            <Stepper value={touched ? away : "–"} onDec={() => changeScore("away", -1)} onInc={() => changeScore("away", 1)} />
+            <Stepper value={touched ? away : "–"} onDec={() => changeScore("away", -1)} onInc={() => changeScore("away", 1)} disableInc={away >= MAX_GOALS_PER_SIDE} />
           </span>
         )}
 
@@ -831,10 +832,10 @@ function TeamScorers({
   );
 }
 
-function Stepper({ value, onDec, onInc }: { value: number | string; onDec: () => void; onInc: () => void }) {
+function Stepper({ value, onDec, onInc, disableInc }: { value: number | string; onDec: () => void; onInc: () => void; disableInc?: boolean }) {
   return (
     <div className="flex flex-col items-center">
-      <button onClick={onInc} className="px-3 py-1 text-base leading-none text-chalk-dim hover:text-chalk" aria-label="Increase">
+      <button onClick={onInc} disabled={disableInc} className="px-3 py-1 text-base leading-none text-chalk-dim hover:text-chalk disabled:cursor-not-allowed disabled:opacity-30" aria-label="Increase">
         ▲
       </button>
       <span className="net w-9 rounded-lg bg-night/5 py-1 text-center font-display text-lg text-chalk">
