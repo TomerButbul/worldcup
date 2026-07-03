@@ -366,17 +366,22 @@ export async function GET(request: NextRequest) {
     // 2b) Squads (on demand only — 1 API call per team, so guard behind ?squads=1)
     if (request.nextUrl.searchParams.get("squads") === "1") {
       const { data: allTeams } = await supabase.from("teams").select("id");
-      // Reset, then re-flag only current squad members → cuts drop out of "WC players".
-      await supabase.from("players").update({ in_squad: false }).gt("id", 0);
-      let players = 0;
+      // Fetch all squads first, THEN reset+repopulate — so a partial API failure
+      // can't leave in_squad wiped. If fewer than 10 teams respond, abort entirely.
+      const fetched: { teamId: number; players: { id: number; name: string; position?: string | null; age?: number | null; number?: number | null; photo?: string | null }[] }[] = [];
       for (const t of allTeams ?? []) {
         const squads = await fetchSquad(t.id);
         const list = squads[0]?.players ?? [];
-        if (list.length) {
+        if (list.length) fetched.push({ teamId: t.id, players: list });
+      }
+      if (fetched.length >= 10) {
+        await supabase.from("players").update({ in_squad: false }).gt("id", 0);
+        let players = 0;
+        for (const { teamId, players: list } of fetched) {
           await supabase.from("players").upsert(
             list.map((p) => ({
               id: p.id,
-              team_id: t.id,
+              team_id: teamId,
               name: p.name,
               position: p.position ?? null,
               age: p.age ?? null,
@@ -387,8 +392,10 @@ export async function GET(request: NextRequest) {
           );
           players += list.length;
         }
+        summary.players = players;
+      } else {
+        summary.players = 0; // API returned too little — leave existing squads intact
       }
-      summary.players = players;
     }
 
     // 2c) Player profiles: height/weight/birth/nationality (paginated /players;
